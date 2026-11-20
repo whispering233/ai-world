@@ -30,6 +30,8 @@ Context = { systemPrompt, messages, tools }   可序列化
 
 鉴权解析顺序：显式 `{ apiKey }` 优先，其次凭据存储（若注入），最后由 provider 从环境变量解析。
 
+**实测确认（1.5.2）**：`complete()` / `stream()` **从不 reject**——未知 provider、未配置鉴权、请求失败都会返回一条 `stopReason: "error"` 的 `AssistantMessage`。因此封装必须在读完消息后显式转成异常，否则失败会被当成「模型说了空话」。
+
 ## 4. Context 可序列化 → 入档
 
 `Context` 是可序列化对象，因此**每次调用的输入可以原样存进 llm 日志**（与 `journal.seq` 对齐）。得到四件事：
