@@ -63,11 +63,42 @@ Context = { systemPrompt, messages, tools }   可序列化
 
 | 编号 | 问题 | 说明 |
 | :--- | :--- | :--- |
-| A3 | 裁判的结构化输出走 tool calling 还是文本 JSON | 见下 |
+| A3 | 裁判的结构化输出走 tool calling 还是文本 JSON | 默认 **tool calling**；两路成本已被 pi-ai 拉平（见 §9） |
 
 若走 tool calling：这里的"工具"是**输出通道**（`submit_verdict`），不是能力授予——它不给世界增加任何动作，只把输出装进 schema。人物侧永远不出现工具，因此不违反"人物零词表"。
 
-## 8. 依赖风险
+## 8. pi 生态引入清单
+
+pi 仓库共 10 个包（均已发布为 npm 公开包，MIT）。**只引入 `pi-ai` 一个**；`pi-schema` 是它的既有依赖，可直接使用，不需要额外决定。
+
+| 包 | 版本 | 作用 | 结论 |
+| :--- | :--- | :--- | :--- |
+| `pi-ai` | 1.5.2 | 统一 LLM API、鉴权、成本统计、流式、工具调用 | **引入** |
+| `pi-schema` | 1.5.2 | JSON Schema 构建与校验（无 eval，8.5KB，零依赖） | **白得**（pi-ai 已依赖） |
+| `pi-agent-core` | 1.5.2 | 有状态 agent + 工具执行 + 事件流 | 不用（本项目的循环是世界循环，不是 agent 循环） |
+| `pi-telemetry` | 1.5.2 | 遥测契约 | 不用（单指标不值） |
+| `pi-server` | 1.1.0（自述 experimental） | 本地服务与进程监管 | 不用（不稳定，且不是静态流服务） |
+| `pi-storage-sqlite-node` | 0.83.0（落后主版本） | sqlite 会话存储，绑 agent-core | 不用（journal 是自研 append-only） |
+| `pi-tui` | 1.5.2 | 终端 UI | 不用（本项目为 Web） |
+| `pi-mcp` | 1.5.2 | MCP 客户端 | 不用 |
+| `pi-codemode` | 1.5.2 | 沙箱 JS 执行 | 不用 |
+| `pi-coding-agent` | 1.5.2 | CLI 编码 agent | 不用 |
+
+### 直接可用的两个能力（无需自写）
+
+| 能力 | 来源 | 用途 |
+| :--- | :--- | :--- |
+| `validateToolArguments(tool, toolCall)` | `pi-ai` | 任意 JSON Schema 校验；会先把模型发来的 `"42"` 强制为 `42`；错误为 JSON Pointer → 点路径 |
+| `repairJson` / `parseJsonWithRepair` / `parseStreamingJson` | `pi-ai` | 文本 JSON 路线的截断修复与增量解析 |
+
+两条路线（tool calling / 文本 JSON）的骨架都已是现成的，因此 A3 的边际成本几乎为零。
+
+## 9. 版本纪律
+
+- 全部锁 `1.5.2`；升级前跑 fixture 冒烟。
+- `pi-server`(1.1.0) 与 `pi-storage-sqlite-node`(0.83.0) 与主版本不同步，说明生态内成熟度差异大：**只用与主版本同步的包**。
+
+## 10. 依赖风险
 
 - 安装体积约 35MB（内含 openai / anthropic / google / bedrock SDK），可用 tree-shaking 只注册实际使用的 provider。
 - 版本需锁定；该包随 pi 快速迭代，升级前先跑 fixture 冒烟。

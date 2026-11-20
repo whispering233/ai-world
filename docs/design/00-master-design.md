@@ -51,6 +51,8 @@
 | 18 | `no_rate` 从第一天统计，作为裁判体检指标 | 20 |
 | 19 | 不引入 cordis / storylet 运行时 / ECS / 向量库 | backlog |
 | 20 | LLM 层用 `@earendil-works/pi-ai`，不自研供应商适配 | 50 |
+| 21 | 验证手法用 `@earendil-works/pi-schema`（pi-ai 已依赖，无需额外引入） | 50 |
+| 22 | 只引入 pi-ai 一个包；其余 pi 包均不用 | 50 |
 
 ## 6. 待定
 
@@ -58,7 +60,7 @@
 | :--- | :--- | :--- |
 | A1 | 角色输出如何切分"内心/对外" | 推荐两字段 `inner` + `outward`，待确认 |
 | A2 | 技术栈与存储形态 | 语言与 LLM 层已定（TS + pi-ai，见 50）；存储与 UI 未定 |
-| A3 | 裁判结构化输出：tool calling vs 文本 JSON | 见 50 §7 |
+| A3 | 裁判结构化输出：tool calling vs 文本 JSON | 默认 tool calling（两路成本已被 pi-ai 拉平），待确认 |
 | B5 | 首切片"有魂"的验收判据 | 三条初稿，待确认 |
 
 ## 7. 设计取舍（为什么这样、不那样）
