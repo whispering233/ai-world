@@ -77,10 +77,13 @@ async function main(): Promise<void> {
 
   stdout.write(`世界初始化：${participants.length} 个参与者，${STARTER_TOWN.canon.length} 条 canon\n`)
   stdout.write(`模型：fast=${cfg.models.fast} strong=${cfg.models.strong} mid=${cfg.models.mid}\n\n`)
+  if (!AUTO) stdout.write('你说一句话或做一件事，一行就是一拍；输入 /quit 结束并出体检表。\n\n')
   const rl = AUTO ? undefined : createInterface({ input: stdin, output: stdout })
 
   for (let i = 1; i <= BEATS; i += 1) {
     const line = AUTO ? (AUTO_LINES[(i - 1) % AUTO_LINES.length] ?? '') : await rl?.question('你> ')
+    // 自己试玩时用 /quit 收尾，否则 Ctrl+C 会跳过体检表
+    if (line !== undefined && ['/quit', '/q'].includes(line.trim())) break
     const res = await runBeat({
       world,
       scene,
