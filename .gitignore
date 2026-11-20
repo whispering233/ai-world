@@ -1,0 +1,36 @@
+# 依赖
+node_modules/
+.pnpm-store/
+
+# 构建产物
+dist/
+build/
+*.tsbuildinfo
+
+# 世界运行时数据（存档不入库）
+data/
+saves/
+*.local.jsonl
+*.local.json
+
+# 环境与密钥
+.env
+.env.*
+!.env.example
+
+# 日志与覆盖率
+logs/
+*.log
+coverage/
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# 测试产物
+test-results/
+playwright-report/
