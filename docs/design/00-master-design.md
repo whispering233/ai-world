@@ -19,7 +19,7 @@
 ```text
 文本层  passage            自由散文，渲染器写，永不进账本
 事实层  facts (+ knows)    只增不改，唯一写者为 referee
-账本层  ledger             5 类字段 / 6 个 op，唯一写者为 referee
+账本层  ledger             5 类字段 / 7 个 op，唯一写者为 referee
 人物层  core(只读) / drives / beliefs / experience(含 self)
 调度层  clock(分钟) / busyUntil(最小堆) / journal(append-only)
 ```
@@ -33,7 +33,7 @@
 | :--- | :--- | :--- |
 | 1 | 三表分离，文本不是证据，冲突时账本赢 | 10 |
 | 2 | 账本只记"别人能验证的"；情绪/欲望/信念留在角色私有 | 10 |
-| 3 | 5 类字段 + 6 个 op；`phys` 与 `fact` 是开放逃生口 | 10 |
+| 3 | 5 类字段 + 7 个 op；`phys` 与 `fact` 是开放逃生口 | 10 |
 | 4 | `knows`（是否知情，客观）≠ `belief`（他以为的，可错） | 10 |
 | 5 | referee 是账本与 facts 的唯一写入口 | 20 |
 | 6 | 一拍批量结算一次；`order` 表达"谁的手快" | 20 / 40 |

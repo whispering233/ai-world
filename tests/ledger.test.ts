@@ -16,7 +16,7 @@ function world(): World {
   }
 }
 
-describe('apply：六个 op', () => {
+describe('apply：六个字段操作', () => {
   it('move 改位置', () => {
     const { world: w, results } = apply(world(), [{ op: 'move', who: 'ann', to: 'street' }])
     expect(results[0]?.ok).toBe(true)
@@ -45,10 +45,18 @@ describe('apply：六个 op', () => {
     expect(w.ledger.rel.bob).toBeUndefined()
   })
 
-  it('learn 新增 fact 并授予 knows', () => {
-    const { world: w } = apply(world(), [{ op: 'learn', who: ['bob'], text: 'ann 那晚不在场' }])
+  it('fact 新增一条事实，不授予任何实体', () => {
+    const { world: w } = apply(world(), [{ op: 'fact', text: 'ann 那晚不在场' }])
     expect(w.facts.f0?.text).toBe('ann 那晚不在场')
+    expect(w.ledger.knows.bob).toBeUndefined()
+  })
+
+  it('know 可把已存在的事实告诉别人（旧的 learn 做不到）', () => {
+    const first = apply(world(), [{ op: 'fact', text: '酒馆起火了' }]).world
+    const { world: w, results } = apply(first, [{ op: 'know', who: ['bob'], fact: 'f0' }])
+    expect(results[0]?.ok).toBe(true)
     expect(w.ledger.knows.bob).toEqual(['f0'])
+    expect(Object.keys(w.facts)).toHaveLength(1)
   })
 })
 
@@ -89,9 +97,14 @@ describe('apply：前置条件与拒绝', () => {
   })
 
   it('空事实文本被拒', () => {
-    const { world: w, results } = apply(world(), [{ op: 'learn', who: ['ann'], text: '   ' }])
+    const { world: w, results } = apply(world(), [{ op: 'fact', text: '   ' }])
     expect(results[0]?.ok).toBe(false)
     expect(Object.keys(w.facts)).toHaveLength(0)
+  })
+
+  it('know 指向不存在的事实被拒', () => {
+    const { results } = apply(world(), [{ op: 'know', who: ['ann'], fact: 'f404' }])
+    expect(results[0]?.ok).toBe(false)
   })
 })
 
@@ -104,7 +117,7 @@ describe('apply：纯函数与可回放', () => {
   })
 
   it('同一批 op 重放两次得到相同 world', () => {
-    const ops = [{ op: 'learn' as const, who: ['ann'], text: '门是铸铁焊死的' }]
+    const ops = [{ op: 'fact' as const, text: '门是铸铁焊死的' }]
     const a = apply(world(), ops).world
     const b = apply(world(), ops).world
     expect(a).toEqual(b)

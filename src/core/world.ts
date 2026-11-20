@@ -46,7 +46,8 @@ export type Op =
   | { op: 'take'; from: EntId; item: ItemId; n: number }
   | { op: 'phys'; who: EntId; key: string; value: number | boolean }
   | { op: 'rel'; from: EntId; to: EntId; delta: number }
-  | { op: 'learn'; who: EntId[]; text: string }
+  | { op: 'fact'; text: string }
+  | { op: 'know'; who: EntId[]; fact: FactId }
 
 export interface OpResult {
   ok: boolean

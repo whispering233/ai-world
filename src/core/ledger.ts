@@ -67,12 +67,19 @@ function applyOne(w: World, op: Op): OpResult {
       return OK
     }
 
-    case 'learn': {
+    case 'fact': {
       const text = op.text.trim()
       if (text === '') return fail('事实文本不能为空')
+      addFact(w, text)
+      return OK
+    }
+
+    case 'know': {
       const missing = op.who.filter((id) => !exists(w, id))
       if (missing.length > 0) return fail(`不存在的实体：${missing.join(', ')}`)
-      const fact = addFact(w, text)
+      const fact = w.facts[op.fact]
+      if (!fact) return fail(`不存在的事实：${op.fact}`)
+      if (fact.supersededBy !== undefined) return fail(`事实已被推翻：${op.fact}`)
       for (const id of op.who) {
         const list = knowsOf(w, id)
         if (!list.includes(fact.id)) list.push(fact.id)

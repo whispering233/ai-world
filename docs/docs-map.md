@@ -5,7 +5,7 @@
 | 文件 | 内容 |
 | :--- | :--- |
 | [00-master-design.md](design/00-master-design.md) | 总体设计、已定决策、待定项 |
-| [10-world-model.md](design/10-world-model.md) | 三表、账本 5 字段 / 6 op、五条不变式、记忆不对称 |
+| [10-world-model.md](design/10-world-model.md) | 三表、账本 5 字段 / 7 op、五条不变式、记忆不对称 |
 | [20-referee.md](design/20-referee.md) | 裁判契约、批量结算、三种 verdict、体检指标 |
 | [30-cognition.md](design/30-cognition.md) | 人物四层、单次调用、成长三道闸、检索与预算 |
 | [40-time-and-loop.md](design/40-time-and-loop.md) | clock / busyUntil / 一拍、时长归属、时间唯一出口 |
