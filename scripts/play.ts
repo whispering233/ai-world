@@ -35,12 +35,12 @@ const AUTO_LINES = [
 ]
 
 async function main(): Promise<void> {
-  const usage = { input: 0, output: 0 }
+  const usage = { fast: { input: 0, output: 0 }, strong: { input: 0, output: 0 }, mid: { input: 0, output: 0 } }
   const llm = createLlm({
     models: { fast: 'deepseek/deepseek-flash', strong: 'deepseek/deepseek-v4-pro', mid: 'deepseek/deepseek-flash' },
     onUsage: (s) => {
-      usage.input += s.input
-      usage.output += s.output
+      usage[s.tier].input += s.input
+      usage[s.tier].output += s.output
     },
   })
   const deps: BeatDeps = {
@@ -99,7 +99,9 @@ async function main(): Promise<void> {
   stdout.write(`空结果占比      ${pct(empty.length, verdicts.length)}   （期望 < 50%）\n`)
   stdout.write(`长动作占比      ${pct(longActions.length, verdicts.length)}   （期望 < 20%）\n`)
   stdout.write(`结束时刻        ${fmt(world.ledger.clock)}\n`)
-  stdout.write(`tokens 输入/输出  ${usage.input} / ${usage.output}\n`)
+  for (const tier of ['fast', 'strong', 'mid'] as const) {
+    stdout.write(`tokens ${tier.padEnd(7)} ${usage[tier].input} / ${usage[tier].output}\n`)
+  }
   stdout.write('\n三条判据请自己回答：\n')
   stdout.write('  1) 你还想不想跟这个人说第 21 句话？\n')
   stdout.write('  2) 它做过至少 1 次你没预料、但事后觉得合理的事吗？\n')

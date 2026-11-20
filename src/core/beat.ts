@@ -148,7 +148,9 @@ function describeLedger(world: World, present: readonly EntId[]): string {
     const phys = Object.entries(world.ledger.phys[ent] ?? {}).map(([k, v]) => `${k}=${String(v)}`).join('、')
     return `- ${ent}：在 ${place}；持有 ${bag}${phys === '' ? '' : `；${phys}`}`
   })
-  return `已知地点：${places}\n账本现状：\n${rows.join('\n')}`
+  const facts = Object.values(world.facts).slice(-8).map((f) => `- ${f.text}`).join('\n')
+  const events = facts === '' ? '' : `\n最近发生过的事：\n${facts}`
+  return `已知地点：${places}\n账本现状：\n${rows.join('\n')}${events}`
 }
 
 /** 一拍的时长 = 本拍最长的那个动作；没有动作就不推进时间。 */
