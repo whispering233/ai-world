@@ -1,4 +1,14 @@
-import type { Api, Context, Message, Model, MutableModels } from '@earendil-works/pi-ai'
+import {
+  validateToolArguments,
+  type Api,
+  type Context,
+  type CredentialStore,
+  type Message,
+  type Model,
+  type MutableModels,
+  type Tool,
+  type ToolCall,
+} from '@earendil-works/pi-ai'
 
 /** 三档模型：人物认知 = fast，裁判 = strong，渲染 = mid（见 docs/design/50-llm.md §2）。 */
 export type Tier = 'fast' | 'strong' | 'mid'
@@ -8,15 +18,26 @@ export interface ChatMessage {
   content: string
 }
 
+export interface ToolSpec {
+  name: string
+  description: string
+  /** 纯 JSON Schema（pi-ai 会用它校验模型给出的参数） */
+  parameters: Record<string, unknown>
+}
+
 export interface ChatRequest {
   tier: Tier
   system?: string
   messages: ChatMessage[]
   signal?: AbortSignal
+  /** 给了工具就等于要求模型用工具回答；参数由 pi-ai 校验 */
+  tools?: ToolSpec[]
 }
 
 export interface ChatResult {
   text: string
+  /** 模型给出的工具调用（已按 schema 校验并补全类型） */
+  toolCalls: { name: string; args: Record<string, unknown> }[]
   inputTokens: number
   outputTokens: number
   model: string
@@ -33,15 +54,19 @@ export interface Llm {
   chat(req: ChatRequest): Promise<ChatResult>
 }
 
-let collection: MutableModels | undefined
-
-/** 首次 chat() 才加载 provider 目录：模块加载期不读 env，也不因为缺 key 报错。 */
-async function models(): Promise<MutableModels> {
-  if (!collection) {
-    const { builtinModels } = await import('@earendil-works/pi-ai/providers/all')
-    collection = builtinModels()
+/**
+ * 首次 chat() 才加载 provider 目录：模块加载期不读 env，也不因为缺 key 报错。
+ * 每个 Llm 实例各自持有一个目录，这样注入的凭据存储不会跨实例串味。
+ */
+function modelLoader(credentials?: CredentialStore): () => Promise<MutableModels> {
+  let collection: MutableModels | undefined
+  return async () => {
+    if (!collection) {
+      const { builtinModels } = await import('@earendil-works/pi-ai/providers/all')
+      collection = credentials ? builtinModels({ credentials }) : builtinModels()
+    }
+    return collection
   }
-  return collection
 }
 
 /**
@@ -71,12 +96,22 @@ function toMessage(m: ChatMessage, model: Model<Api>, at: number): Message {
 }
 
 /** 模型串为 "provider/modelId"，档位只能来自配置，不硬编码。 */
-export function createLlm(config: { models: Record<Tier, string>; onUsage?: (sample: UsageSample) => void }): Llm {
+export interface LlmConfig {
+  models: Record<Tier, string>
+  onUsage?: (sample: UsageSample) => void
+  /** 订阅式供应商（如 opencode-go）的凭据存储；不给就走环境变量 */
+  credentials?: CredentialStore
+  /** 会话标识：opencode 用它做路由头，多家供应商用它做缓存亲和。一次世界运行用一个 */
+  sessionId?: string
+}
+
+export function createLlm(config: LlmConfig): Llm {
+  const loadModels = modelLoader(config.credentials)
   return {
     async chat(req) {
       const ref = config.models[req.tier] ?? ''
       const at = ref.indexOf('/')
-      const models_ = await models()
+      const models_ = await loadModels()
       const model =
         at > 0 && at < ref.length - 1 ? models_.getModel(ref.slice(0, at), ref.slice(at + 1)) : undefined
       if (!model) throw new Error(`模型未配置或不存在：tier=${req.tier} model=${ref || '(空)'}`)
@@ -84,14 +119,20 @@ export function createLlm(config: { models: Record<Tier, string>; onUsage?: (sam
       const context: Context = {
         systemPrompt: req.system,
         messages: req.messages.map((m) => toMessage(m, model, Date.now())),
+        // SAFETY: pi-ai 的 Tool.parameters 接受任意 JSON Schema（其 README 明示），我们传的就是纯 JSON Schema 字面量。
+        ...(req.tools ? { tools: req.tools as unknown as Tool[] } : {}),
       }
-      const res = await models_.complete(model, context, { signal: req.signal })
+      const res = await models_.complete(model, context, {
+        signal: req.signal,
+        ...(config.sessionId ? { sessionId: config.sessionId } : {}),
+      })
       if (res.stopReason === 'error') {
         throw new Error(`模型调用失败：tier=${req.tier} model=${ref}：${res.errorMessage ?? '无错误详情'}`)
       }
 
       const result: ChatResult = {
         text: res.content.map((b) => (b.type === 'text' ? b.text : '')).join(''),
+        toolCalls: collectToolCalls(res.content, req.tools ?? []),
         inputTokens: res.usage.input,
         outputTokens: res.usage.output,
         model: ref,
@@ -108,7 +149,24 @@ export function createFauxLlm(script: string[]): Llm {
   return {
     async chat(req) {
       const text = script.length === 0 ? '' : (script[Math.min(i++, script.length - 1)] ?? '')
-      return { text, inputTokens: 0, outputTokens: 0, model: `faux/${req.tier}` }
+      return { text, toolCalls: [], inputTokens: 0, outputTokens: 0, model: `faux/${req.tier}` }
     },
   }
+}
+
+/** 只收模型真正调用过的工具；参数校验失败时 pi-ai 会给出带字段路径的错误。 */
+function collectToolCalls(
+  content: readonly { type: string }[],
+  tools: readonly ToolSpec[],
+): { name: string; args: Record<string, unknown> }[] {
+  const out: { name: string; args: Record<string, unknown> }[] = []
+  for (const block of content) {
+    if (block.type !== 'toolCall') continue
+    const call = block as ToolCall
+    const spec = tools.find((t) => t.name === call.name)
+    if (!spec) continue
+    // SAFETY: validateToolArguments 只读 name 与 parameters，返回按 schema 校验（并补类型）后的参数。
+    out.push({ name: call.name, args: validateToolArguments(spec as unknown as Tool, call) as Record<string, unknown> })
+  }
+  return out
 }

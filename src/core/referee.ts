@@ -182,6 +182,66 @@ export function createStubReferee(script: readonly RefereeOutput[]): Referee {
   }
 }
 
+/**
+ * 裁判的输出通道：一个强制结构化参数的工具。
+ *
+ * 它不是能力授予——不给世界增加任何动作，只把判定装进 schema。
+ * 信封在这里校验；单个 op 的合法性仍由 apply() 的前置条件把关（决策 #8）。
+ */
+export const SUBMIT_VERDICT_TOOL = {
+  name: 'submit_verdict',
+  description: '给出本拍全部主张的判定。每条 claim 必须有一条 verdict。',
+  parameters: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['order', 'verdicts'],
+    properties: {
+      order: { type: 'array', items: { type: 'string' } },
+      verdicts: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['claimId', 'ok'],
+          properties: {
+            claimId: { type: 'string' },
+            actor: { type: 'string' },
+            ok: { type: 'boolean' },
+            reason: { type: 'string' },
+            duration: { type: 'number' },
+            deltas: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['op'],
+                additionalProperties: true,
+                properties: { op: { type: 'string', enum: ['move', 'give', 'take', 'phys', 'rel', 'fact', 'know'] } },
+              },
+            },
+          },
+        },
+      },
+      observations: {
+        type: 'object',
+        additionalProperties: {
+          type: 'object',
+          properties: {
+            claimIds: { type: 'array', items: { type: 'string' } },
+            summary: { type: 'string' },
+          },
+        },
+      },
+      driveHits: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: { ent: { type: 'string' }, driveId: { type: 'string' }, delta: { type: 'number' } },
+        },
+      },
+    },
+  },
+} as const
+
 const REFEREE_SYSTEM = `你是这个世界的裁判，不是叙述者。你只判定别人提出的主张，不替任何人编故事。
 
 规则：
@@ -197,7 +257,7 @@ const REFEREE_SYSTEM = `你是这个世界的裁判，不是叙述者。你只�
 10. **说话于是留痕**：一句被听见的话就是一条事件——用 know 把这条事件告诉听众（fact 字段直接写那句话里的事实或引语，不需要 id）。只有真正改变态度的行为（威胁、羞辱、示好、守信、背叛）才动 rel，一次 ±1；rel = -3 表示势不两立，不要随手推到满。
 11. **phys 的键必须能被一句物理描述解释**（closed / broken / lit / wounded）；不要用它记「他有药包」这类身份状态。
 
-只输出一个 JSON 对象，不要任何解释文字：
+调用 submit_verdict 工具给出判定；不要输出解释文字。字段形状如下（供参考）：
 {"order":["实体id",...],"verdicts":[{"claimId":"...","actor":"...","ok":true,"reason":"...","deltas":[{"op":"move","who":"...","to":"..."}],"duration":1}],"observations":{"实体id":{"claimIds":["..."],"summary":"一句他实际感知到的结果"}},"driveHits":[{"ent":"...","driveId":"...","delta":0.2}]}
 
 deltas 只能使用这些 op：move{who,to} / give{from,to,item,n} / take{from,item,n} / phys{who,key,value} / rel{from,to,delta} / fact{text} / know{who,fact}。`
@@ -213,6 +273,7 @@ export function createLlmReferee(llm: Llm): Referee {
       const res = await llm.chat({
         tier: 'strong',
         system: REFEREE_SYSTEM,
+        tools: [SUBMIT_VERDICT_TOOL],
         messages: [
           {
             role: 'user',
@@ -220,12 +281,16 @@ export function createLlmReferee(llm: Llm): Referee {
           },
         ],
       })
-      // 解析失败时不抛：交给 parseRefereeOutput 走“无事发生 + notes”分支，一拍不会因为模型写了废话而崩
-      let raw: unknown
-      try {
-        raw = parseModelJson(res.text)
-      } catch {
-        raw = undefined
+      // 首选工具调用（参数已被 schema 校验）；模型没用工具时退回文本 JSON。
+      // 两条路都不抛：解析不出来就交给 parseRefereeOutput 走“无事发生 + notes”分支。
+      const args = res.toolCalls.find((c) => c.name === 'submit_verdict')?.args
+      let raw: unknown = args
+      if (raw === undefined) {
+        try {
+          raw = parseModelJson(res.text)
+        } catch {
+          raw = undefined
+        }
       }
       return parseRefereeOutput(raw, input.claims).output
     },

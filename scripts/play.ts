@@ -6,7 +6,12 @@
  *   node --experimental-strip-types scripts/play.ts --beats 20
  *   node --experimental-strip-types scripts/play.ts --beats 3 --auto
  */
+import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { createInterface } from 'node:readline/promises'
+import type { CredentialStore } from '@earendil-works/pi-ai'
 import { stdin, stdout } from 'node:process'
 import { runBeat, type BeatDeps } from '../src/core/beat.ts'
 import { createCognition } from '../src/core/cognition.ts'
@@ -37,7 +42,14 @@ const AUTO_LINES = [
 async function main(): Promise<void> {
   const usage = { fast: { input: 0, output: 0 }, strong: { input: 0, output: 0 }, mid: { input: 0, output: 0 } }
   const llm = createLlm({
-    models: { fast: 'deepseek/deepseek-flash', strong: 'deepseek/deepseek-v4-pro', mid: 'deepseek/deepseek-flash' },
+    // 与 pi CLI 同一档：opencode-go 订阅的 DeepSeek V4.1 Flash
+    models: {
+      fast: 'opencode-go/deepseek-v4.1-flash',
+      strong: 'opencode-go/deepseek-v4-pro',
+      mid: 'opencode-go/deepseek-v4.1-flash',
+    },
+    credentials: piCredentials(),
+    sessionId: `play-${randomUUID()}`,
     onUsage: (s) => {
       usage[s.tier].input += s.input
       usage[s.tier].output += s.output
@@ -123,3 +135,26 @@ function pct(part: number, total: number): string {
 }
 
 void main()
+
+/**
+ * 复用 pi CLI 自己的订阅凭据（~/.pi/agent/auth.json），不额外存一份 key。
+ * 只读：本程序不该改写 pi 的登录状态。
+ */
+function piCredentials(): CredentialStore {
+  const file = join(homedir(), '.pi', 'agent', 'auth.json')
+  const raw = JSON.parse(readFileSync(file, 'utf8')) as Record<string, { type: 'api_key'; key?: string }>
+  return {
+    async read(providerId) {
+      return raw[providerId]
+    },
+    async list() {
+      return Object.entries(raw).map(([providerId, c]) => ({ providerId, type: c.type }))
+    },
+    async modify() {
+      throw new Error('play.ts 只读 pi 凭据，不修改')
+    },
+    async delete() {
+      throw new Error('play.ts 只读 pi 凭据，不删除')
+    },
+  }
+}

@@ -13,7 +13,7 @@ describe('createFauxLlm：离线脚本', () => {
 
   it('结果是 text / inputTokens / outputTokens / model 四字段', async () => {
     const res = await createFauxLlm(['好的']).chat({ tier: 'strong', messages: ask })
-    expect(res).toEqual({ text: '好的', inputTokens: 0, outputTokens: 0, model: 'faux/strong' })
+    expect(res).toEqual({ text: '好的', toolCalls: [], inputTokens: 0, outputTokens: 0, model: 'faux/strong' })
   })
 })
 

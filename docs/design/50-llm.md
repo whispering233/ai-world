@@ -65,7 +65,10 @@ Context = { systemPrompt, messages, tools }   可序列化
 
 | 编号 | 问题 | 说明 |
 | :--- | :--- | :--- |
-| A3 | 裁判的结构化输出走 tool calling 还是文本 JSON | 默认 **tool calling**；两路成本已被 pi-ai 拉平（见 §9） |
+| A3 | 裁判的结构化输出 | **已定：tool calling**（`submit_verdict`），参数由 pi-ai 按 JSON Schema 校验；模型没调工具时回退文本 JSON |
+
+裁判**不拆成两步**（判合法 / 记账分开）：拆开会把裁判调用翻倍，而 `no_rate` 偏低可以用 schema 强制字段来治。
+
 
 若走 tool calling：这里的"工具"是**输出通道**（`submit_verdict`），不是能力授予——它不给世界增加任何动作，只把输出装进 schema。人物侧永远不出现工具，因此不违反"人物零词表"。
 
@@ -164,3 +167,15 @@ chat 应用必须压缩，因为 transcript 线性增长。本项目的上下文
 
 - 安装体积约 35MB（内含 openai / anthropic / google / bedrock SDK），可用 tree-shaking 只注册实际使用的 provider。
 - 版本需锁定；该包随 pi 快速迭代，升级前先跑 fixture 冒烟。
+
+## 12. 供应商与订阅
+
+默认走 **`opencode-go` 订阅**（与 pi CLI 同一档），不直连 DeepSeek：
+
+| 档位 | 模型 | 输入 $/M | 输出 $/M |
+| :--- | :--- | :--- | :--- |
+| fast / mid | `opencode-go/deepseek-v4.1-flash` | 0.15 | 0.60 |
+| strong（裁判） | `opencode-go/deepseek-v4-pro` | 0.66 | 1.98 |
+
+直连 `deepseek` 同样两个模型是 0.30/1.20 与 1.32/3.96——**订阅价大约是直连的一半**。
+凭据复用 pi CLI 的 `~/.pi/agent/auth.json`（只读），不另存 key；`sessionId` 每次运行一个，opencode 用它做路由与缓存亲和。
