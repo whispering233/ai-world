@@ -21,6 +21,7 @@
 | `models.strong` | 否 | 裁判档。缺省同上 |
 | `models.mid` | 否 | 渲染档。缺省同上 |
 | `sessionIdPrefix` | 否 | opencode 的路由头前缀，缺省 `play`；每次运行追加随机后缀 |
+| `retry` | 否 | 临时错误重试：`{ enabled, maxRetries, baseDelayMs }`，缺省 `true / 2 / 800` |
 
 规则：
 
@@ -45,6 +46,10 @@
 - **订阅式供应商**（`opencode-go`）：复用 pi CLI 的 `~/.pi/agent/auth.json`，只读，不另存 key。
 - **环境变量**：直连供应商从环境读（如 `DEEPSEEK_API_KEY`）。
 - 显式 `apiKey` 优先级最高（本程序暂不使用）。
+
+### 重试为什么由库负责
+
+`pi-ai` 自带 `retryAssistantCall(produce, policy, signal)`：只重试它判定为**可重试**的错误（连接重置、超时、5xx），配额与鉴权错误立刻返回。pi CLI 的 `settings.retry` 就是喂给它的同一套策略；我们的 `llm.chat` 现在也走同一条路。
 
 ## 4. 其他运行时参数
 

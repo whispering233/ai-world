@@ -5,6 +5,7 @@
  * 而换通道这种事往往发生在"正在跑验收、对方抖动"的时候。
  */
 import { readFileSync } from 'node:fs'
+import type { RetryPolicy } from '@earendil-works/pi-ai'
 import type { Tier } from './llm.ts'
 
 export interface ModelConfig {
@@ -12,6 +13,8 @@ export interface ModelConfig {
   models: Record<Tier, string>
   /** opencode 用会话头做路由；前缀 + 随机后缀 */
   sessionIdPrefix?: string
+  /** 临时错误的重试策略；缺省 2 次、800ms 起退避 */
+  retry?: RetryPolicy
 }
 
 export const DEFAULT_MODELS: Record<Tier, string> = {
@@ -47,9 +50,11 @@ export function loadModelConfig(path: string): ModelConfig {
   }
 
   const prefix = raw['sessionIdPrefix']
+  const retry = asRecord(raw['retry'])
   return {
     models: resolved,
     ...(typeof prefix === 'string' && prefix !== '' ? { sessionIdPrefix: prefix } : { sessionIdPrefix: 'play' }),
+    ...(retry ? { retry: readRetry(retry) } : {}),
   }
 }
 
@@ -57,4 +62,13 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : undefined
+}
+
+function readRetry(raw: Record<string, unknown>): RetryPolicy {
+  const num = (v: unknown, fallback: number): number => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
+  return {
+    enabled: raw['enabled'] !== false,
+    maxRetries: num(raw['maxRetries'], 2),
+    baseDelayMs: num(raw['baseDelayMs'], 800),
+  }
 }

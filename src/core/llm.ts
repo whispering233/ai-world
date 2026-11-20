@@ -1,5 +1,7 @@
 import {
+  retryAssistantCall,
   validateToolArguments,
+  type RetryPolicy,
   type Api,
   type Context,
   type CredentialStore,
@@ -103,6 +105,8 @@ export interface LlmConfig {
   credentials?: CredentialStore
   /** 会话标识：opencode 用它做路由头，多家供应商用它做缓存亲和。一次世界运行用一个 */
   sessionId?: string
+  /** 临时错误的重试预算；缺省 2 次、800ms 起退避（pi CLI 同款策略） */
+  retry?: RetryPolicy
 }
 
 export function createLlm(config: LlmConfig): Llm {
@@ -121,10 +125,17 @@ export function createLlm(config: LlmConfig): Llm {
         messages: req.messages.map((m) => toMessage(m, model, Date.now())),
         ...(req.tools ? { tools: req.tools.map(toTool) } : {}),
       }
-      const res = await models_.complete(model, context, {
-        signal: req.signal,
-        ...(config.sessionId ? { sessionId: config.sessionId } : {}),
-      })
+      // 传输层抖动由 pi-ai 的 retryAssistantCall 处理：它只重试可重试的错误，
+      // 配额/鉴权这类确定性错误立刻返回，不会白等。
+      const res = await retryAssistantCall(
+        () =>
+          models_.complete(model, context, {
+            signal: req.signal,
+            ...(config.sessionId ? { sessionId: config.sessionId } : {}),
+          }),
+        config.retry ?? { enabled: true, maxRetries: 2, baseDelayMs: 800 },
+        req.signal,
+      )
       if (res.stopReason === 'error') {
         throw new Error(`模型调用失败：tier=${req.tier} model=${ref}：${res.errorMessage ?? '无错误详情'}`)
       }

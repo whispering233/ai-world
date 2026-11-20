@@ -48,6 +48,7 @@ async function main(): Promise<void> {
     models: cfg.models,
     credentials: piCredentials(),
     sessionId: `${cfg.sessionIdPrefix ?? 'play'}-${randomUUID()}`,
+    ...(cfg.retry ? { retry: cfg.retry } : {}),
     onUsage: (s) => {
       usage[s.tier].input += s.input
       usage[s.tier].output += s.output
