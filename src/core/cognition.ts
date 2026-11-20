@@ -3,9 +3,9 @@
  *
  * 只管"想"：拿 llm 换一段 inner/outward，把 outward 记为一条 seen。写账本、判 self 闸、动 heat 都不在这里。
  */
-import { parseJsonWithRepair } from '@earendil-works/pi-ai'
 import { recall, type Character, type Experience } from './character.ts'
 import { createFauxLlm, type Llm } from './llm.ts'
+import { parseModelJson } from './model-json.ts'
 
 export interface CognitionInput {
   character: Character
@@ -44,16 +44,15 @@ function field(obj: Record<string, unknown>, key: string): string {
 
 /**
  * 把模型文本切成 inner/outward。切不出来时整段当 outward，内容不丢。
- * shortcut: 不剥 ```json 代码围栏，围栏里的输出会走回退分支；真撞上再剥。
+ * 围栏与前后说明文字由 parseModelJson 处理。
  */
 function split(text: string): CognitionOutput {
-  let raw: unknown
+  let obj: Record<string, unknown> | undefined
   try {
-    raw = parseJsonWithRepair<unknown>(text)
+    obj = parseModelJson(text)
   } catch {
-    raw = undefined
+    obj = undefined
   }
-  const obj = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : undefined
   const outward = obj ? field(obj, 'outward') : ''
   if (!outward) return { inner: '', outward: clip(text, OUTWARD_MAX) }
 

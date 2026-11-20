@@ -5,9 +5,9 @@
  * 一拍一次，批量结算；互斥的主张由它自己解决，deltas 里只出现成立的那一方。
  */
 
-import { parseJsonWithRepair } from '@earendil-works/pi-ai'
 import { apply } from './ledger.ts'
 import type { Llm } from './llm.ts'
+import { parseModelJson } from './model-json.ts'
 import type { EntId, Op, OpResult, World } from './world.ts'
 
 export type ClaimKind = 'say' | 'act'
@@ -211,7 +211,14 @@ export function createLlmReferee(llm: Llm): Referee {
           },
         ],
       })
-      return parseRefereeOutput(parseJsonWithRepair(res.text), input.claims).output
+      // 解析失败时不抛：交给 parseRefereeOutput 走“无事发生 + notes”分支，一拍不会因为模型写了废话而崩
+      let raw: unknown
+      try {
+        raw = parseModelJson(res.text)
+      } catch {
+        raw = undefined
+      }
+      return parseRefereeOutput(raw, input.claims).output
     },
   }
 }
