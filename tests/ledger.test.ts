@@ -103,9 +103,11 @@ describe('apply：前置条件与拒绝', () => {
     expect(Object.keys(w.facts)).toHaveLength(0)
   })
 
-  it('know 指向不存在的事实被拒', () => {
-    const { results } = apply(world(), [{ op: 'know', who: ['ann'], fact: 'f404' }])
-    expect(results[0]?.ok).toBe(false)
+  it('know 用一段文本时会当场建事实并授予（裁判看不到 fact id）', () => {
+    const { world: w, results } = apply(world(), [{ op: 'know', who: ['ann'], fact: '药包在里屋' }])
+    expect(results[0]?.ok).toBe(true)
+    expect(w.ledger.knows.ann).toEqual(['f0'])
+    expect(w.facts.f0?.text).toBe('药包在里屋')
   })
 })
 

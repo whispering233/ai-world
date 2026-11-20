@@ -106,17 +106,18 @@ function applyOne(w: World, op: Op): OpResult {
     }
 
     case 'know': {
-      const factId = raw['fact']
+      const ref = raw['fact']
       const who = asIds(raw['who'])
-      if (!str(factId) || who === undefined) return fail('know 需要 fact 与 who（字符串或字符串数组）')
+      if (!str(ref) || who === undefined) return fail('know 需要 fact（id 或一句话的事实）与 who')
       const missing = who.filter((id) => !exists(w, id))
       if (missing.length > 0) return fail(`不存在的实体：${missing.join(', ')}`)
-      const fact = w.facts[factId]
-      if (!fact) return fail(`不存在的事实：${factId}`)
-      if (fact.supersededBy !== undefined) return fail(`事实已被推翻：${factId}`)
+      // 裁判看不到 fact id，只会写“告诉他什么事”；以文本形式给就等于新事实。
+      // 这不是宽松：事实本来就只能由裁判产生，谁开口、什么内容都是它说了算。
+      const known = w.facts[ref] ?? addFact(w, ref.trim())
+      if (known.supersededBy !== undefined) return fail(`事实已被推翻：${known.id}`)
       for (const id of who) {
         const list = knowsOf(w, id)
-        if (!list.includes(fact.id)) list.push(fact.id)
+        if (!list.includes(known.id)) list.push(known.id)
       }
       return OK
     }
