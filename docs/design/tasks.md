@@ -16,7 +16,7 @@
 | 卡 | 内容 | 依赖 | 验收（≤3 条） |
 | :--- | :--- | :--- | :--- |
 | W00 | 工程骨架：TS + vitest + `core/`、`server/`、`web/` 目录；空测试跑通 | — | `npm test` 绿 |
-| W01 | 账本与 op：5 类字段 + 6 op + 前置条件 + `apply()` 纯函数（含 `journal` 记录） | W00 | ① 6 个 op 各自成功/拒绝用例 ② 非法 op 不写入 ③ 关系越界被拒 |
+| W01 | 账本与 op：5 类字段 + 6 op + 前置条件 + `apply()` 纯函数 | W00 | ① 6 个 op 各自成功/拒绝用例 ② 非法 op 不写入 ③ 关系越界饱和到 ±3 |
 | W02 | 存储与回放：`journal.jsonl`、`state.json`、`passage` 追加、`replay()` | W01 | ① 写入→重放→账本一致 ② 撕裂尾部被截断 |
 | W03 | clock 与调度：`busyUntil` 最小堆、`advanceTo`、被叫到的人筛选（纯函数，无 LLM） | W00 | ① 最小堆顺序正确 ② heat≥0.5 与被直接作用者被叫到 ③ 空 claim 时时钟推进 |
 | W04 | LLM 接入：pi-ai 三档模型 + `fauxProvider` 桩 + token/成本记录 | W00 | ① faux 下可返回固定文本 ② token 数写进日志 ③ 缺 key 时报错不崩 |
