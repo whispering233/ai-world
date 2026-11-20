@@ -15,8 +15,8 @@ export interface Drive {
 export interface Experience {
   /** 发生时的时间出口值（分钟） */
   t: number
-  /** seen = 看到的，self = 自己做的判断（成长载体） */
-  kind: 'seen' | 'self'
+  /** seen = 看到的，self = 自己做的判断（成长载体），thought = 没出口的话（不进裁判） */
+  kind: 'seen' | 'self' | 'thought'
   text: string
   /** 检索权重 1..3 */
   w: 1 | 2 | 3
