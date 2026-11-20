@@ -17,7 +17,7 @@ import { runBeat, type BeatDeps } from '../src/core/beat.ts'
 import { createCognition } from '../src/core/cognition.ts'
 import type { Character } from '../src/core/character.ts'
 import { fmt } from '../src/core/clock.ts'
-import { loadModelConfig } from '../src/core/config.ts'
+import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '../src/core/config.ts'
 import { createLlm } from '../src/core/llm.ts'
 import { createNarrator } from '../src/core/narrate.ts'
 import { createLlmReferee, noRate } from '../src/core/referee.ts'
@@ -41,17 +41,26 @@ const AUTO_LINES = [
 ]
 
 async function main(): Promise<void> {
-  const usage = { fast: { input: 0, output: 0 }, strong: { input: 0, output: 0 }, mid: { input: 0, output: 0 } }
-  // 模型来自配置文件，换通道不用改代码
-  const cfg = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json')
+  const usage = {
+    fast: { input: 0, output: 0, ms: 0, retries: 0, calls: 0 },
+    strong: { input: 0, output: 0, ms: 0, retries: 0, calls: 0 },
+    mid: { input: 0, output: 0, ms: 0, retries: 0, calls: 0 },
+  }
+  // 默认模型跟着 pi 自己的设置走（settings.json / PI_MODEL），配置文件只做覆盖
+  const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL
+  const cfg = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json', piDefault)
   const llm = createLlm({
     models: cfg.models,
     credentials: piCredentials(),
     sessionId: `${cfg.sessionIdPrefix ?? 'play'}-${randomUUID()}`,
     ...(cfg.retry ? { retry: cfg.retry } : {}),
     onUsage: (s) => {
-      usage[s.tier].input += s.input
-      usage[s.tier].output += s.output
+      const u = usage[s.tier]
+      u.input += s.input
+      u.output += s.output
+      u.ms += s.ms
+      u.retries += s.retries
+      u.calls += 1
     },
   })
   const deps: BeatDeps = {
@@ -67,7 +76,8 @@ async function main(): Promise<void> {
   const participants = [player, ...STARTER_TOWN.characters.map((c) => c.id)]
   let scene: Scene = openScene({ id: 's1', place: world.ledger.at[player] ?? 'saloon', clock: 0, participants })
 
-  stdout.write(`世界初始化：${participants.length} 个参与者，${STARTER_TOWN.canon.length} 条 canon\n\n`)
+  stdout.write(`世界初始化：${participants.length} 个参与者，${STARTER_TOWN.canon.length} 条 canon\n`)
+  stdout.write(`模型：fast=${cfg.models.fast} strong=${cfg.models.strong} mid=${cfg.models.mid}\n\n`)
   const rl = AUTO ? undefined : createInterface({ input: stdin, output: stdout })
 
   for (let i = 1; i <= BEATS; i += 1) {
@@ -111,7 +121,9 @@ async function main(): Promise<void> {
   stdout.write(`长动作占比      ${pct(longActions.length, verdicts.length)}   （期望 < 20%）\n`)
   stdout.write(`结束时刻        ${fmt(world.ledger.clock)}\n`)
   for (const tier of ['fast', 'strong', 'mid'] as const) {
-    stdout.write(`tokens ${tier.padEnd(7)} ${usage[tier].input} / ${usage[tier].output}\n`)
+    const u = usage[tier]
+    const avg = u.calls === 0 ? 0 : Math.round(u.ms / u.calls)
+    stdout.write(`tokens ${tier.padEnd(7)} ${u.input} / ${u.output} | 调用 ${u.calls} 次 均耗时 ${avg}ms 重试 ${u.retries}\n`)
   }
   stdout.write('\n三条判据请自己回答：\n')
   stdout.write('  1) 你还想不想跟这个人说第 21 句话？\n')

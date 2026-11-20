@@ -5,6 +5,7 @@
  * 而换通道这种事往往发生在"正在跑验收、对方抖动"的时候。
  */
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { RetryPolicy } from '@earendil-works/pi-ai'
 import type { Tier } from './llm.ts'
 
@@ -17,29 +18,54 @@ export interface ModelConfig {
   retry?: RetryPolicy
 }
 
-export const DEFAULT_MODELS: Record<Tier, string> = {
-  fast: 'opencode-go/deepseek-v4.1-flash',
-  strong: 'opencode-go/deepseek-v4.1-flash',
-  mid: 'opencode-go/deepseek-v4.1-flash',
+/** 最后兜底：连 pi 自己的设置都读不到时用它。正常情况不该走到这里。 */
+export const FALLBACK_MODEL = 'opencode-go/deepseek-v4.1-flash'
+
+/**
+ * 默认模型 = pi CLI 自己的默认模型。
+ *
+ * 这是唯一能防住"代码里写死了一个模型、而你的 pi 早就换了"的办法：
+ * 优先级 `PI_MODEL` 环境变量 > `settings.json` 的 defaultModel，provider 取 `defaultProvider`。
+ */
+export function readPiDefaultModel(agentDir: string): string | undefined {
+  const envModel = process.env['PI_MODEL']
+  try {
+    const settings = JSON.parse(readFileSync(join(agentDir, 'settings.json'), 'utf8')) as {
+      defaultProvider?: unknown
+      defaultModel?: unknown
+    }
+    const provider = typeof settings.defaultProvider === 'string' ? settings.defaultProvider : undefined
+    const model =
+      envModel ?? (typeof settings.defaultModel === 'string' ? settings.defaultModel : undefined)
+    if (provider && model) return `${provider}/${model}`
+  } catch {
+    // 没有 settings.json 就交给兜底常量
+  }
+  return undefined
 }
 
-export const DEFAULT_CONFIG: ModelConfig = { models: DEFAULT_MODELS, sessionIdPrefix: 'play' }
+export function defaultConfig(base: string = FALLBACK_MODEL): ModelConfig {
+  const models: Record<Tier, string> = { fast: base, strong: base, mid: base }
+  return { models, sessionIdPrefix: 'play' }
+}
+
+export const DEFAULT_CONFIG: ModelConfig = defaultConfig()
 
 const TIERS: Tier[] = ['fast', 'strong', 'mid']
 
 /** 读配置。文件不存在 = 用默认值（不算错误）；文件存在但写坏了 = 抛错，不静默降级。 */
-export function loadModelConfig(path: string): ModelConfig {
+export function loadModelConfig(path: string, base: string = FALLBACK_MODEL): ModelConfig {
   let text: string
   try {
     text = readFileSync(path, 'utf8')
   } catch {
-    return DEFAULT_CONFIG
+    return defaultConfig(base)
   }
 
   const parsed: unknown = JSON.parse(text)
   const raw = asRecord(parsed) ?? {}
   const models = asRecord(raw['models']) ?? {}
-  const resolved = { ...DEFAULT_MODELS }
+  const resolved: Record<Tier, string> = { fast: base, strong: base, mid: base }
   for (const tier of TIERS) {
     const value = models[tier]
     if (value === undefined) continue

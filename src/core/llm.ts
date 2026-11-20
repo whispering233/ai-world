@@ -50,6 +50,10 @@ export interface UsageSample {
   model: string
   input: number
   output: number
+  /** 本次调用总耗时（含重试与退避） */
+  ms: number
+  /** 本次调用触发的重试次数 */
+  retries: number
 }
 
 export interface Llm {
@@ -127,6 +131,8 @@ export function createLlm(config: LlmConfig): Llm {
       }
       // 传输层抖动由 pi-ai 的 retryAssistantCall 处理：它只重试可重试的错误，
       // 配额/鉴权这类确定性错误立刻返回，不会白等。
+      const startedAt = performance.now()
+      let retries = 0
       const res = await retryAssistantCall(
         () =>
           models_.complete(model, context, {
@@ -135,6 +141,11 @@ export function createLlm(config: LlmConfig): Llm {
           }),
         config.retry ?? { enabled: true, maxRetries: 2, baseDelayMs: 800 },
         req.signal,
+        {
+          onRetryScheduled: () => {
+            retries += 1
+          },
+        },
       )
       if (res.stopReason === 'error') {
         throw new Error(`模型调用失败：tier=${req.tier} model=${ref}：${res.errorMessage ?? '无错误详情'}`)
@@ -147,7 +158,14 @@ export function createLlm(config: LlmConfig): Llm {
         outputTokens: res.usage.output,
         model: ref,
       }
-      config.onUsage?.({ tier: req.tier, model: ref, input: result.inputTokens, output: result.outputTokens })
+      config.onUsage?.({
+        tier: req.tier,
+        model: ref,
+        input: result.inputTokens,
+        output: result.outputTokens,
+        ms: Math.round(performance.now() - startedAt),
+        retries,
+      })
       return result
     },
   }
