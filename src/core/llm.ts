@@ -119,8 +119,7 @@ export function createLlm(config: LlmConfig): Llm {
       const context: Context = {
         systemPrompt: req.system,
         messages: req.messages.map((m) => toMessage(m, model, Date.now())),
-        // SAFETY: pi-ai 的 Tool.parameters 接受任意 JSON Schema（其 README 明示），我们传的就是纯 JSON Schema 字面量。
-        ...(req.tools ? { tools: req.tools as unknown as Tool[] } : {}),
+        ...(req.tools ? { tools: req.tools.map(toTool) } : {}),
       }
       const res = await models_.complete(model, context, {
         signal: req.signal,
@@ -154,6 +153,11 @@ export function createFauxLlm(script: string[]): Llm {
   }
 }
 
+/** Tool.parameters 收纯 JSON Schema；ToolSpec 就是那个形状，转一次只是去掉我们自己的字段。 */
+function toTool(spec: ToolSpec): Tool {
+  return { name: spec.name, description: spec.description, parameters: spec.parameters }
+}
+
 /** 只收模型真正调用过的工具；参数校验失败时 pi-ai 会给出带字段路径的错误。 */
 function collectToolCalls(
   content: readonly { type: string }[],
@@ -165,8 +169,7 @@ function collectToolCalls(
     const call = block as ToolCall
     const spec = tools.find((t) => t.name === call.name)
     if (!spec) continue
-    // SAFETY: validateToolArguments 只读 name 与 parameters，返回按 schema 校验（并补类型）后的参数。
-    out.push({ name: call.name, args: validateToolArguments(spec as unknown as Tool, call) as Record<string, unknown> })
+    out.push({ name: call.name, args: validateToolArguments(toTool(spec), call) as Record<string, unknown> })
   }
   return out
 }
