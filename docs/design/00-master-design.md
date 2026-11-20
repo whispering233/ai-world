@@ -63,12 +63,14 @@
 
 ## 6. 待定
 
-| 编号 | 问题 | 现状 |
+**无阻塞待定项。** 设计层已可开工；其余细节（`phys` 键表、`fmt(clock)` 时段命名、canon 检索、prompt 存放、失败降级、`core` 写作规约）在实现中定，见 [backlog.md](backlog.md)。
+
+| 编号 | 问题 | 结论 |
 | :--- | :--- | :--- |
-| A1 | 角色输出如何切分"内心/对外" | 已按两字段 `inner` + `outward` 写入 30 §3 |
-| A2 | 技术栈与存储形态 | 语言与 LLM 层已定（TS + pi-ai，见 50）；存储与 UI 未定 |
-| A3 | 裁判结构化输出：tool calling vs 文本 JSON | 默认 tool calling（两路成本已被 pi-ai 拉平），待确认 |
-| B5 | 首切片"有魂"的验收判据 | 已按三条初稿写入 `tasks.md` W14 |
+| A1 | 角色输出切分 | 两字段 `inner` + `outward`（30 §3） |
+| A2 | 技术栈与存储 | TS + Node 22 + ESM + vitest；`journal.jsonl` + `state.json`；Vite + React + Tailwind |
+| A3 | 裁判结构化输出 | tool calling（`submit_verdict`），pi-ai 已备校验与修复 |
+| B5 | “有魂”验收判据 | 三条，已写入 `tasks.md` W14 |
 
 ## 7. 设计取舍（为什么这样、不那样）
 
