@@ -115,6 +115,19 @@ describe('runBeat：降级', () => {
   })
 })
 
+describe('runBeat：裁判降级', () => {
+  it('裁判调用失败时整拍空转，账本不动、不落 journal', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    const referee = { judge: () => Promise.reject(new Error('ETIMEDOUT')) }
+    const r = await runBeat({ ...input, deps: { ...input.deps, referee } })
+    expect(r.world).toEqual(input.world)
+    expect(r.journalSeq).toBe(0)
+    expect(r.notes.some((n) => n.includes('裁决失败'))).toBe(true)
+    expect(store.readJournal()).toHaveLength(0)
+  })
+})
+
 describe('runBeat：三拍连续', () => {
   it('每拍落一条 journal，时钟按最长动作推进', async () => {
     const store = tmpStore()

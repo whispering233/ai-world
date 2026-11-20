@@ -107,7 +107,20 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     return { world: input.world, scene: input.scene, characters, passage: '', journalSeq: 0, notes: [...degraded, '没有主张，本拍未发生'] }
   }
 
-  const out = await deps.referee.judge({ clock, claims, context: [input.sceneText, describeLedger(input.world, present), contextOf(input.scene, input.player)].filter(Boolean).join('\n') })
+  let out
+  try {
+    out = await deps.referee.judge({ clock, claims, context: [input.sceneText, describeLedger(input.world, present), contextOf(input.scene, input.player)].filter(Boolean).join('\n') })
+  } catch (error) {
+    // 裁判挂了 = 这一拍没有任何事被确认发生。宁可整拍空转，也不编一个没结算过的世界。
+    return {
+      world: input.world,
+      scene: input.scene,
+      characters,
+      passage: '',
+      journalSeq: 0,
+      notes: [...degraded, `裁决失败（本拍无进展）：${(error as Error).message}`],
+    }
+  }
   // 先把时钟推到本拍结束，再提交：否则 learn 建出的 fact.at 会落后于重放时的值，回放就不相等了
   const clockAfter = clock + maxDuration(out.verdicts)
   const at = { ...input.world, ledger: { ...input.world.ledger, clock: clockAfter } }
