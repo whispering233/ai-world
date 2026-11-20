@@ -71,6 +71,31 @@ function base(store: Store, referee: RefereeOutput[]): BeatInput {
   }
 }
 
+describe('runBeat：并发', () => {
+  it('同一拍内多个 actor 的认知同时发起，不等前一个返回', async () => {
+    const store = tmpStore()
+    const input = base(store, [
+      { order: ['ann'], verdicts: [verdict('a0', [], 1), verdict('d0', [], 1)], observations: {}, driveHits: [] },
+    ])
+    const gate: (() => void)[] = []
+    let started = 0
+    const cognition = {
+      think: () => {
+        started += 1
+        return new Promise<{ output: { inner: string; outward: string }; experience: [] }>((resolve) => {
+          gate.push(() => resolve({ output: { inner: '看着', outward: '点了下头' }, experience: [] }))
+        })
+      },
+    }
+    const running = runBeat({ ...input, deps: { ...input.deps, cognition } })
+    await new Promise((r) => setTimeout(r, 0))
+    // 串行实现此时只会发起 1 次
+    expect(started).toBe(2)
+    for (const release of gate) release()
+    await running
+  })
+})
+
 describe('runBeat：三拍连续', () => {
   it('每拍落一条 journal，时钟按最长动作推进', async () => {
     const store = tmpStore()

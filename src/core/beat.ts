@@ -67,12 +67,26 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   if (input.playerClaim) {
     claims.push({ id: `p${clock}`, actor: input.player, text: input.playerClaim, kind: 'act' })
   }
+  // 同一拍内多个 actor 的认知互不依赖：并发跑，但按人位顺序落 claims（结算顺序仍由裁判给）。
+  const thinkers: { ent: EntId; ch: Character }[] = []
   for (const ent of called) {
     if (ent === input.player) continue
     const ch = characters.get(ent)
-    if (!ch) continue
-    const sceneText = [input.sceneText, describeLedger(input.world, inScene), contextOf(input.scene, ent)].filter(Boolean).join('\n')
-    const res = await deps.cognition.think({ character: ch, sceneText, canon: [...input.canon], now: clock })
+    if (ch) thinkers.push({ ent, ch })
+  }
+  const thoughts = await Promise.all(
+    thinkers.map(({ ent, ch }) =>
+      deps.cognition.think({
+        character: ch,
+        sceneText: [input.sceneText, describeLedger(input.world, inScene), contextOf(input.scene, ent)].filter(Boolean).join('\n'),
+        canon: [...input.canon],
+        now: clock,
+      }),
+    ),
+  )
+  for (const [i, { ent, ch }] of thinkers.entries()) {
+    const res = thoughts[i]
+    if (!res) continue
     claims.push({ id: `${ent}${clock}`, actor: ent, text: res.output.outward, kind: 'act' })
     let next = ch
     for (const e of res.experience) next = remember(next, e)
