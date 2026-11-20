@@ -20,7 +20,7 @@ npm test           # vitest，全绿才能提交
 
 ```sh
 rm -rf data                              # 从干净世界开始；不复用上一轮账本
-node --experimental-strip-types scripts/play.ts --beats 30
+node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types scripts/play.ts --beats 30
 ```
 
 - 出现 `你> ` 后，**一行输入 = 一拍**：写你说的或做的事都算
@@ -28,6 +28,7 @@ node --experimental-strip-types scripts/play.ts --beats 30
 - 输入 **`/quit`** 结束并打印体检表；`Ctrl+C` 会跳过体检表
 - `--beats N` 只是上限，`/quit` 可随时提前收尾
 - 加 `--auto` 则不需要人输入，按内置脚本跑（用于回归跑分）
+- `--network-family-autoselection-attempt-timeout=2000` **不是可选项**：到供应商的 TCP 握手常在 250ms 以上，Node 默认的 250ms 选路尝试上限会把每次连接提前掐断（报 `AggregateError (ETIMEDOUT)`）。手敲命令容易漏，漏了就连不上；`npm run play` 已带好
 
 试玩重点看三件事：它有没有记住你上一句、有没有人做你没要求的事、拒绝写得对不对。
 
@@ -56,7 +57,7 @@ provider 一律取 settings.json 的 defaultProvider
 ## 5. 测速（可选）
 
 ```sh
-node --experimental-strip-types scripts/probe-latency.ts
+node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types scripts/probe-latency.ts
 ```
 
 对照两种输出通道（带工具 / 纯文本）的总耗时、输入输出 token、首字耗时，用来判断变慢是出在供应商、输出量还是工具调用上。
@@ -68,6 +69,7 @@ node --experimental-strip-types scripts/probe-latency.ts
 | `裁决失败（本拍无进展）` | 裁判三次尝试全失败 | 该拍空转、账本不动，继续输入即可 |
 | `认知失败（本拍沉默）：<人>` | 某个人物调用失败 | 它这拍没开口，其余人照常结算 |
 | `Provider is not configured` | 模型串的 provider 与凭据不匹配 | 检查 `settings.json` 的 `defaultProvider` 与 `auth.json` |
+| 所有调用立刻报 `AggregateError (ETIMEDOUT)` | 启动命令漏了 `--network-family-autoselection-attempt-timeout=2000`，Node 250ms 选路上限掐断了慢链路连接 | 用 `npm run play`，或手敲命令时补上该 flag |
 | 重试次数持续上涨 | 供应商抖动 | 属预期，重试只覆盖可重试错误；配额类错误立即失败 |
 
 ## 7. 分发
