@@ -24,9 +24,11 @@
 
 | 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
 | :--- | :--- | :--- | :--- | :--- |
-| seq | 是 | number | | 一拍一条，连续 |
+| seq | 是 | number | | 一拍（或一次折场）一条，连续 |
+| type | 是 | enum | `beat` \| `scene/fold` | 折场亦记一条 |
+| scene | 是 | string | | 场景 id，场景边界由此推出 |
 | clock | 是 | number | | 本拍时刻 |
-| claims | 是 | Claim[] | ≤ 4 | 本拍全部对外主张 |
+| claims | 是 | Claim[] | ≤ 4 | 本拍全部对外主张（折场记录为空） |
 | order | 是 | EntId[] | | 结算顺序 |
 | verdicts | 是 | Verdict[] | | 含 ok/reason/deltas/duration |
 | driveHits | 否 | DriveHit[] | | 驱动热度增减 |

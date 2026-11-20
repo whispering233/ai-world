@@ -11,6 +11,7 @@
 | [40-time-and-loop.md](design/40-time-and-loop.md) | clock / busyUntil / 一拍、时长归属、时间唯一出口 |
 | [50-llm.md](design/50-llm.md) | pi-ai 接入、三档模型、Context 入档、测试策略 |
 | [backlog.md](design/backlog.md) | 延后项与触发条件、监控指标、已知失败模式 |
+| [tasks.md](design/tasks.md) | 【临时】任务卡片与并行分层 |
 
 ## db/
 
