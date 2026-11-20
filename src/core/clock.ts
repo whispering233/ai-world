@@ -45,6 +45,29 @@ export interface CalledInput {
 
 const HEAT_THRESHOLD = 0.5
 
+const SEGMENTS: { until: number; name: string }[] = [
+  { until: 4, name: '子夜' },
+  { until: 6, name: '拂晓' },
+  { until: 9, name: '早晨' },
+  { until: 11, name: '上午' },
+  { until: 13, name: '正午' },
+  { until: 17, name: '下午' },
+  { until: 19, name: '傍晚' },
+  { until: 21, name: '夜' },
+  { until: 24, name: '深夜' },
+]
+
+/**
+ * 时间的**唯一**展示出口（docs/design/40-time-and-loop.md §6）。
+ * 文本不得自己写绝对时间，只能从这里取。
+ */
+export function fmt(clock: number): string {
+  const day = Math.floor(clock / 1440) + 1
+  const hour = Math.floor((clock % 1440) / 60)
+  const segment = SEGMENTS.find((s) => hour < s.until)?.name ?? '深夜'
+  return `第 ${day} 天 · ${segment}`
+}
+
 /**
  * 一拍参与者 = 玩家 + 在场且有张力者 + 在场且本拍被直接作用者。
  * 人不在场就不叫到：位置不是唤醒条件，但不在场的脸不会被摆到这一拍里。
