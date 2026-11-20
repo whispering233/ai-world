@@ -22,6 +22,13 @@ export interface ChatResult {
   model: string
 }
 
+export interface UsageSample {
+  tier: Tier
+  model: string
+  input: number
+  output: number
+}
+
 export interface Llm {
   chat(req: ChatRequest): Promise<ChatResult>
 }
@@ -64,7 +71,7 @@ function toMessage(m: ChatMessage, model: Model<Api>, at: number): Message {
 }
 
 /** 模型串为 "provider/modelId"，档位只能来自配置，不硬编码。 */
-export function createLlm(config: { models: Record<Tier, string> }): Llm {
+export function createLlm(config: { models: Record<Tier, string>; onUsage?: (sample: UsageSample) => void }): Llm {
   return {
     async chat(req) {
       const ref = config.models[req.tier] ?? ''
@@ -83,12 +90,14 @@ export function createLlm(config: { models: Record<Tier, string> }): Llm {
         throw new Error(`模型调用失败：tier=${req.tier} model=${ref}：${res.errorMessage ?? '无错误详情'}`)
       }
 
-      return {
+      const result: ChatResult = {
         text: res.content.map((b) => (b.type === 'text' ? b.text : '')).join(''),
         inputTokens: res.usage.input,
         outputTokens: res.usage.output,
         model: ref,
       }
+      config.onUsage?.({ tier: req.tier, model: ref, input: result.inputTokens, output: result.outputTokens })
+      return result
     },
   }
 }

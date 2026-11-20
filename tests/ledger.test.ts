@@ -124,3 +124,29 @@ describe('apply：纯函数与可回放', () => {
     expect(a).toEqual(b)
   })
 })
+
+describe('apply：畸形 op 不得抛异常', () => {
+  it('know 的 who 写成单个字符串时被接受', () => {
+    const base = apply(world(), [{ op: 'fact', text: '酒馆起火了' }]).world
+    const { world: w, results } = apply(base, [{ op: 'know', who: 'bob' as unknown as string[], fact: 'f0' }])
+    expect(results[0]?.ok).toBe(true)
+    expect(w.ledger.knows.bob).toEqual(['f0'])
+  })
+
+  it('know 的 who 是数字时被拒且不抛', () => {
+    const base = apply(world(), [{ op: 'fact', text: '酒馆起火了' }]).world
+    const { results } = apply(base, [{ op: 'know', who: 42 as unknown as string[], fact: 'f0' }])
+    expect(results[0]?.ok).toBe(false)
+  })
+
+  it('缺 to 的 move 被拒且不抛', () => {
+    const { world: w, results } = apply(world(), [{ op: 'move', who: 'ann' } as unknown as { op: 'move'; who: string; to: string }])
+    expect(results[0]?.ok).toBe(false)
+    expect(w.ledger.at.ann).toBe('saloon')
+  })
+
+  it('n 是字符串的 give 被拒', () => {
+    const { results } = apply(world(), [{ op: 'give', from: 'ann', to: 'bob', item: 'key', n: '1' } as unknown as { op: 'give'; from: string; to: string; item: string; n: number }])
+    expect(results[0]?.ok).toBe(false)
+  })
+})

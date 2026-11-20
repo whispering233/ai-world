@@ -11,9 +11,9 @@ export const STARTER_TOWN: ContentPack = {
     ledger: {
       clock: 0,
       // 灯作为实体登记：phys 只能挂在 at 里存在的实体上。
-      at: { player: 'saloon', ann: 'saloon', doc: 'saloon', lamp: 'saloon' },
-      holds: { ann: { 'ledger-book': 1 } },
-      phys: { lamp: { lit: true } },
+      at: { player: 'saloon', ann: 'saloon', doc: 'saloon', lamp: 'saloon', door: 'saloon' },
+      holds: { ann: { 'ledger-book': 1, whiskey: 3 }, doc: { morphine: 11 }, player: { 'silver-dollar': 2 } },
+      phys: { lamp: { lit: true }, door: { closed: true, broken: false } },
       rel: {},
       knows: {},
     },
@@ -48,6 +48,8 @@ export const STARTER_TOWN: ContentPack = {
     '安还清了父亲留下的三笔债，账本锁在柜台下的铁盒里。',
     '道森医生没能念完东部的医学院，此后只让人叫他医生。',
     '玩家是今晚唯一一张生面孔，安倒酒前先看了一眼他的手。',
+    '柜上那瓶威士忌只剩三杯的量，一杯两枚银元。',
+    '酒馆的门入夜就闩着。',
   ],
   player: 'player',
 }

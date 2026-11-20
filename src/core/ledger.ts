@@ -11,6 +11,9 @@ function fail(why: string): OpResult {
  *
  * 一条 op 失败不影响其它 op（各自独立提交）；失败的那条不写入任何状态。
  * 这里**没有独立的审核阶段**：校验就是每个 op 自己的前置条件。
+ *
+ * 这个函数必须是**全函数**：模型送进来的 op 可能缺字段、类型不对、字段是字符串而不是数组。
+ * 任何形状错误都返回 ok:false，绝不抛异常——一拍因为一条畸形 op 崩掉，等于世界被一句话杀死。
  */
 export function apply(world: World, ops: readonly Op[]): { world: World; results: OpResult[] } {
   const next: World = structuredClone(world)
@@ -26,78 +29,108 @@ function held(w: World, id: EntId, item: string): number {
   return w.ledger.holds[id]?.[item] ?? 0
 }
 
+function str(value: unknown): value is string {
+  return typeof value === 'string' && value !== ''
+}
+
 function applyOne(w: World, op: Op): OpResult {
-  switch (op.op) {
+  // SAFETY: Op 只是编译期契约，真实数据来自模型的 JSON，字段可能缺失或类型不对；
+  // 下面逐个字段摸清形状，任何不符都返回 ok:false，绝不让异常穿出去。
+  const raw = op as unknown as Record<string, unknown>
+  switch (raw['op']) {
     case 'move': {
-      if (!exists(w, op.who)) return fail(`不存在的实体：${op.who}`)
-      if (!Object.hasOwn(w.places, op.to)) return fail(`不存在的地点：${op.to}（只能去已有地点）`)
-      w.ledger.at[op.who] = op.to
+      const who = raw['who']
+      const to = raw['to']
+      if (!str(who) || !str(to)) return fail('move 需要字符串 who 与 to')
+      if (!exists(w, who)) return fail(`不存在的实体：${who}`)
+      if (!Object.hasOwn(w.places, to)) return fail(`不存在的地点：${to}（只能去已有地点）`)
+      w.ledger.at[who] = to
       return OK
     }
 
     case 'give': {
-      if (!exists(w, op.from) || !exists(w, op.to)) return fail('持有者或接收者不存在')
-      if (!Number.isInteger(op.n) || op.n <= 0) return fail('数量必须是正整数')
-      if (held(w, op.from, op.item) < op.n) return fail(`${op.from} 身上没有这么多 ${op.item}`)
-      takeItems(w, op.from, op.item, op.n)
-      addItems(w, op.to, op.item, op.n)
+      const from = raw['from']
+      const to = raw['to']
+      const item = raw['item']
+      const n = raw['n']
+      if (!str(from) || !str(to) || !str(item) || !Number.isInteger(n)) return fail('give 字段不完整')
+      if ((n as number) <= 0) return fail('数量必须是正整数')
+      if (!exists(w, from) || !exists(w, to)) return fail('持有者或接收者不存在')
+      if (held(w, from, item) < (n as number)) return fail(`${from} 身上没有这么多 ${item}`)
+      takeItems(w, from, item, n as number)
+      addItems(w, to, item, n as number)
       return OK
     }
 
     case 'take': {
-      if (!exists(w, op.from)) return fail(`不存在的实体：${op.from}`)
-      if (!Number.isInteger(op.n) || op.n <= 0) return fail('数量必须是正整数')
-      if (held(w, op.from, op.item) < op.n) return fail(`${op.from} 身上没有这么多 ${op.item}`)
-      takeItems(w, op.from, op.item, op.n)
+      const from = raw['from']
+      const item = raw['item']
+      const n = raw['n']
+      if (!str(from) || !str(item) || !Number.isInteger(n)) return fail('take 字段不完整')
+      if ((n as number) <= 0) return fail('数量必须是正整数')
+      if (!exists(w, from)) return fail(`不存在的实体：${from}`)
+      if (held(w, from, item) < (n as number)) return fail(`${from} 身上没有这么多 ${item}`)
+      takeItems(w, from, item, n as number)
       return OK
     }
 
     case 'phys': {
-      if (!exists(w, op.who)) return fail(`不存在的实体：${op.who}`)
-      if (op.key === '') return fail('phys 的键不能为空')
-      if (isBadNumber(op.value)) return fail('phys 的值不能是 NaN/Infinity')
-      physOf(w, op.who)[op.key] = op.value
+      const who = raw['who']
+      const key = raw['key']
+      const value = raw['value']
+      if (!str(who) || !str(key)) return fail('phys 需要字符串 who 与 key')
+      if (!exists(w, who)) return fail(`不存在的实体：${who}`)
+      if (typeof value !== 'number' && typeof value !== 'boolean') return fail('phys 的值只能是数字或布尔')
+      if (typeof value === 'number' && !Number.isFinite(value)) return fail('phys 的值不能是 NaN/Infinity')
+      physOf(w, who)[key] = value
       return OK
     }
 
     case 'rel': {
-      if (!exists(w, op.from) || !exists(w, op.to)) return fail('关系的一方不存在')
-      if (!Number.isFinite(op.delta)) return fail('关系增量必须是有限数')
-      const row = relOf(w, op.from)
-      row[op.to] = clampRel((row[op.to] ?? 0) + op.delta)
+      const from = raw['from']
+      const to = raw['to']
+      const delta = raw['delta']
+      if (!str(from) || !str(to) || typeof delta !== 'number') return fail('rel 需要 from / to / delta')
+      if (!exists(w, from) || !exists(w, to)) return fail('关系的一方不存在')
+      if (!Number.isFinite(delta)) return fail('关系增量必须是有限数')
+      const row = relOf(w, from)
+      row[to] = clampRel((row[to] ?? 0) + delta)
       return OK
     }
 
     case 'fact': {
-      const text = op.text.trim()
-      if (text === '') return fail('事实文本不能为空')
-      addFact(w, text)
+      const text = raw['text']
+      if (!str(text) || text.trim() === '') return fail('事实文本不能为空')
+      addFact(w, text.trim())
       return OK
     }
 
     case 'know': {
-      const missing = op.who.filter((id) => !exists(w, id))
+      const factId = raw['fact']
+      const who = asIds(raw['who'])
+      if (!str(factId) || who === undefined) return fail('know 需要 fact 与 who（字符串或字符串数组）')
+      const missing = who.filter((id) => !exists(w, id))
       if (missing.length > 0) return fail(`不存在的实体：${missing.join(', ')}`)
-      const fact = w.facts[op.fact]
-      if (!fact) return fail(`不存在的事实：${op.fact}`)
-      if (fact.supersededBy !== undefined) return fail(`事实已被推翻：${op.fact}`)
-      for (const id of op.who) {
+      const fact = w.facts[factId]
+      if (!fact) return fail(`不存在的事实：${factId}`)
+      if (fact.supersededBy !== undefined) return fail(`事实已被推翻：${factId}`)
+      for (const id of who) {
         const list = knowsOf(w, id)
         if (!list.includes(fact.id)) list.push(fact.id)
       }
       return OK
     }
 
-    default: {
-      const unknown: never = op
-      return fail(`未知操作：${JSON.stringify(unknown)}`)
-    }
+    default:
+      return fail(`未知操作：${JSON.stringify(raw).slice(0, 120)}`)
   }
 }
 
-/** JSON 边界可能带进 NaN/Infinity，只能在这里判（类型系统管不到）。 */
-function isBadNumber(value: number | boolean): boolean {
-  return typeof value === 'number' && !Number.isFinite(value)
+/** 模型常把 who 写成单个字符串；这里两个形状都收，其它形状算非法。 */
+function asIds(value: unknown): string[] | undefined {
+  if (typeof value === 'string') return value === '' ? undefined : [value]
+  if (!Array.isArray(value)) return undefined
+  return value.every((v): v is string => typeof v === 'string') ? value : undefined
 }
 
 function takeItems(w: World, who: EntId, item: string, n: number): void {
