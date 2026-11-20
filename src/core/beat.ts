@@ -173,9 +173,28 @@ function describeLedger(world: World, present: readonly EntId[]): string {
     const phys = Object.entries(world.ledger.phys[ent] ?? {}).map(([k, v]) => `${k}=${String(v)}`).join('、')
     return `- ${ent}：在 ${place}；持有 ${bag}${phys === '' ? '' : `；${phys}`}`
   })
-  const facts = Object.values(world.facts).slice(-8).map((f) => `- ${f.text}`).join('\n')
-  const events = facts === '' ? '' : `\n最近发生过的事：\n${facts}`
-  return `已知地点：${places}\n账本现状：\n${rows.join('\n')}${events}`
+  const events = describeFacts(world, present, world.ledger.clock)
+  return `已知地点：${places}\n账本现状：\n${rows.join('\n')}${events === '' ? '' : `\n最近发生过的事：\n${events}`}`
+}
+
+/** 事件流给裁判的条数上限：太多会挤掉现场，太少会让早期后果静默消失。 */
+export const FACT_BUDGET = 12
+
+/**
+ * 挑出要喂给裁判的事件：被推翻的不喂；提到在场者的、刚发生的优先；
+ * 名额之外按时间倒序补齐，最后按时间正序排出——读起来像一条时间线。
+ */
+export function describeFacts(world: World, present: readonly EntId[], clock: number): string {
+  const weight = (fact: { text: string; at: number }): number =>
+    (present.some((ent) => fact.text.includes(ent)) ? 2 : 0) + (clock - fact.at <= 10 ? 1 : 0)
+  return Object.values(world.facts)
+    .filter((f) => f.supersededBy === undefined)
+    .map((f) => ({ f, w: weight(f) }))
+    .sort((a, b) => b.w - a.w || b.f.at - a.f.at)
+    .slice(0, FACT_BUDGET)
+    .sort((a, b) => a.f.at - b.f.at)
+    .map(({ f }) => `- ${f.text}`)
+    .join('\n')
 }
 
 /** 一拍的时长 = 本拍最长的那个动作；没有动作就不推进时间。 */
