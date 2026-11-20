@@ -1,0 +1,8 @@
+{
+  "models": {
+    "fast": "opencode-go/deepseek-v4.1-flash",
+    "strong": "opencode-go/deepseek-v4.1-flash",
+    "mid": "opencode-go/deepseek-v4.1-flash"
+  },
+  "sessionIdPrefix": "play"
+}

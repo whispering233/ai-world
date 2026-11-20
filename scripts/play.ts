@@ -17,6 +17,7 @@ import { runBeat, type BeatDeps } from '../src/core/beat.ts'
 import { createCognition } from '../src/core/cognition.ts'
 import type { Character } from '../src/core/character.ts'
 import { fmt } from '../src/core/clock.ts'
+import { loadModelConfig } from '../src/core/config.ts'
 import { createLlm } from '../src/core/llm.ts'
 import { createNarrator } from '../src/core/narrate.ts'
 import { createLlmReferee, noRate } from '../src/core/referee.ts'
@@ -41,12 +42,12 @@ const AUTO_LINES = [
 
 async function main(): Promise<void> {
   const usage = { fast: { input: 0, output: 0 }, strong: { input: 0, output: 0 }, mid: { input: 0, output: 0 } }
-  // 测一律用同一个模型；三档只是角色标签，方便分别统计用量
-  const MODEL = 'opencode-go/deepseek-v4.1-flash'
+  // 模型来自配置文件，换通道不用改代码
+  const cfg = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json')
   const llm = createLlm({
-    models: { fast: MODEL, strong: MODEL, mid: MODEL },
+    models: cfg.models,
     credentials: piCredentials(),
-    sessionId: `play-${randomUUID()}`,
+    sessionId: `${cfg.sessionIdPrefix ?? 'play'}-${randomUUID()}`,
     onUsage: (s) => {
       usage[s.tier].input += s.input
       usage[s.tier].output += s.output
