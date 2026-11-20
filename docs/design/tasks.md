@@ -23,7 +23,7 @@
 | W05 | 人物状态与检索：四层 + `score = w×0.5^((now−t)/48) + self 0.3` | W01 | ① 检索取前 12 ② self 优先 ③ 三层可变性边界（core 不可写） |
 | W06 | 人物调用：`inner`/`outward` 契约 + 写回 `experience` | W04 W05 | ① 两字段都存在 ② 长度超限被裁 ③ 写回一条 seen 条目 |
 | W07 | 裁判：`submit_verdict` 工具 + 校验 + 三态 verdict + `no` 路径 + `no_rate` | W01 W04 | ① 三态各一例 ② 非法 deltas 被拒且不写账 ③ `no_rate` 有值 |
-| W08 | 场景：装配 / 追加 / 折场 / 12 拍或 16k 强制折场 | W02 W03 W05 | ① 折场产出 1–2 条 experience ② 强制折场触发 ③ 场景边界可从 journal 推出 |
+| W08 | 场景：装配 / 追加 / 折场 / 四种折场触发 | W02 W03 W05 | ① 折场产出 1–2 条 experience ② 四种触发各一例 ③ 场景边界可从 journal 推出 |
 | W09 | 渲染：流式叙述 + 禁绝对时间 + 不写回 + `observations` 分发 | W04 W07 | ① 输出不含绝对时间 ② 渲染文本不进 experience ③ 各实体只看到自己的观测 |
 | W10 | 一拍端到端：fixture 裁判下串联，跑 3 拍并落 journal | W06 W07 W08 W09 | ① 3 拍连续落日志 ② 账本变化与 verdict 一致 ③ 重放后状态一致 |
 | W13 | 首切片内容：2 个 `core` + 1 个房间 + 3 条 canon + 初始 drives | W05 | ① 数据校验通过 ② 两人 voice 可区分 |
