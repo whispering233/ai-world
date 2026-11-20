@@ -19,7 +19,7 @@ referee(本拍 claim[], 场景切片, 账本, 相关 canon) →
 | :--- | :--- |
 | `order` | 本拍 claim 的结算顺序，表达"谁的手快"。**只在拍内有效** |
 | `verdicts[]` | 每条 claim 的结果：`{ claimId, ok, reason?, deltas[], duration }` |
-| `observations` | 每个在场实体实际看到/听到的内容（可见性分发） |
+| `observations` | 每个在场实体实际可感知的内容：被其感知的 `claimId` 列表 + 一句结果摘要（**结构化**，非自由文本） |
 | `driveHits[]` | `{ entId, driveId, delta }`，驱动热度增减 |
 
 `verdict` 只有三种形态，全部合法：
@@ -31,6 +31,8 @@ referee(本拍 claim[], 场景切片, 账本, 相关 canon) →
 | `no` + `reason` | **不成立**：话照说，账不动 |
 
 `reason` 会写回该角色的 `experience`，成为下一轮的后果反馈。这是"约束由后果施加"的落点。
+
+**冲突裁决**：同一拍内的互斥主张（两人同抢一物、两人同时开枪）必须由 referee 自己解决，`deltas` 中**只出现成立的那一方**。`order` 仅用于叙述顺序，不参与状态写入。否则 `apply` 会双重写入。
 
 ## 3. 驱动方式
 

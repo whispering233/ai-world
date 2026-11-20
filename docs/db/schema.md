@@ -8,7 +8,7 @@
 | at | 是 | Record<EntId, PlaceId> | | 位置 |
 | holds | 是 | Record<EntId, Record<ItemId, number>> | count ≥ 0 | 持有物 |
 | phys | 是 | Record<EntId, Record<string, number\|boolean>> | | 键开放，需一句物理描述可解释 |
-| rel | 是 | Record<EntId, Record<EntId, number>> | -3 ~ 3 | 关系强度 |
+| rel | 是 | Record<EntId, Record<EntId, number>> | -3 ~ 3 | **单向**：A→B 与 B→A 独立 |
 | knows | 是 | Record<EntId, FactId[]> | | 是否知情 |
 
 ## 2. `fact`（公共事实）
@@ -48,7 +48,7 @@
 | 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
 | :--- | :--- | :--- | :--- | :--- |
 | id | 是 | EntId | | |
-| core | 是 | string | 200~400 字 | 运行时只读 |
+| core | 否 | string | 200~400 字；玩家为空 | 运行时只读 |
 | voice | 是 | string | | 说话节奏与用词 |
 | drives | 是 | Drive[] | heat 0~1 | `{ id, text, heat }` |
 | beliefs | 是 | Record<EntId, string> | | 可错，可被谎言改写 |
