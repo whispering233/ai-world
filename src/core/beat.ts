@@ -43,7 +43,7 @@ export interface BeatResult {
   notes: string[]
 }
 
-/** shortcut: 上下文 token 用字符数估算，等 W14 拿到真实 usage 再换成实测值 */
+/** shortcut: token 按字符数估算——供应商报回的 input 数不稳定（同一 prompt 实测 25~1433） */
 export function estimateTokens(text: string): number {
   return Math.ceil(Array.from(text).length * 0.9)
 }

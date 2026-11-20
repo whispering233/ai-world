@@ -11,6 +11,7 @@
 | [40-time-and-loop.md](design/40-time-and-loop.md) | clock / busyUntil / 一拍、时长归属、时间唯一出口 |
 | [50-llm.md](design/50-llm.md) | pi-ai 接入、三档模型、Context 入档、测试策略 |
 | [backlog.md](design/backlog.md) | 延后项与触发条件、监控指标、已知失败模式 |
+| [build.md](design/build.md) | 环境、游玩、模型配置、产物位置、故障处理 |
 | [config.md](design/config.md) | 模型配置、模型串格式、凭据来源 |
 | [tasks.md](design/tasks.md) | 【临时】任务卡片与并行分层 |
 
@@ -20,8 +21,14 @@
 | :--- | :--- |
 | [schema.md](db/schema.md) | ledger / fact / journal / passage / character / experience |
 
+## 其他
+
+| 文件 | 内容 |
+| :--- | :--- |
+| [../CHANGELOG.md](../CHANGELOG.md) | 版本变更记录 |
+| [../AGENTS.md](../AGENTS.md) | 项目规则（做错会返工的约束） |
+
 ## 尚未创建
 
-- `design/build.md` / `config.md` / `test.md`：待代码落地
-- `design/tasks.md`：任务卡片（临时）
-- `api/`：暂不适用（无对外接口）
+- `design/test.md`：测试环境与流程说明，暂由 `build.md` 第 1 节承担
+- `api/`：暂不适用（首切片无对外接口，W11 落地后再建）

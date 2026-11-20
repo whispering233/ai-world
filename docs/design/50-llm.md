@@ -180,3 +180,33 @@ chat 应用必须压缩，因为 transcript 线性增长。本项目的上下文
 
 直连 `deepseek` 同样两个模型是 0.30/1.20 与 1.32/3.96——**订阅价大约是直连的一半**。
 凭据复用 pi CLI 的 `~/.pi/agent/auth.json`（只读），不另存 key；`sessionId` 每次运行一个，opencode 用它做路由与缓存亲和。
+
+## 13. 实测结论（20 拍回归之后）
+
+### 13.1 默认模型跟 pi 走，不写死
+
+优先级：`config/models.json` 显式值 > `PI_MODEL` > `~/.pi/agent/settings.json` 的 `defaultModel` > 兜底常量；provider 取 `defaultProvider`。代码里出现具体模型串即为缺陷——它会让项目停留在某一天的默认档上。
+
+启动必须打印实际模型串。三档默认指向同一模型，分档只表达"这个调用点值得多贵的模型"，不表达"要用不同模型"。
+
+### 13.2 延迟的真实构成
+
+| 调用点 | 单次耗时 | 输出 token | 吞吐 |
+| :--- | :--- | :--- | :--- |
+| 人物认知 | 9–13s | 300–500 | ~35 tok/s |
+| 裁判 | 27–36s | 1.2–1.8k | ~100 tok/s |
+| 渲染 | 12–20s | 400–800 | ~40 tok/s |
+
+结论：**慢在输出量，不在工具调用、不在首字**。同模型同输入的对照实验里，"带工具"与"纯文本"差距在 1 秒以内；首字实测 1.3 秒。要提速只有三条：减少输出、减少调用数（已做并发）、流式改善体感。
+
+### 13.3 `usage.input` 不可信
+
+同一段 prompt，供应商报回的输入 token 在 25 / 114 / 242 / 1433 之间跳。含义：输入预算与成本核算都不能直接采信这个数。估算一律按字符数走，真实值只用于相对比较。
+
+### 13.4 重试边界的判定是可靠的
+
+`isRetryableAssistantError` 对 `Connection error.: AggregateError (ETIMEDOUT)` 判 true（会重试），对 `Unable to connect. Is the computer able to access the url?` 判 false（不重试，属 fetch 层硬错）。重试次数上涨说明供应商在抖，不是逻辑错。
+
+### 13.5 生态里没有第二个包值得引入
+
+`pi-ai` 已覆盖模型目录、凭据、会话标识、工具参数校验、JSON 修复、溢出检测。`pi-agent-core` 是 agent 循环（prompt→工具→继续），与本项目的世界循环不同构；`pi-coding-agent` 是编码 agent 产品，会带入 TUI / MCP / codemode 与一套我们不用的会话压缩模型。

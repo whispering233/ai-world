@@ -17,15 +17,24 @@
 
 | 字段 | 必选 | 说明 |
 | :--- | :--- | :--- |
-| `models.fast` | 否 | 人物认知档。缺省 `opencode-go/deepseek-v4.1-flash` |
+| `models.fast` | 否 | 人物认知档。缺省跟随 pi 的默认模型（见 §1.1） |
 | `models.strong` | 否 | 裁判档。缺省同上 |
 | `models.mid` | 否 | 渲染档。缺省同上 |
 | `sessionIdPrefix` | 否 | opencode 的路由头前缀，缺省 `play`；每次运行追加随机后缀 |
 | `retry` | 否 | 临时错误重试：`{ enabled, maxRetries, baseDelayMs }`，缺省 `true / 2 / 800` |
 
+### 1.1 缺省值从 pi 自己的设置推导
+
+```
+config/models.json 显式值 > PI_MODEL 环境变量 > ~/.pi/agent/settings.json 的 defaultModel > 兜底常量
+provider 一律取 settings.json 的 defaultProvider
+```
+
+代码里出现具体模型串即为缺陷：它会让项目停在某一天的默认档上，而 pi 早就换了。启动第一行打印实际使用的三个模型串，调错当场可见。
+
 规则：
 
-- **文件不存在 = 用默认值**，不报错。
+- **文件不存在 = 跟随 pi 的默认模型**，不报错。
 - **文件存在但写坏了 = 抛错**，不静默降级（把 `fast` 写成空串会直接报 `models.fast` 相关错误）。
 - 三档只是**角色标签与成本分桶**，允许全部指向同一个模型。默认就是同一个。
 - 路径可用环境变量 `AI_WORLD_CONFIG` 覆盖，便于并行跑不同通道。
@@ -49,7 +58,11 @@
 
 ### 重试为什么由库负责
 
-`pi-ai` 自带 `retryAssistantCall(produce, policy, signal)`：只重试它判定为**可重试**的错误（连接重置、超时、5xx），配额与鉴权错误立刻返回。pi CLI 的 `settings.retry` 就是喂给它的同一套策略；我们的 `llm.chat` 现在也走同一条路。
+`pi-ai` 自带 `retryAssistantCall(produce, policy, signal)`：只重试它判定为**可重试**的错误（连接重置、超时、5xx），配额与鉴权错误立刻返回。`llm.chat` 走的正是这条路径，重试次数会计入体检表。
+
+实测边界（别再猜）：`Connection error.: AggregateError (ETIMEDOUT)` 判为可重试；`Unable to connect. Is the computer able to access the url?` 判为不可重试。
+
+注意：安装的 pi CLI 构建里找不到消费 `settings.retry` 的代码，"pi CLI 的默认重试就是这一套"这句话**没有证据**，不要据此推断 CLI 与本项目的重试行为一致。
 
 ## 4. 其他运行时参数
 

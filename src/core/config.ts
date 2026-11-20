@@ -49,7 +49,6 @@ export function defaultConfig(base: string = FALLBACK_MODEL): ModelConfig {
   return { models, sessionIdPrefix: 'play' }
 }
 
-export const DEFAULT_CONFIG: ModelConfig = defaultConfig()
 
 const TIERS: Tier[] = ['fast', 'strong', 'mid']
 
