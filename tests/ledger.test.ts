@@ -1,0 +1,112 @@
+import { describe, expect, it } from 'vitest'
+import { apply } from '../src/core/ledger.ts'
+import { REL_MAX, REL_MIN, type World } from '../src/core/world.ts'
+
+function world(): World {
+  return {
+    ledger: {
+      clock: 0,
+      at: { ann: 'saloon', bob: 'saloon' },
+      holds: { ann: { key: 1 }, bob: {} },
+      phys: {},
+      rel: {},
+      knows: {},
+    },
+    facts: {},
+  }
+}
+
+describe('apply：六个 op', () => {
+  it('move 改位置', () => {
+    const { world: w, results } = apply(world(), [{ op: 'move', who: 'ann', to: 'street' }])
+    expect(results[0]?.ok).toBe(true)
+    expect(w.ledger.at.ann).toBe('street')
+  })
+
+  it('give 转移持有物，并从来源扣除', () => {
+    const { world: w } = apply(world(), [{ op: 'give', from: 'ann', to: 'bob', item: 'key', n: 1 }])
+    expect(w.ledger.holds.bob?.key).toBe(1)
+    expect(w.ledger.holds.ann?.key).toBeUndefined()
+  })
+
+  it('take 消耗持有物', () => {
+    const { world: w } = apply(world(), [{ op: 'take', from: 'ann', item: 'key', n: 1 }])
+    expect(w.ledger.holds.ann?.key).toBeUndefined()
+  })
+
+  it('phys 写入开放键', () => {
+    const { world: w } = apply(world(), [{ op: 'phys', who: 'ann', key: 'wounded', value: true }])
+    expect(w.ledger.phys.ann?.wounded).toBe(true)
+  })
+
+  it('rel 单向累加', () => {
+    const { world: w } = apply(world(), [{ op: 'rel', from: 'ann', to: 'bob', delta: 2 }])
+    expect(w.ledger.rel.ann?.bob).toBe(2)
+    expect(w.ledger.rel.bob).toBeUndefined()
+  })
+
+  it('learn 新增 fact 并授予 knows', () => {
+    const { world: w } = apply(world(), [{ op: 'learn', who: ['bob'], text: 'ann 那晚不在场' }])
+    expect(w.facts.f0?.text).toBe('ann 那晚不在场')
+    expect(w.ledger.knows.bob).toEqual(['f0'])
+  })
+})
+
+describe('apply：前置条件与拒绝', () => {
+  it('给出未持有的物品被拒，且不写入任何状态', () => {
+    const { world: w, results } = apply(world(), [{ op: 'give', from: 'bob', to: 'ann', item: 'key', n: 1 }])
+    expect(results[0]?.ok).toBe(false)
+    expect(results[0]?.why).toContain('没有这么多')
+    expect(w.ledger.holds.ann?.key).toBe(1)
+    expect(w.ledger.holds.bob).toBeDefined()
+  })
+
+  it('数量非正整数被拒', () => {
+    const { results } = apply(world(), [{ op: 'take', from: 'ann', item: 'key', n: 0 }])
+    expect(results[0]?.ok).toBe(false)
+  })
+
+  it('不存在的实体被拒', () => {
+    const { world: w, results } = apply(world(), [{ op: 'move', who: 'ghost', to: 'street' }])
+    expect(results[0]?.ok).toBe(false)
+    expect(w.ledger.at.ghost).toBeUndefined()
+  })
+
+  it('一条失败不影响同批其它 op', () => {
+    const { world: w, results } = apply(world(), [
+      { op: 'move', who: 'ghost', to: 'street' },
+      { op: 'move', who: 'ann', to: 'street' },
+    ])
+    expect(results.map((r) => r.ok)).toEqual([false, true])
+    expect(w.ledger.at.ann).toBe('street')
+  })
+
+  it('关系越界饱和到 ±3（不是拒绝）', () => {
+    const up = apply(world(), [{ op: 'rel', from: 'ann', to: 'bob', delta: 10 }])
+    expect(up.world.ledger.rel.ann?.bob).toBe(REL_MAX)
+    const down = apply(world(), [{ op: 'rel', from: 'ann', to: 'bob', delta: -10 }])
+    expect(down.world.ledger.rel.ann?.bob).toBe(REL_MIN)
+  })
+
+  it('空事实文本被拒', () => {
+    const { world: w, results } = apply(world(), [{ op: 'learn', who: ['ann'], text: '   ' }])
+    expect(results[0]?.ok).toBe(false)
+    expect(Object.keys(w.facts)).toHaveLength(0)
+  })
+})
+
+describe('apply：纯函数与可回放', () => {
+  it('不改入参', () => {
+    const original = world()
+    const snapshot = structuredClone(original)
+    apply(original, [{ op: 'move', who: 'ann', to: 'street' }])
+    expect(original).toEqual(snapshot)
+  })
+
+  it('同一批 op 重放两次得到相同 world', () => {
+    const ops = [{ op: 'learn' as const, who: ['ann'], text: '门是铸铁焊死的' }]
+    const a = apply(world(), ops).world
+    const b = apply(world(), ops).world
+    expect(a).toEqual(b)
+  })
+})
