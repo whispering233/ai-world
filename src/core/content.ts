@@ -35,6 +35,9 @@ export function validatePack(pack: ContentPack): string[] {
     if (!(ch.id in at)) errors.push(`人物 ${ch.id} 不在 ledger.at 里`)
   }
   if (!(pack.player in at)) errors.push(`玩家 ${pack.player} 不在 ledger.at 里`)
+  for (const [ent, place] of Object.entries(at)) {
+    if (!(place in pack.world.places)) errors.push(`实体 ${ent} 所在地点 ${place} 不在 places 里`)
+  }
 
   for (const ch of pack.characters) {
     const coreWidth = width(ch.core ?? '')

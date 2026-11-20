@@ -27,6 +27,7 @@ function world(): World {
   return {
     ledger: { clock: 0, at: { player: 'saloon', ann: 'saloon', doc: 'saloon' }, holds: {}, phys: {}, rel: {}, knows: {} },
     facts: {},
+    places: { saloon: '酒馆', street: '街道' },
   }
 }
 

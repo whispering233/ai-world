@@ -30,6 +30,7 @@ function applyOne(w: World, op: Op): OpResult {
   switch (op.op) {
     case 'move': {
       if (!exists(w, op.who)) return fail(`不存在的实体：${op.who}`)
+      if (!Object.hasOwn(w.places, op.to)) return fail(`不存在的地点：${op.to}（只能去已有地点）`)
       w.ledger.at[op.who] = op.to
       return OK
     }

@@ -71,7 +71,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     if (ent === input.player) continue
     const ch = characters.get(ent)
     if (!ch) continue
-    const sceneText = [input.sceneText, contextOf(input.scene, ent)].filter(Boolean).join('\n')
+    const sceneText = [input.sceneText, describeLedger(input.world, inScene), contextOf(input.scene, ent)].filter(Boolean).join('\n')
     const res = await deps.cognition.think({ character: ch, sceneText, canon: [...input.canon], now: clock })
     claims.push({ id: `${ent}${clock}`, actor: ent, text: res.output.outward, kind: 'act' })
     let next = ch
@@ -84,7 +84,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     return { world: input.world, scene: input.scene, characters, passage: '', journalSeq: 0, notes: ['没有主张，本拍未发生'] }
   }
 
-  const out = await deps.referee.judge({ clock, claims, context: [input.sceneText, contextOf(input.scene, input.player)].filter(Boolean).join('\n') })
+  const out = await deps.referee.judge({ clock, claims, context: [input.sceneText, describeLedger(input.world, present), contextOf(input.scene, input.player)].filter(Boolean).join('\n') })
   // 先把时钟推到本拍结束，再提交：否则 learn 建出的 fact.at 会落后于重放时的值，回放就不相等了
   const clockAfter = clock + maxDuration(out.verdicts)
   const at = { ...input.world, ledger: { ...input.world.ledger, clock: clockAfter } }
@@ -137,6 +137,18 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     result.notes.push(`折场：${reason}`)
   }
   return result
+}
+
+/** shortcut: 只给“在场者的持有物 + 地点表”，不做相关实体剪枝；实体多了再按场景切片 */
+function describeLedger(world: World, present: readonly EntId[]): string {
+  const places = Object.entries(world.places).map(([id, name]) => `${name}(${id})`).join('、')
+  const rows = present.map((ent) => {
+    const place = world.ledger.at[ent] ?? '未知'
+    const bag = Object.entries(world.ledger.holds[ent] ?? {}).map(([item, n]) => `${item}×${n}`).join('、') || '空手'
+    const phys = Object.entries(world.ledger.phys[ent] ?? {}).map(([k, v]) => `${k}=${String(v)}`).join('、')
+    return `- ${ent}：在 ${place}；持有 ${bag}${phys === '' ? '' : `；${phys}`}`
+  })
+  return `已知地点：${places}\n账本现状：\n${rows.join('\n')}`
 }
 
 /** 一拍的时长 = 本拍最长的那个动作；没有动作就不推进时间。 */

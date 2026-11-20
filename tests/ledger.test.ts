@@ -13,6 +13,7 @@ function world(): World {
       knows: {},
     },
     facts: {},
+    places: { saloon: '酒馆', street: '街道' },
   }
 }
 

@@ -38,6 +38,8 @@ export interface Fact {
 export interface World {
   ledger: Ledger
   facts: Record<FactId, Fact>
+  /** 地点白名单：id → 人读的名字。move 只能去这里存在的地方，否则模型会现编地点 */
+  places: Record<PlaceId, string>
 }
 
 export type Op =

@@ -18,6 +18,7 @@ export const STARTER_TOWN: ContentPack = {
       knows: {},
     },
     facts: {},
+    places: { saloon: '酒馆' },
   },
   characters: [
     {
