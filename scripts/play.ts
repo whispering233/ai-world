@@ -7,17 +7,16 @@
  *   node --experimental-strip-types scripts/play.ts --beats 3 --auto
  */
 import { randomUUID } from 'node:crypto'
-import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline/promises'
-import type { CredentialStore } from '@earendil-works/pi-ai'
 import { stdin, stdout } from 'node:process'
 import { runBeat, type BeatDeps } from '../src/core/beat.ts'
 import { createCognition } from '../src/core/cognition.ts'
 import type { Character } from '../src/core/character.ts'
 import { fmt } from '../src/core/clock.ts'
 import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '../src/core/config.ts'
+import { readonlyPiCredentials } from '../src/core/pi-credentials.ts'
 import { createLlm } from '../src/core/llm.ts'
 import { createNarrator } from '../src/core/narrate.ts'
 import { createLlmReferee, noRate } from '../src/core/referee.ts'
@@ -51,7 +50,7 @@ async function main(): Promise<void> {
   const cfg = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json', piDefault)
   const llm = createLlm({
     models: cfg.models,
-    credentials: piCredentials(),
+    credentials: readonlyPiCredentials(),
     sessionId: `${cfg.sessionIdPrefix ?? 'play'}-${randomUUID()}`,
     ...(cfg.retry ? { retry: cfg.retry } : {}),
     onUsage: (s) => {
@@ -146,26 +145,3 @@ function pct(part: number, total: number): string {
 }
 
 void main()
-
-/**
- * 复用 pi CLI 自己的订阅凭据（~/.pi/agent/auth.json），不额外存一份 key。
- * 只读：本程序不该改写 pi 的登录状态。
- */
-function piCredentials(): CredentialStore {
-  const file = join(homedir(), '.pi', 'agent', 'auth.json')
-  const raw = JSON.parse(readFileSync(file, 'utf8')) as Record<string, { type: 'api_key'; key?: string }>
-  return {
-    async read(providerId) {
-      return raw[providerId]
-    },
-    async list() {
-      return Object.entries(raw).map(([providerId, c]) => ({ providerId, type: c.type }))
-    },
-    async modify() {
-      throw new Error('play.ts 只读 pi 凭据，不修改')
-    },
-    async delete() {
-      throw new Error('play.ts 只读 pi 凭据，不删除')
-    },
-  }
-}

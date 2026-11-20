@@ -242,7 +242,7 @@ export const SUBMIT_VERDICT_TOOL = {
   },
 } as const
 
-const REFEREE_SYSTEM = `你是这个世界的裁判，不是叙述者。你只判定别人提出的主张，不替任何人编故事。
+export const REFEREE_SYSTEM = `你是这个世界的裁判，不是叙述者。你只判定别人提出的主张，不替任何人编故事。
 
 规则：
 1. 每条 claim 必须给出一条 verdict，claimId 原样带回。
@@ -266,20 +266,20 @@ deltas 只能使用这些 op：move{who,to} / give{from,to,item,n} / take{from,i
  * 用文本 JSON 而非工具调用：裁判的输出是“一份判定书”，不是能力调用。
  * 校验强度由 parseRefereeOutput + apply() 的前置条件保证，两者缺一不可。
  */
+/** 裁判的用户消息（工具调用与纯文本回退共用同一段，便于对照测速） */
+export function refereePrompt(input: RefereeInput): string {
+  const claims = input.claims.map((c) => ({ claimId: c.id, actor: c.actor, kind: c.kind, text: c.text }))
+  return `当前时刻（分钟）：${input.clock}\n\n现场：\n${input.context}\n\n待裁决的主张：\n${JSON.stringify(claims, null, 2)}`
+}
+
 export function createLlmReferee(llm: Llm): Referee {
   return {
     async judge(input) {
-      const claims = input.claims.map((c) => ({ claimId: c.id, actor: c.actor, kind: c.kind, text: c.text }))
       const res = await llm.chat({
         tier: 'strong',
         system: REFEREE_SYSTEM,
         tools: [SUBMIT_VERDICT_TOOL],
-        messages: [
-          {
-            role: 'user',
-            content: `当前时刻（分钟）：${input.clock}\n\n现场：\n${input.context}\n\n待裁决的主张：\n${JSON.stringify(claims, null, 2)}`,
-          },
-        ],
+        messages: [{ role: 'user', content: refereePrompt(input) }],
       })
       // 首选工具调用（参数已被 schema 校验）；模型没用工具时退回文本 JSON。
       // 两条路都不抛：解析不出来就交给 parseRefereeOutput 走“无事发生 + notes”分支。
