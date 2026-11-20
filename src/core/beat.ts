@@ -75,27 +75,36 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     if (ch) thinkers.push({ ent, ch })
   }
   const thoughts = await Promise.all(
-    thinkers.map(({ ent, ch }) =>
-      deps.cognition.think({
-        character: ch,
-        sceneText: [input.sceneText, describeLedger(input.world, inScene), contextOf(input.scene, ent)].filter(Boolean).join('\n'),
-        canon: [...input.canon],
-        now: clock,
-      }),
-    ),
+    thinkers.map(async ({ ent, ch }) => {
+      try {
+        const res = await deps.cognition.think({
+          character: ch,
+          sceneText: [input.sceneText, describeLedger(input.world, inScene), contextOf(input.scene, ent)].filter(Boolean).join('\n'),
+          canon: [...input.canon],
+          now: clock,
+        })
+        return { ok: true as const, ent, ch, res }
+      } catch (error) {
+        // 一个人物调用失败不该毁掉整拍：它这一拍就是没开口，其余人照常结算。
+        return { ok: false as const, ent, reason: (error as Error).message }
+      }
+    }),
   )
-  for (const [i, { ent, ch }] of thinkers.entries()) {
-    const res = thoughts[i]
-    if (!res) continue
-    claims.push({ id: `${ent}${clock}`, actor: ent, text: res.output.outward, kind: 'act' })
-    let next = ch
-    for (const e of res.experience) next = remember(next, e)
-    if (res.output.selfChange) next = remember(next, { t: clock, kind: 'thought', text: res.output.selfChange, w: 2 })
-    characters.set(ent, next)
+  const degraded: string[] = []
+  for (const t of thoughts) {
+    if (!t.ok) {
+      degraded.push(`认知失败（本拍沉默）：${t.ent}：${t.reason}`)
+      continue
+    }
+    claims.push({ id: `${t.ent}${clock}`, actor: t.ent, text: t.res.output.outward, kind: 'act' })
+    let next = t.ch
+    for (const e of t.res.experience) next = remember(next, e)
+    if (t.res.output.selfChange) next = remember(next, { t: clock, kind: 'thought', text: t.res.output.selfChange, w: 2 })
+    characters.set(t.ent, next)
   }
 
   if (claims.length === 0) {
-    return { world: input.world, scene: input.scene, characters, passage: '', journalSeq: 0, notes: ['没有主张，本拍未发生'] }
+    return { world: input.world, scene: input.scene, characters, passage: '', journalSeq: 0, notes: [...degraded, '没有主张，本拍未发生'] }
   }
 
   const out = await deps.referee.judge({ clock, claims, context: [input.sceneText, describeLedger(input.world, present), contextOf(input.scene, input.player)].filter(Boolean).join('\n') })
@@ -143,7 +152,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     characters,
     passage: narration.text,
     journalSeq: entry.seq,
-    notes: [...notes, ...narration.absoluteTime.map((t) => `叙述里出现绝对时间：${t}`)],
+    notes: [...degraded, ...notes, ...narration.absoluteTime.map((t) => `叙述里出现绝对时间：${t}`)],
   }
 
   const reason = foldReason(scene, { place: result.world.ledger.at[input.player] ?? scene.place, clock: clockAfter, tokens: scene.tokens })

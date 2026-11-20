@@ -96,6 +96,25 @@ describe('runBeat：并发', () => {
   })
 })
 
+describe('runBeat：降级', () => {
+  it('一个人物的认知抛错时，其余人照常结算，拍不会丢', async () => {
+    const store = tmpStore()
+    const input = base(store, [
+      { order: ['ann'], verdicts: [verdict('a0', [], 1)], observations: {}, driveHits: [] },
+    ])
+    const cognition = {
+      think: (req: { character: { id: string } }) =>
+        req.character.id === 'doc'
+          ? Promise.reject(new Error('ETIMEDOUT'))
+          : Promise.resolve({ output: { inner: '看着', outward: '点了下头' }, experience: [] }),
+    }
+    const r = await runBeat({ ...input, deps: { ...input.deps, cognition } })
+    expect(r.journalSeq).toBeGreaterThan(0)
+    expect(r.notes.some((n) => n.includes('doc') && n.includes('认知失败'))).toBe(true)
+    expect(store.readJournal()).toHaveLength(1)
+  })
+})
+
 describe('runBeat：三拍连续', () => {
   it('每拍落一条 journal，时钟按最长动作推进', async () => {
     const store = tmpStore()
