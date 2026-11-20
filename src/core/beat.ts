@@ -91,7 +91,9 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   const { world, applied } = commit(at, out)
   const notes = applied.flatMap((a) => a.results.filter((r) => !r.ok).map((r) => `${a.claimId}: ${r.why ?? 'op 失败'}`))
 
-  const seen = distribute(out.observations, out.verdicts, characters, clock)
+  // 整条裁决被回滚时，当事人记住的是"没成"，不是"我成功了"
+  const rolledBack = new Map(applied.filter((a) => !a.committed).map((a) => [a.claimId, a.results]))
+  const seen = distribute(out.observations, out.verdicts, characters, clock, rolledBack)
   for (const [ent, ch] of seen) characters.set(ent, ch)
   applyDriveHits(characters, out.driveHits)
 
@@ -174,6 +176,7 @@ function distribute(
   verdicts: readonly Verdict[],
   characters: Map<EntId, Character>,
   clock: number,
+  rolledBack: Map<string, { ok: boolean; why?: string }[]>,
 ): Map<EntId, Character> {
   const next = new Map<EntId, Character>()
   for (const [ent, obs] of Object.entries(observations)) {
@@ -183,6 +186,12 @@ function distribute(
   }
   // 失败的理由要回到当事人身上，这是"约束由后果施加"的落点
   for (const v of verdicts) {
+    if (v.ok && rolledBack.has(v.claimId)) {
+      const why = (rolledBack.get(v.claimId) ?? []).find((r) => !r.ok)?.why ?? '没成'
+      const ch = next.get(v.actor) ?? characters.get(v.actor)
+      if (ch) next.set(v.actor, remember(ch, { t: clock, kind: 'seen', text: `我的举动没成：${why}`, w: 2 }))
+      continue
+    }
     if (v.ok || !v.reason) continue
     const ch = next.get(v.actor) ?? characters.get(v.actor)
     if (!ch) continue

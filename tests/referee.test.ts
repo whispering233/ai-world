@@ -137,3 +137,24 @@ describe('统计与桩', () => {
     expect(b.verdicts[0]?.ok).toBe(false)
   })
 })
+
+describe('commit：一条裁决是一个事务', () => {
+  it('任一条 op 不成立则整条裁决不写入（不能出现钱付了货没到）', () => {
+    const out = output([
+      {
+        claimId: 'c1',
+        actor: 'ann',
+        ok: true,
+        duration: 1,
+        deltas: [
+          { op: 'take', from: 'player', item: 'gun', n: 1 },
+          { op: 'give', from: 'ann', to: 'player', item: 'gun', n: 1 },
+        ],
+      },
+    ])
+    const { world: w, applied } = commit(world(), out)
+    expect(applied[0]?.committed).toBe(false)
+    expect(w.ledger.holds.ann?.gun).toBe(1)
+    expect(w.ledger.holds.player?.gun).toBeUndefined()
+  })
+})

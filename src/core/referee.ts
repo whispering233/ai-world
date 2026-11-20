@@ -141,19 +141,23 @@ export function parseRefereeOutput(raw: unknown, claims: readonly Claim[]): Pars
 /**
  * 把裁决写进账本。按 order 结算：先手先落地，因此“谁抢到”由裁判的 deltas 与顺序共同决定，
  * 而不是由调用方的数组顺序决定。
+ *
+ * **一条裁决内的 deltas 是事务**：任何一条 op 不成立，整条裁决不写入。
+ * 否则会出现“钱付了、酒没拿到”——那比干脆被拒绝更糟，因为它是静默的账目错误。
  */
 export function commit(
   world: World,
   out: RefereeOutput,
-): { world: World; applied: { claimId: string; results: OpResult[] }[] } {
+): { world: World; applied: { claimId: string; results: OpResult[]; committed: boolean }[] } {
   let next = world
-  const applied: { claimId: string; results: OpResult[] }[] = []
+  const applied: { claimId: string; results: OpResult[]; committed: boolean }[] = []
   for (const actor of settleOrder(out)) {
     for (const v of out.verdicts) {
       if (!v.ok || v.actor !== actor) continue
       const r = apply(next, v.deltas)
-      next = r.world
-      applied.push({ claimId: v.claimId, results: r.results })
+      const committed = r.results.every((x) => x.ok)
+      if (committed) next = r.world
+      applied.push({ claimId: v.claimId, results: r.results, committed })
     }
   }
   return { world: next, applied }
