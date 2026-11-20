@@ -41,13 +41,10 @@ const AUTO_LINES = [
 
 async function main(): Promise<void> {
   const usage = { fast: { input: 0, output: 0 }, strong: { input: 0, output: 0 }, mid: { input: 0, output: 0 } }
+  // 测一律用同一个模型；三档只是角色标签，方便分别统计用量
+  const MODEL = 'opencode-go/deepseek-v4.1-flash'
   const llm = createLlm({
-    // 与 pi CLI 同一档：opencode-go 订阅的 DeepSeek V4.1 Flash
-    models: {
-      fast: 'opencode-go/deepseek-v4.1-flash',
-      strong: 'opencode-go/deepseek-v4-pro',
-      mid: 'opencode-go/deepseek-v4.1-flash',
-    },
+    models: { fast: MODEL, strong: MODEL, mid: MODEL },
     credentials: piCredentials(),
     sessionId: `play-${randomUUID()}`,
     onUsage: (s) => {

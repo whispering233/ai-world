@@ -174,8 +174,9 @@ chat 应用必须压缩，因为 transcript 线性增长。本项目的上下文
 
 | 档位 | 模型 | 输入 $/M | 输出 $/M |
 | :--- | :--- | :--- | :--- |
-| fast / mid | `opencode-go/deepseek-v4.1-flash` | 0.15 | 0.60 |
-| strong（裁判） | `opencode-go/deepseek-v4-pro` | 0.66 | 1.98 |
+| fast / mid / strong | `opencode-go/deepseek-v4.1-flash` | 0.15 | 0.60 |
+
+**测试与运行一律用这一个模型。** 三档（fast / strong / mid）只是角色标签与成本分桶，不预设换模型；等真的需要为裁判单独升级时再改一行配置。
 
 直连 `deepseek` 同样两个模型是 0.30/1.20 与 1.32/3.96——**订阅价大约是直连的一半**。
 凭据复用 pi CLI 的 `~/.pi/agent/auth.json`（只读），不另存 key；`sessionId` 每次运行一个，opencode 用它做路由与缓存亲和。
