@@ -18,6 +18,8 @@
 | id | 是 | string | | |
 | text | 是 | string | | 自由文本，单句 |
 | at | 是 | number | | 产生时的 clock |
+| actor | 否 | EntId | | 动作发出者（不是承受者）；不确定可省略 |
+| kind | 否 | enum | `speech` \| `promise` \| `threat` \| `lie` \| `transaction` \| `identity` \| `state` \| `other` | 事件类别；旧 fact 可缺失 |
 | supersededBy | 否 | FactId | | 被新事实推翻时指向新条目 |
 
 ## 3. `journal`（事件日志，append-only）
