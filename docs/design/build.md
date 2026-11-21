@@ -73,7 +73,7 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 
 默认模型**跟着 pi CLI 自己走**，不在代码里写死：
 
-```
+```text
 config/models.json 显式值 > PI_MODEL 环境变量 > ~/.pi/agent/settings.json 的 defaultModel > 兜底常量
 provider 一律取 settings.json 的 defaultProvider
 ```
