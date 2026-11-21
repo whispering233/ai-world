@@ -67,6 +67,12 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   if (input.playerClaim) {
     claims.push({ id: `p${clock}`, actor: input.player, text: input.playerClaim, kind: 'act' })
   }
+  // 人物本拍要能看见玩家刚说的话/做的事；只给公开输入，不给玩家的私有状态。
+  const playerLine = input.playerClaim ? `玩家刚才说/做：${input.playerClaim}` : ''
+  const sceneFor = (ent: EntId): string =>
+    [input.sceneText, playerLine, describeLedger(input.world, inScene), contextOf(input.scene, ent)]
+      .filter(Boolean)
+      .join('\n')
   // 同一拍内多个 actor 的认知互不依赖：并发跑，但按人位顺序落 claims（结算顺序仍由裁判给）。
   const thinkers: { ent: EntId; ch: Character }[] = []
   for (const ent of called) {
@@ -79,7 +85,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
       try {
         const res = await deps.cognition.think({
           character: ch,
-          sceneText: [input.sceneText, describeLedger(input.world, inScene), contextOf(input.scene, ent)].filter(Boolean).join('\n'),
+          sceneText: sceneFor(ent),
           canon: [...input.canon],
           now: clock,
         })
