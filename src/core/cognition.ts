@@ -7,6 +7,13 @@ import { recall, type Character, type Experience } from './character.ts'
 import { createFauxLlm, type Llm } from './llm.ts'
 import { parseModelJson } from './model-json.ts'
 
+export interface CrossTalk {
+  /** 自己刚才的公开输出（只含 outward，不含 inner） */
+  self?: string
+  /** 其他角色本拍已经公开的输出（只含 outward，不含 inner） */
+  others: { actor: string; text: string }[]
+}
+
 export interface CognitionInput {
   character: Character
   sceneText: string
@@ -15,6 +22,8 @@ export interface CognitionInput {
   now: number
   /** 上一拍的后果，用于“被拒绝后的反应” */
   lastVerdict?: { ok: boolean; reason?: string }
+  /** 实验用：一拍内第二轮，看到其他人的公开输出后再说一次。缺省 = 单次调用。 */
+  crossTalk?: CrossTalk
 }
 
 export interface CognitionOutput {
@@ -83,9 +92,15 @@ function buildSystem(ch: Character, canon: string[], now: number): string {
 
 function buildPrompt(input: CognitionInput): string {
   const v = input.lastVerdict
-  if (!v) return input.sceneText
-  const outcome = v.ok ? '你的举动被接受了' : `你的举动被拒绝了${v.reason ? `（${v.reason}）` : ''}`
-  return `${input.sceneText}\n\n上一拍的结果：${outcome}`
+  const outcome = v ? (v.ok ? '你的举动被接受了' : `你的举动被拒绝了${v.reason ? `（${v.reason}）` : ''}`) : undefined
+  const base = outcome ? `${input.sceneText}\n\n上一拍的结果：${outcome}` : input.sceneText
+  if (!input.crossTalk) return base
+
+  const others = input.crossTalk.others.map((o) => `- ${o.actor}：${o.text}`).join('\n')
+  const blocks = [base, `这一拍其他人已经公开说/做的：\n${others || '（没有）'}`]
+  if (input.crossTalk.self) blocks.push(`你刚才说/做的：${input.crossTalk.self}`)
+  blocks.push('你可以坚持、补充、改口或沉默。')
+  return blocks.join('\n\n')
 }
 
 export function createCognition(llm: Llm): Cognition {

@@ -96,6 +96,35 @@ describe('runBeat：并发', () => {
   })
 })
 
+describe('runBeat：玩家输入可见', () => {
+  it('人物认知的 sceneText 含玩家本拍输入', async () => {
+    const store = tmpStore()
+    const seen: string[] = []
+    const input = base(store, [
+      {
+        order: ['ann'],
+        verdicts: [
+          { claimId: 'p0', actor: 'player', ok: true, deltas: [], duration: 1 },
+          verdict('a0', [], 1),
+          verdict('d0', [], 1),
+        ],
+        observations: {},
+        driveHits: [],
+      },
+    ])
+    input.playerClaim = '我把银元放在柜台上'
+    const cognition = {
+      think: (req: { sceneText: string }) => {
+        seen.push(req.sceneText)
+        return Promise.resolve({ output: { inner: '看着', outward: '点了下头' }, experience: [] })
+      },
+    }
+    await runBeat({ ...input, deps: { ...input.deps, cognition } })
+    expect(seen).toHaveLength(2)
+    expect(seen.every((s) => s.includes('我把银元放在柜台上'))).toBe(true)
+  })
+})
+
 describe('runBeat：降级', () => {
   it('一个人物的认知抛错时，其余人照常结算，拍不会丢', async () => {
     const store = tmpStore()

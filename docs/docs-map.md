@@ -32,6 +32,7 @@
 | 文件 | 内容 |
 | :--- | :--- |
 | [multi-agent-architectures.md](research/multi-agent-architectures.md) | 多 Agent 编排架构对比、Super-agent / Claude Code Teams / Orca·Herdr，及 ai-world 保留裁判的理由 |
+| [multi-round-experiment.md](research/multi-round-experiment.md) | 一拍内多轮对话 pilot：baseline / self-retry / cross-talk 三臂、成本、回声率、硬冲突与结论 |
 
 ## 其他
 

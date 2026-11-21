@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createStubCognition, type CognitionInput } from '../src/core/cognition.ts'
+import { createCognition, createStubCognition, type CognitionInput } from '../src/core/cognition.ts'
+import type { ChatRequest } from '../src/core/llm.ts'
 import type { Character } from '../src/core/character.ts'
 
 function input(over: Partial<CognitionInput> = {}): CognitionInput {
@@ -14,6 +15,35 @@ function input(over: Partial<CognitionInput> = {}): CognitionInput {
   }
   return { character, sceneText: '他把杯子推过来。', canon: ['屋里只有一盏灯'], now: 100, ...over }
 }
+
+describe('createCognition：crossTalk 第二轮', () => {
+  it('prompt 含其他人的公开输出与自己的草稿，不要求他人 inner', async () => {
+    const seen: ChatRequest[] = []
+    const llm = {
+      async chat(req: ChatRequest) {
+        seen.push(req)
+        return {
+          text: JSON.stringify({ inner: '听着', outward: '我改口了' }),
+          toolCalls: [],
+          inputTokens: 0,
+          outputTokens: 0,
+          model: 'faux/cognition',
+        }
+      },
+    }
+    const req = input({
+      crossTalk: {
+        self: '我先把杯子推过去',
+        others: [{ actor: 'doc', text: '医生抬了下眼' }],
+      },
+    })
+    await createCognition(llm).think(req)
+    const prompt = seen[0]?.messages[0]?.content ?? ''
+    expect(prompt).toContain('医生抬了下眼')
+    expect(prompt).toContain('我先把杯子推过去')
+    expect(prompt).toContain('你可以坚持、补充、改口或沉默')
+  })
+})
 
 describe('createStubCognition：合法 JSON 切分', () => {
   it('inner/outward 各自就位，并写回一条 seen', async () => {
