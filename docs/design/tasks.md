@@ -29,7 +29,7 @@
 - `fact` 只记会改变后续判断的事件；`journal`/`passage` 才是全量记录。
 - `fact` 可选 `actor`/`kind`；旧 fact 没有字段也必须能 replay；kind 未知会被拒，不确定用 `other`。
 - `know` 用文本新建 fact 时 `kind:'speech'`，不假装知道说话人。
-- `facts/beat` 当前 1.10–1.20，已接受为已知缺口；不再用 prompt 硬压。
+- `facts/beat` 的 20 拍基线是 1.10–1.20；加 `actor/kind` 后只有 6 拍 smoke 1.67，尚未重跑 20 拍；不再用 prompt 硬压。
 - 人物的新记忆与 `driveHits` 进 journal；未落 journal 的拍不推进记忆；`replayCharacters` 只用 journal。
 - `sessionId` 是 provider 的路由/缓存亲和头，不是消息线程；一次世界运行一个，不按角色拆。
 - `cognition` 的 system 顺序：core/voice → 输出指令 → canon → drives/beliefs/记忆。

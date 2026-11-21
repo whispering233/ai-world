@@ -53,7 +53,7 @@ export interface RefereeOutput {
 export interface RefereeInput {
   clock: number
   claims: readonly Claim[]
-  /** 场景装配好的现场文本（W08 负责拼），裁判不自己检索 */
+  /** 场景装配好的现场文本（由调度层拼），裁判不自己检索 */
   context: string
 }
 
@@ -265,8 +265,8 @@ export const REFEREE_SYSTEM = `你是这个世界的裁判，不是叙述者。�
 deltas 只能使用这些 op：move{who,to} / transfer{from,to,item,n} / consume{from,item,n} / phys{who,key,value} / rel{from,to,delta} / fact{text,actor?,kind?} / know{who,fact}。`
 
 /**
- * 用文本 JSON 而非工具调用：裁判的输出是“一份判定书”，不是能力调用。
- * 校验强度由 parseRefereeOutput + apply() 的前置条件保证，两者缺一不可。
+ * 裁判输出优先走 submit_verdict 工具；模型没调工具时回退文本 JSON。
+ * 信封由工具 schema 校验，单个 op 的合法性仍由 apply() 的前置条件把关。
  */
 /** 裁判的用户消息（工具调用与纯文本回退共用同一段，便于对照测速） */
 export function refereePrompt(input: RefereeInput): string {

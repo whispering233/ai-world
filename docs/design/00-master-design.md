@@ -69,9 +69,9 @@
 | 编号 | 问题 | 结论 |
 | :--- | :--- | :--- |
 | A1 | 角色输出切分 | 两字段 `inner` + `outward`（30 §3） |
-| A2 | 技术栈与存储 | TS + Node 22 + ESM + vitest；`journal.jsonl` + `state.json`；Vite + React + Tailwind |
+| A2 | 技术栈与存储 | TS + Node 22 + ESM + vitest；`journal.jsonl` + `passage.jsonl`（无 `state.json` 快照）；Vite + React + Tailwind |
 | A3 | 裁判结构化输出 | tool calling（`submit_verdict`），pi-ai 已备校验与修复 |
-| B5 | “有魂”验收判据 | 三条，已写入 `tasks.md` W14 |
+| B5 | “有魂”验收判据 | 三条，见试玩结束三问；不绑定临时任务卡编号 |
 
 UI 布局已定稿，见 [../ui/DESIGN.md](../ui/DESIGN.md)；作者/调试模式（三栏）记入 [backlog.md](backlog.md)，不实现。
 
