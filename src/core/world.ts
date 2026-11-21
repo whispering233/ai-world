@@ -44,8 +44,8 @@ export interface World {
 
 export type Op =
   | { op: 'move'; who: EntId; to: PlaceId }
-  | { op: 'give'; from: EntId; to: EntId; item: ItemId; n: number }
-  | { op: 'take'; from: EntId; item: ItemId; n: number }
+  | { op: 'transfer'; from: EntId; to: EntId; item: ItemId; n: number }
+  | { op: 'consume'; from: EntId; item: ItemId; n: number }
   | { op: 'phys'; who: EntId; key: string; value: number | boolean }
   | { op: 'rel'; from: EntId; to: EntId; delta: number }
   | { op: 'fact'; text: string }

@@ -86,7 +86,7 @@ describe('commit：写账本', () => {
   it('按 order 结算：先手先落地', () => {
     const out = output(
       [
-        { claimId: 'c1', actor: 'ann', ok: true, deltas: [{ op: 'give', from: 'ann', to: 'bob', item: 'gun', n: 1 }], duration: 1 },
+        { claimId: 'c1', actor: 'ann', ok: true, deltas: [{ op: 'transfer', from: 'ann', to: 'bob', item: 'gun', n: 1 }], duration: 1 },
         { claimId: 'c2', actor: 'bob', ok: true, deltas: [{ op: 'rel', from: 'bob', to: 'ann', delta: -1 }], duration: 1 },
       ],
       ['bob', 'ann'],
@@ -107,7 +107,7 @@ describe('commit：写账本', () => {
 
   it('非法 op 被 apply 拒绝，不写半条状态', () => {
     const out = output([
-      { claimId: 'c2', actor: 'bob', ok: true, deltas: [{ op: 'give', from: 'bob', to: 'ann', item: 'gun', n: 1 }], duration: 1 },
+      { claimId: 'c2', actor: 'bob', ok: true, deltas: [{ op: 'transfer', from: 'bob', to: 'ann', item: 'gun', n: 1 }], duration: 1 },
     ])
     const { world: w, applied } = commit(world(), out)
     expect(applied[0]?.results[0]?.ok).toBe(false)
@@ -147,14 +147,14 @@ describe('commit：一条裁决是一个事务', () => {
         ok: true,
         duration: 1,
         deltas: [
-          { op: 'take', from: 'player', item: 'gun', n: 1 },
-          { op: 'give', from: 'ann', to: 'player', item: 'gun', n: 1 },
+          { op: 'transfer', from: 'ann', to: 'bob', item: 'gun', n: 1 },
+          { op: 'transfer', from: 'bob', to: 'ann', item: 'sword', n: 1 },
         ],
       },
     ])
     const { world: w, applied } = commit(world(), out)
     expect(applied[0]?.committed).toBe(false)
     expect(w.ledger.holds.ann?.gun).toBe(1)
-    expect(w.ledger.holds.player?.gun).toBeUndefined()
+    expect(w.ledger.holds.bob?.gun).toBeUndefined()
   })
 })

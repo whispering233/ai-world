@@ -324,7 +324,7 @@ describe('runBeat：已提交 claim', () => {
         order: ['ann'],
         verdicts: [
           verdict('p0', [{ op: 'fact', text: '雨小了' }], 1),
-          { claimId: 'a0', actor: 'ann', ok: true, deltas: [{ op: 'give', from: 'ann', to: 'player', item: 'missing', n: 1 }], duration: 1 },
+          { claimId: 'a0', actor: 'ann', ok: true, deltas: [{ op: 'transfer', from: 'ann', to: 'player', item: 'missing', n: 1 }], duration: 1 },
         ],
         observations: {},
         driveHits: [],

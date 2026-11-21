@@ -36,6 +36,7 @@ const AUTO_LINES = [
   '我推门进去，找了个靠门的位子坐下。',
   '我走到柜台前，问老板娘还有没有酒。',
   '我把两枚银元塞进安手里，要一杯威士忌。',
+  '我把自己那杯威士忌喝掉。',
   '我趴在靠墙的桌上睡了一整夜，天亮才醒。',
   '我告诉医生，安早就还清了债。',
   '我把那本账本推到柜台中间。',
@@ -87,6 +88,8 @@ async function main(): Promise<void> {
   const rl = AUTO ? undefined : createInterface({ input: stdin, output: stdout })
   const startedAt = performance.now()
   const committedClaims = new Set<string>()
+  const beatNotes: string[] = []
+  const initialHolds = structuredClone(world.ledger.holds)
 
   for (let i = 1; i <= BEATS; i += 1) {
     const line = AUTO ? (i === BEATS ? FINAL_MOVE_PROBE : (AUTO_LINES[(i - 1) % AUTO_LINES.length] ?? '')) : await rl?.question('你> ')
@@ -109,6 +112,7 @@ async function main(): Promise<void> {
     characters = res.characters
     scene = res.scene
     for (const claimId of res.committedClaims) committedClaims.add(`${res.journalSeq}:${claimId}`)
+    beatNotes.push(...res.notes)
 
     stdout.write(`\n—— 第 ${i} 拍 · ${fmt(world.ledger.clock)} ——\n${res.passage}\n`)
     if (res.notes.length) stdout.write(`  · ${res.notes.join('\n  · ')}\n`)
@@ -129,7 +133,7 @@ async function main(): Promise<void> {
   const ops = committedVerdicts.flatMap((v) => v.deltas)
   const opCounts: Record<string, number> = {}
   for (const op of ops) opCounts[op.op] = (opCounts[op.op] ?? 0) + 1
-  const opNames = ['move', 'give', 'take', 'phys', 'rel', 'fact', 'know']
+  const opNames = ['move', 'transfer', 'consume', 'phys', 'rel', 'fact', 'know']
   const writeOps = ops.length
   const knowRate = writeOps === 0 ? 0 : (opCounts.know ?? 0) / writeOps
   const durationBuckets = { '0–3': 0, '4–30': 0, '31–239': 0, '≥240': 0 }
@@ -147,6 +151,13 @@ async function main(): Promise<void> {
   for (const c of claims) claimKinds[c.kind] += 1
   const nameLeaks = deps.store.readPassage().reduce((n, p) => n + (p.text.match(/\b(player|ann|doc|cody|granny)\b/g)?.length ?? 0), 0)
   const wallMs = Math.round(performance.now() - startedAt)
+  const material = committedVerdicts.flatMap((v) =>
+    v.deltas.filter((d) => d.op === 'transfer' || d.op === 'consume' || d.op === 'move').map(() => v.actor),
+  )
+  const playerMaterial = material.filter((actor) => actor === player).length
+  const materialNotes = beatNotes.filter((n) => !n.startsWith('叙述里') && !n.startsWith('折场'))
+  const itemErrors = materialNotes.filter((n) => n.includes('身上没有这么多')).length
+  const netHolds = describeHoldChanges(initialHolds, world.ledger.holds, STARTER_TOWN.names, STARTER_TOWN.items)
 
   stdout.write('\n================ 体检表 ================\n')
   stdout.write(`拍数            ${beats.length}\n`)
@@ -159,9 +170,13 @@ async function main(): Promise<void> {
   stdout.write(`长且空占比      ${pct(longEmpty.length, verdicts.length)}\n`)
   stdout.write(`提交 claim      ${committedVerdicts.length} / ${verdicts.length}\n`)
   stdout.write(`写操作（已提交） ${writeOps}   ${opNames.map((n) => `${n} ${opCounts[n] ?? 0}`).join(' / ')}\n`)
-  stdout.write(`know_rate      ${(knowRate * 100).toFixed(1)}%   （know / 全部写操作）\n`)
+  stdout.write(`物质 op 按 actor  player ${playerMaterial} / NPC ${material.length - playerMaterial}\n`)
+  stdout.write(`净持有变化      ${netHolds}\n`)
+  stdout.write(`know_rate      ${(knowRate * 100).toFixed(1)}%   （know / 已提交写操作）\n`)
   stdout.write(`duration 分桶   ${Object.entries(durationBuckets).map(([k, n]) => `${k}: ${n}`).join(' | ')}\n`)
   stdout.write(`名字泄漏        ${nameLeaks}   （期望 0）\n`)
+  stdout.write(`item/持有错误   ${itemErrors}   （含“身上没有这么多”）\n`)
+  if (materialNotes.length) stdout.write(`回滚/降级 notes  ${materialNotes.slice(0, 8).join(' | ')}\n`)
   stdout.write(`每拍墙钟        ${beats.length === 0 ? 0 : Math.round(wallMs / beats.length)}ms（总 ${wallMs}ms）\n`)
   stdout.write(`结束时刻        ${fmt(world.ledger.clock)}\n`)
   for (const role of ['cognition', 'referee', 'narration'] as const) {
@@ -183,6 +198,24 @@ function describeScene(world: World): string {
     .map(([ent]) => ent)
   const lit = world.ledger.phys['lamp']?.['lit'] === true ? '灯还亮着' : '灯已经灭了'
   return `酒馆里：${present.map((ent) => STARTER_TOWN.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
+}
+
+function describeHoldChanges(
+  before: Record<string, Record<string, number>>,
+  after: Record<string, Record<string, number>>,
+  names: Record<string, string>,
+  items: Record<string, string>,
+): string {
+  const changes: string[] = []
+  const ents = new Set([...Object.keys(before), ...Object.keys(after)])
+  for (const ent of ents) {
+    const itemIds = new Set([...Object.keys(before[ent] ?? {}), ...Object.keys(after[ent] ?? {})])
+    for (const item of itemIds) {
+      const delta = (after[ent]?.[item] ?? 0) - (before[ent]?.[item] ?? 0)
+      if (delta !== 0) changes.push(`${names[ent] ?? ent} ${items[item] ?? item} ${delta > 0 ? '+' : ''}${delta}`)
+    }
+  }
+  return changes.length > 0 ? changes.join('；') : '无'
 }
 
 function pct(part: number, total: number): string {

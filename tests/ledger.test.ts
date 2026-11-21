@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { apply } from '../src/core/ledger.ts'
-import { REL_MAX, REL_MIN, type World } from '../src/core/world.ts'
+import { REL_MAX, REL_MIN, type Op, type World } from '../src/core/world.ts'
 
 function world(): World {
   return {
@@ -24,15 +24,25 @@ describe('apply：六个字段操作', () => {
     expect(w.ledger.at.ann).toBe('street')
   })
 
-  it('give 转移持有物，并从来源扣除', () => {
-    const { world: w } = apply(world(), [{ op: 'give', from: 'ann', to: 'bob', item: 'key', n: 1 }])
+  it('transfer 转移持有物，并从来源扣除', () => {
+    const { world: w } = apply(world(), [{ op: 'transfer', from: 'ann', to: 'bob', item: 'key', n: 1 }])
     expect(w.ledger.holds.bob?.key).toBe(1)
     expect(w.ledger.holds.ann?.key).toBeUndefined()
   })
 
-  it('take 消耗持有物', () => {
-    const { world: w } = apply(world(), [{ op: 'take', from: 'ann', item: 'key', n: 1 }])
+  it('consume 移除持有物', () => {
+    const { world: w } = apply(world(), [{ op: 'consume', from: 'ann', item: 'key', n: 1 }])
     expect(w.ledger.holds.ann?.key).toBeUndefined()
+  })
+
+  it('旧 journal 的 give/take 别名仍可 replay', () => {
+    const ops = [
+      { op: 'give', from: 'ann', to: 'bob', item: 'key', n: 1 },
+      { op: 'take', from: 'bob', item: 'key', n: 1 },
+    ] as unknown as Op[]
+    const { world: w, results } = apply(world(), ops)
+    expect(results.every((r) => r.ok)).toBe(true)
+    expect(w.ledger.holds.bob?.key).toBeUndefined()
   })
 
   it('phys 写入开放键', () => {
@@ -63,7 +73,7 @@ describe('apply：六个字段操作', () => {
 
 describe('apply：前置条件与拒绝', () => {
   it('给出未持有的物品被拒，且不写入任何状态', () => {
-    const { world: w, results } = apply(world(), [{ op: 'give', from: 'bob', to: 'ann', item: 'key', n: 1 }])
+    const { world: w, results } = apply(world(), [{ op: 'transfer', from: 'bob', to: 'ann', item: 'key', n: 1 }])
     expect(results[0]?.ok).toBe(false)
     expect(results[0]?.why).toContain('没有这么多')
     expect(w.ledger.holds.ann?.key).toBe(1)
@@ -71,7 +81,7 @@ describe('apply：前置条件与拒绝', () => {
   })
 
   it('数量非正整数被拒', () => {
-    const { results } = apply(world(), [{ op: 'take', from: 'ann', item: 'key', n: 0 }])
+    const { results } = apply(world(), [{ op: 'consume', from: 'ann', item: 'key', n: 0 }])
     expect(results[0]?.ok).toBe(false)
   })
 
@@ -147,8 +157,8 @@ describe('apply：畸形 op 不得抛异常', () => {
     expect(w.ledger.at.ann).toBe('saloon')
   })
 
-  it('n 是字符串的 give 被拒', () => {
-    const { results } = apply(world(), [{ op: 'give', from: 'ann', to: 'bob', item: 'key', n: '1' } as unknown as { op: 'give'; from: string; to: string; item: string; n: number }])
+  it('n 是字符串的 transfer 被拒', () => {
+    const { results } = apply(world(), [{ op: 'transfer', from: 'ann', to: 'bob', item: 'key', n: '1' } as unknown as { op: 'transfer'; from: string; to: string; item: string; n: number }])
     expect(results[0]?.ok).toBe(false)
   })
 })

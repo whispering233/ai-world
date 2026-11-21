@@ -49,6 +49,8 @@
 | self-retry | 0 | 3 | 1 | 0 | 1 | 22 | 59 |
 | cross-talk | 0 | 2 | 1 | 1 | 4 | 24 | 68 |
 
+> 本表记录 pilot 时的旧 op 名（give/take）；现对应 `transfer`/`consume`。
+
 ### 复现（pilot-2，6 拍，加 echo 之前）
 
 | 指标 | baseline | self-retry | cross-talk |
