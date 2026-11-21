@@ -39,6 +39,8 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 - `know_rate`：`know` 占全部写操作的比例
 - `duration` 分桶：0–3 / 4–30 / 31–239 / ≥240 分钟
 - 名字泄漏：正文里出现 `player/ann/doc/cody/granny` 等 id 的次数
+- 物质 op 按 actor 拆分（player / NPC）与结束时的净持有变化
+- `item`/持有错误与回滚 notes（例如把显示名当 item id）
 - 空结果、长动作（`duration≥240`，不再要求空 deltas）、每拍墙钟耗时
 
 ### 2.2 `--auto` 探针
