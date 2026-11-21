@@ -13,6 +13,8 @@
 **没有等距 tick。** 世界按分钟变老，不按交互次数变老。
 **一拍不是时间边界**，是事务边界；一拍的时长由 referee 给，可能 1 分钟，也可能 8 小时。
 
+时钟只按**已提交 claim** 的最大 `duration` 推进：被拒绝（`ok:false`）或整条回滚的 claim 不推进 `clock`。否则一条没有落账的“睡一整夜”也会把世界推进 8 小时，和“一拍事务全成或全退”冲突。
+
 ## 2. 场景（一等概念）
 
 场景是**上下文的生命周期单位**，不只是"同一地点的连续时刻"。
@@ -45,8 +47,9 @@ loop:
   claims  = 收集(actors + 玩家)
   if claims 为空: clock = min(busyUntil); continue
   r       = referee(claims, 场景切片, 账本, canon)   // 一拍一次
-  账本原子提交(r); 追加渲染(r); 写日志(clock, scene, claims, r)
-  clock   = min(busyUntil)
+  clockAfter = clock + max(已提交 claim 的 duration)
+  账本原子提交(r); 追加渲染(r); 写日志(clockAfter, scene, claims, r)
+  clock   = clockAfter
   if 拍数 ≥ 12 或 tokens ≥ 16k 或 地点变化 或 时间跳跃 ≥ 240 或 场景为空: 折场()
 ```
 
@@ -70,6 +73,8 @@ loop:
 
 角色与玩家可以在文本里表达时长（"我等到傍晚"），referee 采纳或修正；最终值以 referee 为准。
 
+`duration` 是**动作本身**的耗时，不是“当前 clock 是否已经走到那个时刻”。裁判不能因为“从进门到现在才过了六分钟”拒绝“睡一整夜”；它只需要判断这个动作是否成立，再给出耗时。
+
 **不做动作时长表**：那是能力清单的第三种形态，会长不完。
 
 ## 6. 时间只有一个出口
@@ -85,6 +90,7 @@ loop:
 | `verdict: ok` 且账本有变化 | 是 |
 | `verdict: no` | 是（挫败也是经历） |
 | `verdict: ok` + `deltas: []` + `duration ≥ 240` | 是（时间流逝本身有分量） |
+| `verdict: no` / 整条回滚 | 不计入 clock；是否算经历由折场另判 |
 | 其余 | 否 |
 
 折场时若本场满足上述任一条件，则允许写 `self` 条目（仍受"稀缺"与"具体"约束，见 30 §4）。
