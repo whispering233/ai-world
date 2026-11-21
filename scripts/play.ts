@@ -32,6 +32,13 @@ const AUTO = args.has('--auto')
 const DIR = 'data/starter-town'
 
 // 探针混合四类：短对话 / 物理动作 / 长动作 / 知识交换；别只喂短对话。
+// 每类守卫只出现一次：减量不能把这些事件一起减掉。
+// 只在“有重复”的拍位插守卫：11 拍循环里同一句还会再出现一次，不会被守卫吞掉。
+const GUARD_LINES: Record<number, string> = {
+  3: '我说明天中午之前，一定把那两枚银元还上。',
+  16: '我要是再听见你提这笔账，今晚就走。',
+  18: '今晚这店我包了，谁也不用再付钱。',
+}
 const AUTO_LINES = [
   '我推门进去，找了个靠门的位子坐下。',
   '我在靠墙的桌边坐了一会儿，等雨小一点。',
@@ -94,12 +101,13 @@ async function main(): Promise<void> {
   const initialHolds = structuredClone(world.ledger.holds)
 
   for (let i = 1; i <= BEATS; i += 1) {
+    const guard = GUARD_LINES[i]
     const line = AUTO
       ? i === BEATS && BEATS >= 10
         ? FINAL_MOVE_PROBE
         : i === LONG_BEAT
           ? LONG_PROBE
-          : (AUTO_LINES[(i - 1) % AUTO_LINES.length] ?? '')
+          : (guard ?? AUTO_LINES[(i - 1) % AUTO_LINES.length] ?? '')
       : await rl?.question('你> ')
     // 自己试玩时用 /quit 收尾，否则 Ctrl+C 会跳过体检表
     if (line !== undefined && ['/quit', '/q'].includes(line.trim())) break
@@ -162,6 +170,8 @@ async function main(): Promise<void> {
   const longActions = verdicts.filter((v) => v.ok && v.duration >= 240)
   const longEmpty = longActions.filter((v) => v.deltas.length === 0)
   const empty = verdicts.filter((v) => v.ok && v.deltas.length === 0)
+  // fact 收窄后，纯对话的 claim 天然没有 delta；真正要看的是“整拍账本没动”。
+  const silentBeats = beats.filter((e) => !e.verdicts.some((v) => v.deltas.length > 0)).length
   const claimKinds = { say: 0, act: 0 }
   for (const c of claims) claimKinds[c.kind] += 1
   const nameLeaks = deps.store.readPassage().reduce((n, p) => n + (p.text.match(/\b(player|ann|doc|cody|granny)\b/g)?.length ?? 0), 0)
@@ -180,7 +190,8 @@ async function main(): Promise<void> {
   stdout.write(`裁决总数        ${verdicts.length}\n`)
   stdout.write(`主张            act ${claimKinds.act} / say ${claimKinds.say}\n`)
   stdout.write(`no_rate        ${(noRate(verdicts) * 100).toFixed(1)}%   （期望 15–40%）\n`)
-  stdout.write(`空结果占比      ${pct(empty.length, verdicts.length)}   （期望 < 50%）\n`)
+  stdout.write(`空结果占比      ${pct(empty.length, verdicts.length)}   （对话正常为空，不再当异常）\n`)
+  stdout.write(`无变化拍        ${silentBeats} / ${beats.length}   （整拍账本没动）\n`)
   stdout.write(`长动作占比      ${pct(longActions.length, verdicts.length)}   （≥240min，全部 ok）\n`)
   stdout.write(`长且空占比      ${pct(longEmpty.length, verdicts.length)}\n`)
   stdout.write(`提交 claim      ${committedVerdicts.length} / ${verdicts.length}\n`)
@@ -190,6 +201,7 @@ async function main(): Promise<void> {
   stdout.write(`know_rate      ${(knowRate * 100).toFixed(1)}%   （know / 已提交写操作）\n`)
   stdout.write(`know/claim     ${knowPerClaim.toFixed(2)}   平均听众 ${knowAvgListeners.toFixed(2)}\n`)
   stdout.write(`fact/claim     ${factPerClaim.toFixed(2)}\n`)
+  stdout.write(`facts/beat     ${(factOps.length / Math.max(1, beats.length)).toFixed(2)}   （≤1.0 = 12 条覆盖一整场）\n`)
   stdout.write(`duration 分桶   ${Object.entries(durationBuckets).map(([k, n]) => `${k}: ${n}`).join(' | ')}\n`)
   stdout.write(`名字泄漏        ${nameLeaks}   （期望 0）\n`)
   stdout.write(`item/持有错误   ${itemErrors}   （含“身上没有这么多”）\n`)
