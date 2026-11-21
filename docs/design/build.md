@@ -37,6 +37,7 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 - `no_rate`（按有风险的 claim 分桶）
 - 写操作分布：`move/transfer/consume/phys/rel/fact/know`
 - `know_rate`：`know` 占全部写操作的比例
+- `know/claim` 与平均听众数：判断是否又变回逐句广播
 - `duration` 分桶：0–3 / 4–30 / 31–239 / ≥240 分钟
 - 名字泄漏：正文里出现 `player/ann/doc/cody/granny` 等 id 的次数
 - 物质 op 按 actor 拆分（player / NPC）与结束时的净持有变化

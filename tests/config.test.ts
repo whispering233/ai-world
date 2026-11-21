@@ -44,11 +44,24 @@ describe('loadModelConfig', () => {
 })
 
 describe('readPiDefaultModel：默认值跟着 pi 走', () => {
+  // 在 pi 会话里跑测试时 PI_MODEL 已设置，且优先级高于 settings.json；这里临时清掉，避免环境泄漏把用例跑红。
+  const withoutPiModel = (fn: () => void): void => {
+    const saved = process.env['PI_MODEL']
+    delete process.env['PI_MODEL']
+    try {
+      fn()
+    } finally {
+      if (saved !== undefined) process.env['PI_MODEL'] = saved
+    }
+  }
+
   it('从 settings.json 读出 provider/defaultModel', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ai-world-pi-'))
-    dirs.push(dir)
-    writeFileSync(join(dir, 'settings.json'), JSON.stringify({ defaultProvider: 'opencode-go', defaultModel: 'deepseek-v4.1-flash' }))
-    expect(readPiDefaultModel(dir)).toBe('opencode-go/deepseek-v4.1-flash')
+    withoutPiModel(() => {
+      const dir = mkdtempSync(join(tmpdir(), 'ai-world-pi-'))
+      dirs.push(dir)
+      writeFileSync(join(dir, 'settings.json'), JSON.stringify({ defaultProvider: 'opencode-go', defaultModel: 'deepseek-v4.1-flash' }))
+      expect(readPiDefaultModel(dir)).toBe('opencode-go/deepseek-v4.1-flash')
+    })
   })
 
   it('没有 settings.json 时返回 undefined，由调用方兜底', () => {

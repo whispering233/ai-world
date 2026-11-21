@@ -23,7 +23,7 @@ import { createLlmReferee, noRate } from '../src/core/referee.ts'
 import { openScene, type Scene } from '../src/core/scene.ts'
 import { openStore } from '../src/core/store.ts'
 import { STARTER_TOWN } from '../content/starter-town.ts'
-import type { World } from '../src/core/world.ts'
+import type { Op, World } from '../src/core/world.ts'
 
 const args = new Set(process.argv.slice(2))
 const beatsArg = process.argv.indexOf('--beats')
@@ -38,7 +38,7 @@ const AUTO_LINES = [
   '我走到柜台前，问老板娘还有没有酒。',
   '我把两枚银元塞进安手里，要一杯威士忌。',
   '我把自己那杯威士忌喝掉。',
-  '我告诉医生，安早就还清了债。',
+  '我凑到医生耳边，用只有他能听见的声音说：安把账本藏在柜台下面。',
   '我把那本账本推到柜台中间。',
   '我帮安把空杯收进木盆，端到柜台后面。',
   '我问医生这镇上最近死了几个人。',
@@ -95,7 +95,7 @@ async function main(): Promise<void> {
 
   for (let i = 1; i <= BEATS; i += 1) {
     const line = AUTO
-      ? i === BEATS
+      ? i === BEATS && BEATS >= 10
         ? FINAL_MOVE_PROBE
         : i === LONG_BEAT
           ? LONG_PROBE
@@ -139,6 +139,12 @@ async function main(): Promise<void> {
   // claim id 只含拍前 clock；duration=0 时可能跨拍重名，用 journal seq 一起做键。
   const committedVerdicts = journal.flatMap((e) => e.verdicts.filter((v) => committedClaims.has(`${e.seq}:${v.claimId}`)))
   const ops = committedVerdicts.flatMap((v) => v.deltas)
+  const knowOps = ops.filter((d): d is Extract<Op, { op: 'know' }> => d.op === 'know')
+  const factOps = ops.filter((d) => d.op === 'fact')
+  const knowPerClaim = committedVerdicts.length === 0 ? 0 : knowOps.length / committedVerdicts.length
+  const knowListeners = knowOps.reduce((n, d) => n + d.who.length, 0)
+  const knowAvgListeners = knowOps.length === 0 ? 0 : knowListeners / knowOps.length
+  const factPerClaim = committedVerdicts.length === 0 ? 0 : factOps.length / committedVerdicts.length
   const opCounts: Record<string, number> = {}
   for (const op of ops) opCounts[op.op] = (opCounts[op.op] ?? 0) + 1
   const opNames = ['move', 'transfer', 'consume', 'phys', 'rel', 'fact', 'know']
@@ -181,6 +187,8 @@ async function main(): Promise<void> {
   stdout.write(`物质 op 按 actor  player ${playerMaterial} / NPC ${material.length - playerMaterial}\n`)
   stdout.write(`净持有变化      ${netHolds}\n`)
   stdout.write(`know_rate      ${(knowRate * 100).toFixed(1)}%   （know / 已提交写操作）\n`)
+  stdout.write(`know/claim     ${knowPerClaim.toFixed(2)}   平均听众 ${knowAvgListeners.toFixed(2)}\n`)
+  stdout.write(`fact/claim     ${factPerClaim.toFixed(2)}\n`)
   stdout.write(`duration 分桶   ${Object.entries(durationBuckets).map(([k, n]) => `${k}: ${n}`).join(' | ')}\n`)
   stdout.write(`名字泄漏        ${nameLeaks}   （期望 0）\n`)
   stdout.write(`item/持有错误   ${itemErrors}   （含“身上没有这么多”）\n`)

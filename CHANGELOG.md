@@ -4,12 +4,14 @@
 
 ## [Unreleased]
 ### Added
-- `docs/research/world-baseline.md`：20 拍新基线（`transfer` 2 / `consume` 1 / `move` 3（2 条原地）、净持有变化“安 威士忌 -1；安 银元 +2”、`know_rate` 67.8%、1 次 480 分钟长动作、4–30 分钟出现 2 次、3 次折场）。
+- `docs/research/world-baseline.md`：20 拍新基线（`know` 1 条 / `fact` 89 条、`fact/claim` 0.99、`know_rate` 1.0%、`transfer` 1 / `consume` 1 / `move` 1、净持有变化“安 威士忌 -1；安 银元 +2”、1 次 480 分钟长动作、4–30 分钟 2 次、3 次折场）。
 - `docs/research/multi-agent-architectures.md`：Claude Code Agent Teams / Orca·Herdr / DeepSeek Super-agent / pi 生态的编排架构调研，以及 ai-world 保留裁判作为唯一提交层的理由。
 - `scripts/experiment-multi-round.ts`：baseline / self-retry / cross-talk 三臂的一拍内多轮对话实验，输出 journal/passage/metrics/report。
 - `docs/research/multi-round-experiment.md`：pilot 6 拍三臂结果（回声率、no_rate、成本、硬冲突）与结论。
 
 ### Changed
+- 知识写入收窄：普通对话不再逐句 `know`；`know` 只用于听众原本不知道且以后会用的信息（秘密、计划、债务、身份、跨场景承诺），在场者的即时记忆交给 `observations`。体检表增加 `know/claim` 与平均听众数。
+- 秘密探针改为耳语，并要求 `know.who` 只列确实听见的人。
 - 写操作语义清理：`give` → `transfer`（任何持有变化，含抢夺/没收），`take` → `consume`（物品离开世界）；旧 journal 的 `give`/`take` 只作 replay 别名。
 - 试玩体检表增加写操作分布、`know_rate`、duration 分桶、名字泄漏、每拍墙钟、物质 op 按 actor 拆分、净持有变化与回滚原因；`--auto` 探针混入短对话/物理/长动作/知识交换/消耗，长动作只跑一次，移动探针放末拍。
 - 裁判增加 `duration` 与当前 `clock` 的语义澄清：长动作按实际耗时推进时间，不因当前 clock 尚早被拒。
@@ -20,6 +22,7 @@
 
 ### Fixed
 - 时钟只按已提交 claim 的 duration 推进；被拒绝或整条回滚的 claim 不再推进世界时间。
+- `readPiDefaultModel` 的用例先清掉 `PI_MODEL`：在 pi 会话里跑测试时该环境变量优先级更高，会把用例跑红。
 - 折场的“时间跳跃 ≥240 分钟”改用上一拍结束时刻判断，长时间跳跃能真正触发。
 - 人物认知现在能看到玩家本拍的输入（此前只有裁判看得到）。
 - 旁白抛错或返回空文本时不再丢拍：journal 先落，passage 用事实摘要兜底并标记 `fallback`。
