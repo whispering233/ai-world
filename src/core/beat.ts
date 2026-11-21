@@ -5,7 +5,7 @@
  * 这一层是唯一知道"顺序"的地方，下面每一块都保持纯函数或单一职责。
  */
 import { calledActors, fmt } from './clock.ts'
-import { remember, type Character } from './character.ts'
+import { applyDriveHit, remember, type Character, type Experience } from './character.ts'
 import type { Cognition } from './cognition.ts'
 import { fallbackPassage, type Narrator } from './narrate.ts'
 import { commit, type Claim, type Referee, type Verdict } from './referee.ts'
@@ -119,7 +119,8 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   }
 
   if (claims.length === 0) {
-    return { world: input.world, scene: input.scene, characters, passage: '', journalSeq: 0, committedClaims: [], notes: [...degraded, '没有主张，本拍未发生'] }
+    // 未落 journal 的拍不推进记忆：否则重启后记忆会比 journal 多一条。
+    return { world: input.world, scene: input.scene, characters: input.characters, passage: '', journalSeq: 0, committedClaims: [], notes: [...degraded, '没有主张，本拍未发生'] }
   }
 
   let out
@@ -136,7 +137,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     return {
       world: input.world,
       scene: input.scene,
-      characters,
+      characters: input.characters,
       passage: '',
       journalSeq: 0,
       committedClaims: [],
@@ -188,6 +189,13 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     texts,
     signed: out.verdicts.some(isSigned),
   })
+  // 本拍新增的记忆条目：人物状态不进账本，但必须进 journal，否则进程一停记忆就没了。
+  const newExperience: Record<EntId, Experience[]> = {}
+  for (const [ent, ch] of characters) {
+    const before = input.characters.get(ent)?.experience.length ?? 0
+    const fresh = ch.experience.slice(before)
+    if (fresh.length > 0) newExperience[ent] = fresh
+  }
   // journal 是账本的凭据；先落 journal，再落派生的 passage。
   const entry = deps.store.appendBeat({
     type: 'beat',
@@ -198,6 +206,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     verdicts: out.verdicts,
     observations: out.observations,
     driveHits: out.driveHits,
+    ...(Object.keys(newExperience).length > 0 ? { experience: newExperience } : {}),
   })
   try {
     deps.store.appendPassage({ clock: clockAfter, text: passage, source: narrationFailed ? 'fallback' : 'narrator' })
@@ -327,14 +336,8 @@ function applyDriveHits(
 ): void {
   for (const hit of hits) {
     const ch = characters.get(hit.ent)
-    if (!ch) continue
-    const drives = ch.drives.map((d) => (d.id === hit.driveId ? { ...d, heat: clamp01(d.heat + hit.delta) } : d))
-    characters.set(hit.ent, { ...ch, drives })
+    if (ch) characters.set(hit.ent, applyDriveHit(ch, hit))
   }
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value))
 }
 
 function describe(v: Verdict | undefined): string {

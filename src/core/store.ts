@@ -6,6 +6,7 @@
 
 import { appendFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { applyDriveHit, remember, type Character, type Experience } from './character.ts'
 import { commit, type Claim, type DriveHit, type Observation, type Verdict } from './referee.ts'
 import type { EntId, World } from './world.ts'
 
@@ -19,6 +20,8 @@ export interface JournalEntry {
   verdicts: Verdict[]
   observations: Record<EntId, Observation>
   driveHits: DriveHit[]
+  /** 本拍每人新增的记忆条目（不是快照）；旧 journal 没有这个字段 */
+  experience?: Record<EntId, Experience[]>
 }
 
 export interface PassageEntry {
@@ -112,4 +115,29 @@ export function replay(entries: readonly JournalEntry[], initial: World): World 
       const out = { order: e.order, verdicts: e.verdicts, observations: e.observations, driveHits: e.driveHits }
       return commit(at, out).world
     }, initial)
+}
+
+/**
+ * 只用 journal 重建人物记忆与驱动热度。
+ *
+ * 存的是“本拍新增的条目”，不是快照：重放按 seq 顺序把同一批条目重新 append 一次。
+ * 旧 journal 没有 experience 字段，人物就停在初始状态——不崩，也不假装记得。
+ */
+export function replayCharacters(
+  entries: readonly JournalEntry[],
+  initial: Map<EntId, Character>,
+): Map<EntId, Character> {
+  const chars = new Map(initial)
+  for (const e of [...entries].sort((a, b) => a.seq - b.seq)) {
+    for (const hit of e.driveHits ?? []) {
+      const ch = chars.get(hit.ent)
+      if (ch) chars.set(hit.ent, applyDriveHit(ch, hit))
+    }
+    for (const [ent, list] of Object.entries(e.experience ?? {})) {
+      const ch = chars.get(ent)
+      if (!ch) continue
+      chars.set(ent, list.reduce((acc, item) => remember(acc, item), ch))
+    }
+  }
+  return chars
 }

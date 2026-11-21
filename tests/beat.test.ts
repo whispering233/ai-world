@@ -8,7 +8,7 @@ import type { Character } from '../src/core/character.ts'
 import { createStubNarrator, type NarrationInput } from '../src/core/narrate.ts'
 import { createStubReferee, type RefereeInput, type RefereeOutput } from '../src/core/referee.ts'
 import { openScene } from '../src/core/scene.ts'
-import { openStore, replay, type Store } from '../src/core/store.ts'
+import { openStore, replay, replayCharacters, type Store } from '../src/core/store.ts'
 import type { EntId, World } from '../src/core/world.ts'
 import type { Referee } from '../src/core/referee.ts'
 
@@ -458,6 +458,69 @@ describe('runBeat：clock 只按已提交 claim 推进', () => {
 
     expect(r.committedClaims).toContain('a0')
     expect(r.world.ledger.clock).toBe(5)
+  })
+})
+
+describe('runBeat：人物状态可回放', () => {
+  it('两拍之后，只用 journal 就能重建人物记忆与热度', async () => {
+    const store = tmpStore()
+    const referee: RefereeOutput[] = [
+      {
+        order: ['ann'],
+        verdicts: [verdict('p0', [{ op: 'fact', text: '雨小了' }], 2), verdict('a0', [], 1), verdict('d0', [], 1)],
+        observations: { doc: { claimIds: ['p0'], summary: '他看见有人把门推上' } },
+        driveHits: [{ ent: 'ann', driveId: 'd1', delta: -0.3 }],
+      },
+      {
+        order: ['ann'],
+        verdicts: [verdict('p2', [{ op: 'fact', text: '灯灭了' }], 1), verdict('a2', [], 1), verdict('d2', [], 1)],
+        observations: { doc: { claimIds: ['p2'], summary: '灯被人吹了' } },
+        driveHits: [],
+      },
+    ]
+    let input = base(store, referee)
+    input.playerClaim = '我把门推上'
+    let r = await runBeat(input)
+    input = { ...input, world: r.world, scene: r.scene, characters: r.characters, playerClaim: '我吹了灯' }
+    r = await runBeat(input)
+
+    const rebuilt = replayCharacters(store.readJournal(), base(store, []).characters)
+    expect(rebuilt).toEqual(r.characters)
+    expect(rebuilt.get('doc')?.experience.at(-1)?.text).toContain('灯')
+    expect(rebuilt.get('ann')?.drives[0]?.heat).toBeCloseTo(0.5)
+  })
+
+  it('旧 journal 没有 experience 字段时，人物停在初始状态而不是崩', () => {
+    const store = tmpStore()
+    const entries = [
+      {
+        seq: 1,
+        type: 'beat' as const,
+        scene: 's1',
+        clock: 1,
+        claims: [],
+        order: [],
+        verdicts: [],
+        observations: {},
+        driveHits: [],
+      },
+    ]
+    const initial = base(store, []).characters
+    expect(replayCharacters(entries, initial)).toEqual(initial)
+  })
+})
+
+describe('runBeat：未落 journal 不推进记忆', () => {
+  it('裁判失败时返回入参人物，记忆不会比 journal 多一条', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.playerClaim = '我把门推上'
+    const referee = { judge: () => Promise.reject(new Error('ETIMEDOUT')) }
+    const r = await runBeat({ ...input, deps: { ...input.deps, referee } })
+
+    expect(r.journalSeq).toBe(0)
+    expect(r.characters).toBe(input.characters)
+    expect(replayCharacters(store.readJournal(), input.characters)).toEqual(r.characters)
   })
 })
 

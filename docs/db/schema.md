@@ -33,6 +33,7 @@
 | verdicts | 是 | Verdict[] | | 含 ok/reason/deltas/duration |
 | driveHits | 否 | DriveHit[] | | 驱动热度增减 |
 | observations | 否 | Record<EntId, string> | | 可见性分发结果 |
+| experience | 否 | Record<EntId, Experience[]> | | 本拍每人新增的记忆条目（不是快照）；旧 journal 缺失时重放停在初始人物 |
 
 ## 4. `passage`（呈现文本）
 
@@ -60,7 +61,7 @@
 | 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
 | :--- | :--- | :--- | :--- | :--- |
 | t | 是 | number | | 发生的 clock |
-| kind | 是 | enum | `seen` \| `self` | `self` = 身份修订 |
+| kind | 是 | enum | `seen` \| `self` \| `thought` | `self` = 身份修订；`thought` = 没说出口的话，不进裁判 |
 | ref | 否 | number | | 指向 journal.seq，正文不重复存 |
 | text | 是 | string | | 私人解读（`seen` 时是"它理解成什么"） |
 | w | 是 | number | 1 ~ 3 | 权重，参与检索打分 |

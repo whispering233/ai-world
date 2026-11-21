@@ -35,6 +35,10 @@ export interface Character {
   busyUntil: number
 }
 
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value))
+}
+
 const HALF_LIFE = 48
 const SELF_BONUS = 0.3
 
@@ -52,6 +56,12 @@ export function recall(ch: Character, now: number, limit = 12): Experience[] {
 /** 只追加；返回新对象，入参与 core/voice 不变。 */
 export function remember(ch: Character, e: Experience): Character {
   return { ...ch, experience: [...ch.experience, e] }
+}
+
+/** 驱动热度增减；referee 的 driveHits 与 journal 重放共用这一份逻辑。 */
+export function applyDriveHit(ch: Character, hit: { driveId: string; delta: number }): Character {
+  const drives = ch.drives.map((d) => (d.id === hit.driveId ? { ...d, heat: clamp01(d.heat + hit.delta) } : d))
+  return { ...ch, drives }
 }
 
 export interface SelfGateInput {

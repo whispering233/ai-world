@@ -27,6 +27,8 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 - 每拍约 50 秒（多人格并发认知 + 裁判结算 + 渲染），30 拍约 25 分钟
 - 输入 **`/quit`** 结束并打印体检表；`Ctrl+C` 会跳过体检表
 - `--beats N` 只是上限，`/quit` 可随时提前收尾
+- 有 `data/` 时自动**续跑**：世界由 journal 重放复原，人物记忆由 `experience` 复原；续跑从新场景开始（场景上下文不落盘）
+- `--fresh` 显式重开一局（清掉 journal/passage，替代手动 `rm -rf data`）
 - 加 `--auto` 则不需要人输入，按内置脚本跑（用于回归跑分）
 - `--network-family-autoselection-attempt-timeout=2000` **不是可选项**：到供应商的 TCP 握手常在 250ms 以上，Node 默认的 250ms 选路尝试上限会把每次连接提前掐断（报 `AggregateError (ETIMEDOUT)`）。手敲命令容易漏，漏了就连不上；`npm run play` 已带好
 
