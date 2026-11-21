@@ -316,6 +316,39 @@ describe('runBeat：显示名', () => {
   })
 })
 
+describe('runBeat：事实切片接线', () => {
+  it('别名从 runBeat 传到裁判上下文：玩家事实不会被时间挤掉', async () => {
+    const store = tmpStore()
+    const base0 = base(store, [])
+    const noise = Object.fromEntries(
+      Array.from({ length: 12 }, (_, i) => [`n${i}`, { id: `n${i}`, text: `街边杂事${i}`, at: 1 }]),
+    )
+    const playerFact = { id: 'mine', text: '玩家把门闩推了回去', at: 0 }
+    const input: BeatInput = {
+      ...base0,
+      world: { ...base0.world, facts: { ...noise, mine: playerFact } },
+    }
+    input.playerClaim = '我推门进去'
+    let context = ''
+    const referee: Referee = {
+      async judge(req: RefereeInput) {
+        context = req.context
+        return {
+          order: ['ann'],
+          verdicts: [verdict('p0', [], 1), verdict('a0', [], 1), verdict('d0', [], 1)],
+          observations: {},
+          driveHits: [],
+        }
+      },
+    }
+    await runBeat({ ...input, deps: { ...input.deps, referee } })
+    expect(context).not.toContain('玩家把门闩推了回去')
+
+    await runBeat({ ...input, aliases: { player: ['玩家'] }, deps: { ...input.deps, referee } })
+    expect(context).toContain('玩家把门闩推了回去')
+  })
+})
+
 describe('runBeat：已提交 claim', () => {
   it('只把全部 op 都通过的 claim 记为已提交', async () => {
     const store = tmpStore()
