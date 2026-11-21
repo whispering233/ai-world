@@ -3,6 +3,9 @@
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+### Added
+- `docs/research/multi-agent-architectures.md`：Claude Code Agent Teams / Orca·Herdr / DeepSeek Super-agent / pi 生态的编排架构调研，以及 ai-world 保留裁判作为唯一提交层的理由。
+
 ### Changed
 - 玩家 UI 布局定稿：单栏阅读面 + 顶部细栏 + 底部输入 + 按需右抽屉；三栏仅作者/调试模式，记入 backlog。
 - 架构决策：裁判仍是唯一写入口；per-character agent 与 Super-agent 式中央代理不直接写世界状态，最多作为 claim 来源/导演层。
