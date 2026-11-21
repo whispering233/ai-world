@@ -47,3 +47,7 @@ node --experimental-strip-types scripts/probe-latency.ts   # 可选：模型测�
 ```
 
 约束见 [AGENTS.md](AGENTS.md)：只有裁判能写账本、人物没有技能表、时间只有一个出口。
+
+## License
+
+[MIT](LICENSE) © 2026 whispering233

@@ -3,10 +3,15 @@
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+
+## [v0.0.1] - 2026-11-21
 ### Note
-首个可玩切片：无界面的文字世界，可连续推进 20 拍并输出体检指标。
+首个可玩切片：无界面的文字世界，可连续推进 20 拍并输出体检指标；同时落地 CI、Release 与 MIT License。
 
 ### Added
+- GitHub Actions CI：push / PR 跑 `npm ci`、`npm run typecheck`、`npm test`。
+- GitHub Actions Release：push `vX.Y.Z` tag 时从本文件的对应版本段创建 GitHub Release。
+- MIT License。
 - 世界账本：5 类状态（所在 / 持有 / 物质键 / 关系 / 知识），7 个写操作，全部纯函数、可重放。
 - 事件流：事实只增不改，被推翻的旧事实以 `supersededBy` 保留。
 - 唯一写入口：裁判一词一批结算，`verdict:'no'` 为一等公民；同一裁决内的改动事务化，失败整条回滚。
@@ -14,10 +19,11 @@
 - 时间模型：单一 `clock` 分钟数，时长归属本拍最长动作；无等距 tick。
 - 场景：进入装配、场景内只追加、按地点变化 / 时间跳跃 / 拍数 / 体积折场。
 - 内容包：酒馆与街道两个地点，安 / 道森医生 / 科迪 / 格蕾妮四个人物，威士忌、吗啡、私酒、钥匙等地窖与门灯规则。
-- 试玩器 `scripts/play.ts`：交互逐拍推进，退出时输出体检表（拍数、折场、no_rate、空结果、长动作、分档耗时与重试）。
+- 试玩器 `scripts/play.ts`：交互逐拍推进，退出时输出体检表（拍数、折场、no_rate、空结果、长动作、分角色耗时与重试）。
 - 测速脚本 `scripts/probe-latency.ts`：对照工具调用与纯文本两种输出通道的耗时与 token。
 
 ### Changed
+- 模型配置键改为按调用点命名：`cognition` / `referee` / `narration`，替换不可读的 `fast` / `strong` / `mid`。
 - 默认模型改为从 pi CLI 自身设置推导，代码内不再写死模型串；换供应商只改配置。
 - 事件流喂给裁判的条数由"最后 8 条"改为按在场者与新鲜度择优取 12 条，被推翻的事实不再喂。
 

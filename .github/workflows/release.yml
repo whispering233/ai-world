@@ -1,0 +1,22 @@
+# Release：push 版本 tag（vX.Y.Z）时，从根 CHANGELOG.md 的对应版本段创建 GitHub Release。
+# 前置：CHANGELOG 必须有 `## [vX.Y.Z] - 日期` 段；tag 必须与 package.json 的 version 一致。
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # tag、package.json、CHANGELOG 三处必须一致；不一致直接红，不建空 Release。
+      - name: Check tag matches package.json
+        run: |
+          node -e "const v=require('./package.json').version; if ('v'+v !== process.env.GITHUB_REF_NAME) { console.error('tag '+process.env.GITHUB_REF_NAME+' != package.json v'+v); process.exit(1) }"
+      # action 自带 contents: write 权限，与 jobs.permissions 叠加声明保持一致。
+      - uses: hermannm/release-from-changelog@v0.2.9

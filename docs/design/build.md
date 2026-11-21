@@ -89,3 +89,23 @@ npm test
 **不跑 `npm run play`**：它需要模型凭据与网络，结果不可重复。模型调用的回归靠 `scripts/play.ts --auto` 在本机跑，不进 CI。
 
 CI 使用 Node 22 与 npm 缓存；本地等价命令就是上面三条。`package-lock.json` 必须提交，CI 用 `npm ci` 而不是 `npm install`。
+
+## 9. Release
+
+`.github/workflows/release.yml` 在 push `vX.Y.Z` tag 时运行：先校验 tag 与 `package.json` 的 `version` 一致，再由 `hermannm/release-from-changelog` 从根 `CHANGELOG.md` 的 `## [vX.Y.Z] - 日期` 段创建 GitHub Release。
+
+发布步骤：
+
+```sh
+# 1. 把 Unreleased 段改成 ## [vX.Y.Z] - 日期，并在顶部补新的 ## [Unreleased]
+# 2. 抬版本（同时更新 package.json 与 package-lock.json）
+npm version 0.0.2 --no-git-tag-version
+# 3. 提交、打 tag、推送
+git commit -am "release: v0.0.2"
+git tag v0.0.2
+git push origin main --tags
+```
+
+**不做 npm publish**：本项目是 `private: true` 的应用，不是库。**不做桌面打包**：没有 Electron 壳。tag 只从已通过 CI 的 `main` 打。
+
+License：MIT，见根目录 `LICENSE`。

@@ -26,6 +26,7 @@
 | 文件 | 内容 |
 | :--- | :--- |
 | [../CHANGELOG.md](../CHANGELOG.md) | 版本变更记录 |
+| [../LICENSE](../LICENSE) | MIT 许可证 |
 | [../AGENTS.md](../AGENTS.md) | 项目规则（做错会返工的约束） |
 
 ## 尚未创建
