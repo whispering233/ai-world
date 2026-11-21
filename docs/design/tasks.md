@@ -35,7 +35,7 @@
 
 ### 不做
 
-- 不改 `duration` 的上下限、裁判 prompt、`fmt(clock)`。
+- 不改 `duration` 的上下限、`fmt(clock)`；`duration` 与当前 `clock` 的语义澄清在 W2-2 加。
 - 不引入昼夜系统、时间词表、`busyUntil` 重写。
 - 不部分提交；一条 claim 仍全成或全退。
 

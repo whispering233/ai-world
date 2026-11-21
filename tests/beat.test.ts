@@ -403,6 +403,7 @@ describe('runBeat：clock 只按已提交 claim 推进', () => {
     expect(r.committedClaims).toEqual(['p0'])
     expect(r.world.ledger.clock).toBe(480)
     expect(Object.values(r.world.facts).find((f) => f.text === '他睡了一整夜')?.at).toBe(480)
+    expect(r.folded?.reason).toBe('time')
   })
 
   it('拒绝的 480 不遮蔽合法 claim 的 5 分钟', async () => {

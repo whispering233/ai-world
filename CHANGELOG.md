@@ -4,7 +4,7 @@
 
 ## [Unreleased]
 ### Added
-- `docs/research/world-baseline.md`：20 拍新基线（`transfer` 2 / `consume` 1 / `move` 0、净持有变化“安 威士忌 -1；安 银元 +2”、`know_rate` 80.2%、1 次 430 分钟长动作、4–30 分钟出现 2 次）。
+- `docs/research/world-baseline.md`：20 拍新基线（`transfer` 2 / `consume` 1 / `move` 3（2 条原地）、净持有变化“安 威士忌 -1；安 银元 +2”、`know_rate` 67.8%、1 次 480 分钟长动作、4–30 分钟出现 2 次、3 次折场）。
 - `docs/research/multi-agent-architectures.md`：Claude Code Agent Teams / Orca·Herdr / DeepSeek Super-agent / pi 生态的编排架构调研，以及 ai-world 保留裁判作为唯一提交层的理由。
 - `scripts/experiment-multi-round.ts`：baseline / self-retry / cross-talk 三臂的一拍内多轮对话实验，输出 journal/passage/metrics/report。
 - `docs/research/multi-round-experiment.md`：pilot 6 拍三臂结果（回声率、no_rate、成本、硬冲突）与结论。
@@ -20,6 +20,7 @@
 
 ### Fixed
 - 时钟只按已提交 claim 的 duration 推进；被拒绝或整条回滚的 claim 不再推进世界时间。
+- 折场的“时间跳跃 ≥240 分钟”改用上一拍结束时刻判断，长时间跳跃能真正触发。
 - 人物认知现在能看到玩家本拍的输入（此前只有裁判看得到）。
 - 旁白抛错或返回空文本时不再丢拍：journal 先落，passage 用事实摘要兜底并标记 `fallback`。
 - 裁判上下文的持有物补上 `item(id)` 映射；体检表只统计已提交 claim 的写操作，不再把回滚的 op 算成世界变化。

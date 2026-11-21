@@ -172,6 +172,8 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
 
   const texts: Record<EntId, string> = {}
   for (const e of narratorEvents) texts[e.actor] = `${e.actor}：${e.text} → ${e.outcome}`
+  // appendBeat 会把 lastBeatAt 推到本拍结束；判断“本拍是否时间跳跃”必须用上一拍结束时刻。
+  const previousLastBeatAt = input.scene.lastBeatAt
   const scene = appendBeat(input.scene, {
     clock: clockAfter,
     tokens: estimateTokens([input.sceneText, passage].join('\n')),
@@ -206,7 +208,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     notes: [...degraded, ...notes, ...narrationNotes],
   }
 
-  const reason = foldReason(scene, { place: result.world.ledger.at[input.player] ?? scene.place, clock: clockAfter, tokens: scene.tokens })
+  const reason = foldReason({ ...scene, lastBeatAt: previousLastBeatAt }, { place: result.world.ledger.at[input.player] ?? scene.place, clock: clockAfter, tokens: scene.tokens })
   if (reason) {
     deps.store.appendBeat({ type: 'scene/fold', scene: scene.id, clock: clockAfter, claims: [], order: [], verdicts: [], observations: {}, driveHits: [] })
     result.folded = fold(scene, reason)
