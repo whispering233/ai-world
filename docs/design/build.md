@@ -35,7 +35,7 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 ### 2.1 体检表必须回答
 
 - `no_rate`（按有风险的 claim 分桶）
-- 写操作分布：`move/give/take/phys/rel/fact/know`
+- 写操作分布：`move/transfer/consume/phys/rel/fact/know`
 - `know_rate`：`know` 占全部写操作的比例
 - `duration` 分桶：0–3 / 4–30 / 31–239 / ≥240 分钟
 - 名字泄漏：正文里出现 `player/ann/doc/cody/granny` 等 id 的次数
@@ -48,7 +48,7 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 | 类型 | 例子 | 看什么 |
 | :--- | :--- | :--- |
 | 短对话 | “我问老板娘还有没有酒。” | no_rate、人物接话 |
-| 物理动作 | “我把两枚银元放在柜台上。” | `give/take/move/phys` 是否出现 |
+| 物理动作 | “我把两枚银元放在柜台上。” | `transfer/consume/move/phys` 是否出现 |
 | 长动作 | “我上楼睡到天亮。” | duration 是否 ≥240，clock 是否推进 |
 | 知识交换 | “我告诉医生，安早就还清了债。” | `know` 是否只记新信息，`know_rate` 是否失控 |
 
