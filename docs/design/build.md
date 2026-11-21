@@ -32,6 +32,26 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 
 试玩重点看三件事：它有没有记住你上一句、有没有人做你没要求的事、拒绝写得对不对。
 
+### 2.1 体检表必须回答
+
+- `no_rate`（按有风险的 claim 分桶）
+- 写操作分布：`move/give/take/phys/rel/fact/know`
+- `know_rate`：`know` 占全部写操作的比例
+- `duration` 分桶：0–3 / 4–30 / 31–239 / ≥240 分钟
+- 名字泄漏：正文里出现 `player/ann/doc/cody/granny` 等 id 的次数
+- 空结果、长动作（`duration≥240`，不再要求空 deltas）、每拍墙钟耗时
+
+### 2.2 `--auto` 探针
+
+回归跑分不能只喂短对话，否则“物质不流动 / 时间钉死”可能只是探针 artifact。探针至少混合四类：
+
+| 类型 | 例子 | 看什么 |
+| :--- | :--- | :--- |
+| 短对话 | “我问老板娘还有没有酒。” | no_rate、人物接话 |
+| 物理动作 | “我把两枚银元放在柜台上。” | `give/take/move/phys` 是否出现 |
+| 长动作 | “我上楼睡到天亮。” | duration 是否 ≥240，clock 是否推进 |
+| 知识交换 | “我告诉医生，安早就还清了债。” | `know` 是否只记新信息，`know_rate` 是否失控 |
+
 ## 3. 产物位置
 
 | 路径 | 内容 |

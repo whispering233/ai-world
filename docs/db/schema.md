@@ -41,7 +41,7 @@
 | seq | 是 | number | | 与 journal 对齐 |
 | clock | 是 | number | | |
 | text | 是 | string | | 只增不改 |
-| source | 是 | enum | `narrator` \| `player` \| `npc` | |
+| source | 是 | enum | `narrator` \| `player` \| `npc` \| `fallback` | `fallback` = 旁白失败后用事实摘要兜底 |
 
 ## 5. `character`（人物）
 
@@ -72,3 +72,5 @@
 | ledger | 是 | Ledger | | 见 §1 |
 | facts | 是 | Record<FactId, Fact> | | 只增不改 |
 | places | 是 | Record<PlaceId, string> | | 地点白名单：id → 人读的名字；`move` 只能去这里 |
+| names | 是 | Record<EntId, string> | | 人物/实体显示名：id → 人读的名字；静态内容，不进账本 |
+| items | 是 | Record<ItemId, string> | | 物品显示名：id → 人读的名字；静态内容，不进账本 |
