@@ -293,7 +293,7 @@ function detectConflicts(world: World, verdicts: readonly Verdict[]): {
   const details: string[] = []
 
   for (const op of ops) {
-    if (op.op === 'give' || op.op === 'take') {
+    if (op.op === 'transfer' || op.op === 'consume') {
       const key = `${op.from}|${op.item}`
       spent.set(key, (spent.get(key) ?? 0) + op.n)
     } else if (op.op === 'move') {
@@ -708,10 +708,10 @@ function report(
   lines.push('')
   lines.push('写操作分布：')
   lines.push('')
-  lines.push('| 臂 | ' + ['move', 'give', 'take', 'phys', 'rel', 'fact', 'know'].join(' | ') + ' |')
+  lines.push('| 臂 | ' + ['move', 'transfer', 'consume', 'phys', 'rel', 'fact', 'know'].join(' | ') + ' |')
   lines.push('| :--- | ' + ['---:', '---:', '---:', '---:', '---:', '---:', '---:'].join(' | ') + ' |')
   for (const { arm, summary } of arms) {
-    lines.push(`| ${arm} | ${['move', 'give', 'take', 'phys', 'rel', 'fact', 'know'].map((op) => summary.ops[op] ?? 0).join(' | ')} |`)
+    lines.push(`| ${arm} | ${['move', 'transfer', 'consume', 'phys', 'rel', 'fact', 'know'].map((op) => summary.ops[op] ?? 0).join(' | ')} |`)
   }
   lines.push('')
   lines.push('## 样本（人工看人物声音）')

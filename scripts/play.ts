@@ -129,7 +129,7 @@ async function main(): Promise<void> {
   const ops = committedVerdicts.flatMap((v) => v.deltas)
   const opCounts: Record<string, number> = {}
   for (const op of ops) opCounts[op.op] = (opCounts[op.op] ?? 0) + 1
-  const opNames = ['move', 'give', 'take', 'phys', 'rel', 'fact', 'know']
+  const opNames = ['move', 'transfer', 'consume', 'phys', 'rel', 'fact', 'know']
   const writeOps = ops.length
   const knowRate = writeOps === 0 ? 0 : (opCounts.know ?? 0) / writeOps
   const durationBuckets = { '0–3': 0, '4–30': 0, '31–239': 0, '≥240': 0 }

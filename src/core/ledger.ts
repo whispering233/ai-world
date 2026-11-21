@@ -48,12 +48,14 @@ function applyOne(w: World, op: Op): OpResult {
       return OK
     }
 
+    // 'give'/'take' 是旧 journal 的别名，只用于 replay；新输出只用 transfer/consume。
+    case 'transfer':
     case 'give': {
       const from = raw['from']
       const to = raw['to']
       const item = raw['item']
       const n = raw['n']
-      if (!str(from) || !str(to) || !str(item) || !Number.isInteger(n)) return fail('give 字段不完整')
+      if (!str(from) || !str(to) || !str(item) || !Number.isInteger(n)) return fail('transfer 字段不完整')
       if ((n as number) <= 0) return fail('数量必须是正整数')
       if (!exists(w, from) || !exists(w, to)) return fail('持有者或接收者不存在')
       if (held(w, from, item) < (n as number)) return fail(`${from} 身上没有这么多 ${item}`)
@@ -62,11 +64,12 @@ function applyOne(w: World, op: Op): OpResult {
       return OK
     }
 
+    case 'consume':
     case 'take': {
       const from = raw['from']
       const item = raw['item']
       const n = raw['n']
-      if (!str(from) || !str(item) || !Number.isInteger(n)) return fail('take 字段不完整')
+      if (!str(from) || !str(item) || !Number.isInteger(n)) return fail('consume 字段不完整')
       if ((n as number) <= 0) return fail('数量必须是正整数')
       if (!exists(w, from)) return fail(`不存在的实体：${from}`)
       if (held(w, from, item) < (n as number)) return fail(`${from} 身上没有这么多 ${item}`)

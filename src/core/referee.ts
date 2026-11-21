@@ -215,7 +215,7 @@ export const SUBMIT_VERDICT_TOOL = {
                 type: 'object',
                 required: ['op'],
                 additionalProperties: true,
-                properties: { op: { type: 'string', enum: ['move', 'give', 'take', 'phys', 'rel', 'fact', 'know'] } },
+                properties: { op: { type: 'string', enum: ['move', 'transfer', 'consume', 'phys', 'rel', 'fact', 'know'] } },
               },
             },
           },
@@ -251,16 +251,17 @@ export const REFEREE_SYSTEM = `你是这个世界的裁判，不是叙述者。�
 4. 拒绝是常态。不要为了配合而放行，也不要为了刁难而拒绝。
 5. duration 填这件事花了多少分钟，缺省 1，上限 1440；睡觉、远行这类长动作要如实给大值（一句交锋 1–3 分钟，一场谈话 10–30 分钟）。
 6. 没有发生的改动一律不写。
-7. **地点只能换成账本里列出的地点 id**，不能现编地名；也不能凭想象给某人塞东西——只能移动 / 交出他实际持有的物品。
+7. **地点只能换成账本里列出的地点 id**，不能现编地名；也不能凭想象给某人塞东西——只能 move 或 transfer/consume 他实际持有的物品。
 8. **fact 是「发生过的事」**，不是世界真理：「ann 说她明天就走」可以记，「ann 明天会走」不能记；真假由账本里的持有物 / 位置 / 状态决定。
-9. **可计量的东西必须落 op**：倒酒 = 从持有者 take/give；推门 = 把门的 phys.closed 改成 false；给药 = give。凡是「他手上确实少了 / 多了 / 变了」的事，不能只写在 reason 里。
+9. **可计量的东西必须落 op**：倒酒 = 从持有者 transfer（或 consume）；推门 = 把门的 phys.closed 改成 false；给药 = transfer。凡是「他手上确实少了 / 多了 / 变了」的事，不能只写在 reason 里。
 10. **说话于是留痕**：一句被听见的话就是一条事件——用 know 把这条事件告诉听众（fact 字段直接写那句话里的事实或引语，不需要 id）。只有真正改变态度的行为（威胁、羞辱、示好、守信、背叛）才动 rel，一次 ±1；rel = -3 表示势不两立，不要随手推到满。
 11. **phys 的键必须能被一句物理描述解释**（closed / broken / lit / wounded）；不要用它记「他有药包」这类身份状态。
+12. **item 必须填上下文括号里的 id**（如 whiskey），不能填显示名（如 威士忌）；填错会被账本拒绝。
 
 调用 submit_verdict 工具给出判定；不要输出解释文字。字段形状如下（供参考）：
 {"order":["实体id",...],"verdicts":[{"claimId":"...","actor":"...","ok":true,"reason":"...","deltas":[{"op":"move","who":"...","to":"..."}],"duration":1}],"observations":{"实体id":{"claimIds":["..."],"summary":"一句他实际感知到的结果"}},"driveHits":[{"ent":"...","driveId":"...","delta":0.2}]}
 
-deltas 只能使用这些 op：move{who,to} / give{from,to,item,n} / take{from,item,n} / phys{who,key,value} / rel{from,to,delta} / fact{text} / know{who,fact}。`
+deltas 只能使用这些 op：move{who,to} / transfer{from,to,item,n} / consume{from,item,n} / phys{who,key,value} / rel{from,to,delta} / fact{text} / know{who,fact}。`
 
 /**
  * 用文本 JSON 而非工具调用：裁判的输出是“一份判定书”，不是能力调用。
