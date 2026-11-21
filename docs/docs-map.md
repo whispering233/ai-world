@@ -27,6 +27,12 @@
 | :--- | :--- |
 | [DESIGN.md](ui/DESIGN.md) | 玩家阅读面布局、视觉方向与交互契约 |
 
+## research/
+
+| 文件 | 内容 |
+| :--- | :--- |
+| [multi-agent-architectures.md](research/multi-agent-architectures.md) | 多 Agent 编排架构对比、Super-agent / Claude Code Teams / Orca·Herdr，及 ai-world 保留裁判的理由 |
+
 ## 其他
 
 | 文件 | 内容 |
