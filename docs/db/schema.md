@@ -33,6 +33,7 @@
 | verdicts | 是 | Verdict[] | | 含 ok/reason/deltas/duration |
 | driveHits | 否 | DriveHit[] | | 驱动热度增减 |
 | observations | 否 | Record<EntId, string> | | 可见性分发结果 |
+| experience | 否 | Record<EntId, Experience[]> | | 本拍每人新增的记忆条目（不是快照）；旧 journal 缺失时重放停在初始人物 |
 
 ## 4. `passage`（呈现文本）
 

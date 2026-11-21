@@ -41,7 +41,7 @@ node --experimental-strip-types scripts/play.ts --beats 30
 ## 开发
 
 ```sh
-npm test           # vitest，125 个用例
+npm test           # vitest，127 个用例
 npm run typecheck  # tsc --noEmit，必须 0 错误
 node --experimental-strip-types scripts/probe-latency.ts   # 可选：模型测速
 ```

@@ -4,6 +4,7 @@
 
 ## [Unreleased]
 ### Added
+- `journal` 记录每拍新增的 `experience` 与 `driveHits`，`replayCharacters` 能只用 journal 重建人物记忆与热度（不再依赖进程内存）。
 - `docs/research/world-baseline.md`：20 拍基线（`fact` 24 条、`facts/beat` 1.20、`fact/claim` 0.27、`know` 2 条、`transfer` 3 / `consume` 0 / `move` 0、无变化拍 5/20、2 次折场），并记录“事实密度未达 ≤1.0”的三类残留。
 - `docs/research/multi-agent-architectures.md`：Claude Code Agent Teams / Orca·Herdr / DeepSeek Super-agent / pi 生态的编排架构调研，以及 ai-world 保留裁判作为唯一提交层的理由。
 - `scripts/experiment-multi-round.ts`：baseline / self-retry / cross-talk 三臂的一拍内多轮对话实验，输出 journal/passage/metrics/report。
