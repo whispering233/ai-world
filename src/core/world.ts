@@ -27,11 +27,28 @@ export interface Ledger {
   knows: Record<EntId, FactId[]>
 }
 
+export const FACT_KINDS = [
+  'speech',
+  'promise',
+  'threat',
+  'lie',
+  'transaction',
+  'identity',
+  'state',
+  'other',
+] as const
+
+export type FactKind = (typeof FACT_KINDS)[number]
+
 export interface Fact {
   id: FactId
   text: string
   /** 产生时的 clock */
   at: number
+  /** 动作发出者（不是承受者）；不确定可省略 */
+  actor?: EntId
+  /** 事件类别；旧 fact 可缺失 */
+  kind?: FactKind
   supersededBy?: FactId
 }
 
@@ -48,7 +65,7 @@ export type Op =
   | { op: 'consume'; from: EntId; item: ItemId; n: number }
   | { op: 'phys'; who: EntId; key: string; value: number | boolean }
   | { op: 'rel'; from: EntId; to: EntId; delta: number }
-  | { op: 'fact'; text: string }
+  | { op: 'fact'; text: string; actor?: EntId; kind?: FactKind }
   | { op: 'know'; who: EntId[]; fact: FactId }
 
 export interface OpResult {

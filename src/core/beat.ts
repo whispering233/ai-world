@@ -273,8 +273,11 @@ export function describeFacts(
 ): string {
   // 事实文本是裁判用显示名写的（“安说…”），不是 id（ann）；只匹配 id 会让 +2 永远不命中。
   const mentionTokens = present.flatMap((ent) => [ent, names?.[ent] ?? ent, ...(aliases?.[ent] ?? [])])
-  const weight = (fact: { text: string; at: number }): number =>
-    (mentionTokens.some((token) => token !== '' && fact.text.includes(token)) ? 2 : 0) + (clock - fact.at <= 10 ? 1 : 0)
+  const weight = (fact: { text: string; at: number; actor?: EntId }): number => {
+    const actorPresent = fact.actor !== undefined && present.includes(fact.actor)
+    const textMatch = mentionTokens.some((token) => token !== '' && fact.text.includes(token))
+    return (actorPresent || textMatch ? 2 : 0) + (clock - fact.at <= 10 ? 1 : 0)
+  }
   return Object.values(world.facts)
     .filter((f) => f.supersededBy === undefined)
     .map((f) => ({ f, w: weight(f) }))

@@ -35,6 +35,7 @@
 | [multi-round-experiment.md](research/multi-round-experiment.md) | 一拍内多轮对话 pilot：baseline / self-retry / cross-talk 三臂、成本、回声率、硬冲突与结论 |
 | [world-baseline.md](research/world-baseline.md) | 20 拍世界基线：物质流、时间钉死、知识通胀、名字泄漏与探针说明 |
 | [cache-prefix.md](research/cache-prefix.md) | cognition 前缀顺序与 6 拍缓存计量（cacheRead/cacheWrite），以及不能宣称的结论 |
+| [fact-structure.md](research/fact-structure.md) | fact 的 actor/kind 6 拍 smoke：10/10 覆盖、kind 分布与样本，不是密度回归 |
 
 ## 其他
 

@@ -1,4 +1,14 @@
-import { clampRel, type EntId, type Fact, type FactId, type Op, type OpResult, type World } from './world.ts'
+import {
+  clampRel,
+  FACT_KINDS,
+  type EntId,
+  type Fact,
+  type FactId,
+  type FactKind,
+  type Op,
+  type OpResult,
+  type World,
+} from './world.ts'
 
 const OK: OpResult = { ok: true }
 
@@ -104,7 +114,19 @@ function applyOne(w: World, op: Op): OpResult {
     case 'fact': {
       const text = raw['text']
       if (!str(text) || text.trim() === '') return fail('事实文本不能为空')
-      addFact(w, text.trim())
+      const meta: { actor?: EntId; kind?: FactKind } = {}
+      const actor = raw['actor']
+      if (actor !== undefined) {
+        if (!str(actor)) return fail('fact 的 actor 必须是实体 id')
+        if (!exists(w, actor)) return fail(`不存在的实体：${actor}`)
+        meta.actor = actor
+      }
+      const kind = raw['kind']
+      if (kind !== undefined) {
+        if (typeof kind !== 'string' || !isFactKind(kind)) return fail(`未知的 fact kind：${String(kind)}`)
+        meta.kind = kind
+      }
+      addFact(w, text.trim(), meta)
       return OK
     }
 
@@ -116,7 +138,7 @@ function applyOne(w: World, op: Op): OpResult {
       if (missing.length > 0) return fail(`不存在的实体：${missing.join(', ')}`)
       // 裁判看不到 fact id，只会写“告诉他什么事”；以文本形式给就等于新事实。
       // 这不是宽松：事实本来就只能由裁判产生，谁开口、什么内容都是它说了算。
-      const known = w.facts[ref] ?? addFact(w, ref.trim())
+      const known = w.facts[ref] ?? addFact(w, ref.trim(), { kind: 'speech' })
       if (known.supersededBy !== undefined) return fail(`事实已被推翻：${known.id}`)
       for (const id of who) {
         const list = knowsOf(w, id)
@@ -182,8 +204,14 @@ function knowsOf(w: World, who: EntId): FactId[] {
 }
 
 /** fact id 由「现有事实数」推出，因此回放时必然一致（无随机、无时钟依赖）。 */
-function addFact(w: World, text: string): Fact {
+function addFact(w: World, text: string, meta: Pick<Fact, 'actor' | 'kind'> = {}): Fact {
   const fact: Fact = { id: `f${Object.keys(w.facts).length}`, text, at: w.ledger.clock }
+  if (meta.actor !== undefined) fact.actor = meta.actor
+  if (meta.kind !== undefined) fact.kind = meta.kind
   w.facts[fact.id] = fact
   return fact
+}
+
+function isFactKind(value: string): value is FactKind {
+  return (FACT_KINDS as readonly string[]).includes(value)
 }

@@ -252,7 +252,7 @@ export const REFEREE_SYSTEM = `你是这个世界的裁判，不是叙述者。�
 5. duration 填这件事花了多少分钟，缺省 1，上限 1440；睡觉、远行这类长动作要如实给大值（一句交锋 1–3 分钟，一场谈话 10–30 分钟）。
 6. 没有发生的改动一律不写。
 7. **地点只能换成账本里列出的地点 id**，不能现编地名；也不能凭想象给某人塞东西——只能 move 或 transfer/consume 他实际持有的物品。
-8. **fact 只记会改变后续判断的事件**：承诺、威胁、谎言、公开宣告、交易完成、身份揭示、状态改变。判断方法：下一拍若不知道这条，会不会判错？会就记，不会就不记。**公开宣告**指改变所有人预期的声明（包场、赶人、封锁、悬赏、定下期限），不是“谁当众说了句话”；转述别人说了什么、附和、寒暄、重复点单、已知信息、纯动作细节（收杯、擦桌、挪椅子）都不记——在场者已经由 observations 记住这些。**账本已经记过的状态（谁在哪、谁有什么、门锁了没有、关系变没变）不要再复述成 fact**；fact 只补账本表达不了的事件。fact 是「发生过的事」，不是世界真理：「ann 说她明天就走」是承诺才记，「ann 明天会走」不能记；真假由账本里的持有物 / 位置 / 状态决定。
+8. **fact 只记会改变后续判断的事件**：承诺、威胁、谎言、公开宣告、交易完成、身份揭示、状态改变。判断方法：下一拍若不知道这条，会不会判错？会就记，不会就不记。**公开宣告**指改变所有人预期的声明（包场、赶人、封锁、悬赏、定下期限），不是“谁当众说了句话”；转述别人说了什么、附和、寒暄、重复点单、已知信息、纯动作细节（收杯、擦桌、挪椅子）都不记——在场者已经由 observations 记住这些。**账本已经记过的状态（谁在哪、谁有什么、门锁了没有、关系变没变）不要再复述成 fact**；fact 只补账本表达不了的事件。fact 是「发生过的事」，不是世界真理：「ann 说她明天就走」是承诺才记，「ann 明天会走」不能记；真假由账本里的持有物 / 位置 / 状态决定。**fact 的 actor 填动作发出者（不是承受者）**，不确定可省略；**kind 从 speech / promise / threat / lie / transaction / identity / state / other 选**，不确定用 other。
 9. **可计量的东西必须落 op**：倒酒 = 从持有者 transfer（或 consume）；推门 = 把门的 phys.closed 改成 false；给药 = transfer。凡是「他手上确实少了 / 多了 / 变了」的事，不能只写在 reason 里。
 10. **说话留痕，但不是知识广播**：一句被听见的话可以记 fact（发生过的事）；在场者的即时记忆由 observations 记录，不要默认给每个听众发 know。只有听众原本不知道、且以后会用到的信息（秘密、计划、债务、身份、跨场景承诺）才用 know 授予知情；寒暄、点单、重复、已经知道的事不发 know。一次 know 用 who 数组覆盖所有听众，不要一人一条；who 只列确实听见的人，耳语/只对某人说不要发给全场。只有真正改变态度的行为（威胁、羞辱、示好、守信、背叛）才动 rel，一次 ±1；rel = -3 表示势不两立，不要随手推到满。
 11. **phys 的键必须能被一句物理描述解释**（closed / broken / lit / wounded）；不要用它记「他有药包」这类身份状态。
@@ -262,7 +262,7 @@ export const REFEREE_SYSTEM = `你是这个世界的裁判，不是叙述者。�
 调用 submit_verdict 工具给出判定；不要输出解释文字。字段形状如下（供参考）：
 {"order":["实体id",...],"verdicts":[{"claimId":"...","actor":"...","ok":true,"reason":"...","deltas":[{"op":"move","who":"...","to":"..."}],"duration":1}],"observations":{"实体id":{"claimIds":["..."],"summary":"一句他实际感知到的结果"}},"driveHits":[{"ent":"...","driveId":"...","delta":0.2}]}
 
-deltas 只能使用这些 op：move{who,to} / transfer{from,to,item,n} / consume{from,item,n} / phys{who,key,value} / rel{from,to,delta} / fact{text} / know{who,fact}。`
+deltas 只能使用这些 op：move{who,to} / transfer{from,to,item,n} / consume{from,item,n} / phys{who,key,value} / rel{from,to,delta} / fact{text,actor?,kind?} / know{who,fact}。`
 
 /**
  * 用文本 JSON 而非工具调用：裁判的输出是“一份判定书”，不是能力调用。
