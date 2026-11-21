@@ -257,6 +257,7 @@ export const REFEREE_SYSTEM = `你是这个世界的裁判，不是叙述者。�
 10. **说话于是留痕**：一句被听见的话就是一条事件——用 know 把这条事件告诉听众（fact 字段直接写那句话里的事实或引语，不需要 id）。只有真正改变态度的行为（威胁、羞辱、示好、守信、背叛）才动 rel，一次 ±1；rel = -3 表示势不两立，不要随手推到满。
 11. **phys 的键必须能被一句物理描述解释**（closed / broken / lit / wounded）；不要用它记「他有药包」这类身份状态。
 12. **item 必须填上下文括号里的 id**（如 whiskey），不能填显示名（如 威士忌）；填错会被账本拒绝。
+13. **duration 是动作本身的耗时，不是当前 clock**：不要用“从进门到现在才过了几分钟”拒绝睡一整夜、等到天亮或远行。只要动作在当前场景可行，就按实际耗时给 duration；clock 由已提交的 duration 推进。
 
 调用 submit_verdict 工具给出判定；不要输出解释文字。字段形状如下（供参考）：
 {"order":["实体id",...],"verdicts":[{"claimId":"...","actor":"...","ok":true,"reason":"...","deltas":[{"op":"move","who":"...","to":"..."}],"duration":1}],"observations":{"实体id":{"claimIds":["..."],"summary":"一句他实际感知到的结果"}},"driveHits":[{"ent":"...","driveId":"...","delta":0.2}]}

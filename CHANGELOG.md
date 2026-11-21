@@ -4,14 +4,15 @@
 
 ## [Unreleased]
 ### Added
-- `docs/research/world-baseline.md`：20 拍新基线（`transfer` 4 / `consume` 2 / `move` 1、净持有变化“安 威士忌 -2”、`know_rate` 67.2%、2 次 480 分钟长动作）。
+- `docs/research/world-baseline.md`：20 拍新基线（`transfer` 2 / `consume` 1 / `move` 0、净持有变化“安 威士忌 -1；安 银元 +2”、`know_rate` 80.2%、1 次 430 分钟长动作、4–30 分钟出现 2 次）。
 - `docs/research/multi-agent-architectures.md`：Claude Code Agent Teams / Orca·Herdr / DeepSeek Super-agent / pi 生态的编排架构调研，以及 ai-world 保留裁判作为唯一提交层的理由。
 - `scripts/experiment-multi-round.ts`：baseline / self-retry / cross-talk 三臂的一拍内多轮对话实验，输出 journal/passage/metrics/report。
 - `docs/research/multi-round-experiment.md`：pilot 6 拍三臂结果（回声率、no_rate、成本、硬冲突）与结论。
 
 ### Changed
 - 写操作语义清理：`give` → `transfer`（任何持有变化，含抢夺/没收），`take` → `consume`（物品离开世界）；旧 journal 的 `give`/`take` 只作 replay 别名。
-- 试玩体检表增加写操作分布、`know_rate`、duration 分桶、名字泄漏、每拍墙钟、物质 op 按 actor 拆分、净持有变化与回滚原因；`--auto` 探针混入短对话/物理/长动作/知识交换/消耗，移动探针放末拍。
+- 试玩体检表增加写操作分布、`know_rate`、duration 分桶、名字泄漏、每拍墙钟、物质 op 按 actor 拆分、净持有变化与回滚原因；`--auto` 探针混入短对话/物理/长动作/知识交换/消耗，长动作只跑一次，移动探针放末拍。
+- 裁判增加 `duration` 与当前 `clock` 的语义澄清：长动作按实际耗时推进时间，不因当前 clock 尚早被拒。
 - 人物/物品显示名进入 `ContentPack.names/items`；认知 prompt、旁白、试玩场景与体检表统一用名字，不再把 `player/ann/doc` 等 id 写进正文。
 - `typecheck` 现在覆盖 `scripts/`（实验脚本不再绕过类型检查）。
 - 玩家 UI 布局定稿：单栏阅读面 + 顶部细栏 + 底部输入 + 按需右抽屉；三栏仅作者/调试模式，记入 backlog。
