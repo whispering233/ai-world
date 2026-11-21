@@ -4,6 +4,7 @@
 
 ## [Unreleased]
 ### Added
+- `docs/research/fact-structure.md`：6 拍 fact 结构化 smoke（actor/kind 10/10，`facts/beat` 1.67，单样本不作密度结论）。
 - `docs/research/cache-prefix.md`：6 拍缓存计量（cognition cacheRead 6144 / referee 4608 / narration 0，cacheWrite 全 0）与“不能归因”的说明。
 - `fact` 可选 `actor` / `kind`：`actor` 是动作发出者，`kind` 为 `speech / promise / threat / lie / transaction / identity / state / other`；旧 fact 无字段仍可 replay。
 - `journal` 记录每拍新增的 `experience` 与 `driveHits`，`replayCharacters` 能只用 journal 重建人物记忆与热度（不再依赖进程内存）。

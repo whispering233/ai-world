@@ -98,6 +98,21 @@ describe('readJournal：尾部撕裂', () => {
   })
 })
 
+const structuredFact: RefereeOutput = {
+  order: ['bob'],
+  verdicts: [
+    {
+      claimId: 'c3',
+      actor: 'bob',
+      ok: true,
+      deltas: [{ op: 'fact', text: 'bob 把门锁了', actor: 'bob', kind: 'state' }],
+      duration: 1,
+    },
+  ],
+  observations: {},
+  driveHits: [],
+}
+
 describe('replay：重放即真相', () => {
   it('按 seq 升序重放：clock 与 fact.at 都随记录恢复', () => {
     const dir = tmp()
@@ -116,5 +131,15 @@ describe('replay：重放即真相', () => {
     expect(played.facts.f0?.at).toBe(12)
     // 顺序由 seq 定，不由数组顺序定
     expect(replay([...readBack].reverse(), world())).toEqual(played)
+  })
+
+  it('结构化的 actor/kind 也随 journal 重放', () => {
+    const dir = tmp()
+    const s = openStore(dir)
+    s.appendBeat(beat(11, structuredFact))
+    s.close()
+
+    const played = replay(openStore(dir).readJournal(), world())
+    expect(played.facts.f0).toMatchObject({ text: 'bob 把门锁了', actor: 'bob', kind: 'state', at: 11 })
   })
 })
