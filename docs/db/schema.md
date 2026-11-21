@@ -81,3 +81,4 @@
 | :--- | :--- | :--- | :--- | :--- |
 | names | 是 | Record<EntId, string> | | 人物/实体显示名：id → 人读的名字；覆盖 `ledger.at` 的全部实体 |
 | items | 是 | Record<ItemId, string> | | 物品显示名：id → 人读的名字；覆盖 `ledger.holds` 里出现的物品 |
+| aliases | 否 | Record<EntId, string[]> | | 额外检索词：只用于事实切片匹配“这句话提到谁”，不改显示名 |

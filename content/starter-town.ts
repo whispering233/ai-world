@@ -120,6 +120,8 @@ export const STARTER_TOWN: ContentPack = {
     cellar: '地窖门',
     streetlamp: '街灯',
   },
+  // 裁判在事实文本里把玩家写成“玩家”；显示名“你”是给旁白与认知的第二人称。
+  aliases: { player: ['玩家'] },
   items: {
     'ledger-book': '账本',
     whiskey: '威士忌',

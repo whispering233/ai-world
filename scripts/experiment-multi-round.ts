@@ -37,7 +37,7 @@ import {
 } from '../src/core/referee.ts'
 import { appendBeat, contextOf, fold, foldReason, openScene, type FoldMaterial, type Scene } from '../src/core/scene.ts'
 import { openStore, type Store } from '../src/core/store.ts'
-import { describeFacts } from '../src/core/beat.ts'
+import { describeFacts, type LedgerView } from '../src/core/beat.ts'
 import { STARTER_TOWN } from '../content/starter-town.ts'
 import type { EntId, World } from '../src/core/world.ts'
 
@@ -170,10 +170,10 @@ function describeScene(world: World): string {
   return `酒馆里：${present.map((ent) => STARTER_TOWN.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
 }
 
-/** 与 src/core/beat.ts 的私有实现保持一致；实验脚本不把它抽成公共层。 */
-function describeLedger(world: World, present: readonly EntId[], names?: Record<EntId, string>, items?: Record<string, string>, withIds = false): string {
-  const label = (id: string): string => (withIds ? `${names?.[id] ?? id}(${id})` : (names?.[id] ?? id))
-  const itemLabel = (id: string): string => (withIds ? `${items?.[id] ?? id}(${id})` : (items?.[id] ?? id))
+/** 与 src/core/beat.ts 的 describeLedger 保持同形状（选项对象）；实验脚本不把它抽成公共层。 */
+function describeLedger(world: World, present: readonly EntId[], view: LedgerView = {}): string {
+  const label = (id: string): string => (view.withIds ? `${view.names?.[id] ?? id}(${id})` : (view.names?.[id] ?? id))
+  const itemLabel = (id: string): string => (view.withIds ? `${view.items?.[id] ?? id}(${id})` : (view.items?.[id] ?? id))
   const places = Object.entries(world.places).map(([id, name]) => `${name}(${id})`).join('、')
   const rows = present.map((ent) => {
     const place = world.ledger.at[ent] ?? '未知'
@@ -181,7 +181,7 @@ function describeLedger(world: World, present: readonly EntId[], names?: Record<
     const phys = Object.entries(world.ledger.phys[ent] ?? {}).map(([k, v]) => `${k}=${String(v)}`).join('、')
     return `- ${label(ent)}：在 ${world.places[place] ?? place}；持有 ${bag}${phys === '' ? '' : `；${phys}`}`
   })
-  const events = describeFacts(world, present, world.ledger.clock)
+  const events = describeFacts(world, present, world.ledger.clock, view.names, view.aliases)
   return `已知地点：${places}\n账本现状：\n${rows.join('\n')}${events === '' ? '' : `\n最近发生过的事：\n${events}`}`
 }
 
@@ -351,6 +351,7 @@ async function runCrossTalkBeat(input: {
   canon: readonly string[]
   names?: Record<EntId, string>
   items?: Record<string, string>
+  aliases?: Record<EntId, string[]>
   playerClaim: string
   /** true = 第二轮看到其他人的公开草稿；false = 只看自己的草稿（控制臂） */
   seeOthers: boolean
@@ -373,7 +374,7 @@ async function runCrossTalkBeat(input: {
   }
   const playerLine = input.playerClaim ? `玩家刚才说/做：${input.playerClaim}` : ''
   const sceneFor = (ent: EntId): string =>
-    [input.sceneText, playerLine, describeLedger(input.world, inScene, input.names, input.items), contextOf(input.scene, ent)]
+    [input.sceneText, playerLine, describeLedger(input.world, inScene, { names: input.names, items: input.items, aliases: input.aliases }), contextOf(input.scene, ent)]
       .filter(Boolean)
       .join('\n')
 
@@ -471,7 +472,7 @@ async function runCrossTalkBeat(input: {
     out = await deps.referee.judge({
       clock,
       claims,
-      context: [input.sceneText, describeLedger(input.world, present, input.names, input.items, true), contextOf(input.scene, input.player)]
+      context: [input.sceneText, describeLedger(input.world, present, { names: input.names, items: input.items, aliases: input.aliases, withIds: true }), contextOf(input.scene, input.player)]
         .filter(Boolean)
         .join('\n'),
     })
@@ -786,6 +787,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         canon: STARTER_TOWN.canon,
         names: STARTER_TOWN.names,
         items: STARTER_TOWN.items,
+        aliases: STARTER_TOWN.aliases,
         playerClaim,
         deps,
       })
@@ -815,6 +817,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         canon: STARTER_TOWN.canon,
         names: STARTER_TOWN.names,
         items: STARTER_TOWN.items,
+        aliases: STARTER_TOWN.aliases,
         playerClaim,
         seeOthers: arm === 'cross-talk',
         deps,

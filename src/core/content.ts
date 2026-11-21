@@ -16,6 +16,11 @@ export interface ContentPack {
   names: Record<EntId, string>
   /** 物品显示名：id → 人读的名字；作者层静态内容，不进账本 */
   items: Record<ItemId, string>
+  /**
+   * 额外检索词：id → 别名。只用于事实切片里“这句话提到谁”的匹配，不是显示名。
+   * 典型：裁判把玩家写成“玩家”，而显示名是“你”（第二人称留给旁白）。
+   */
+  aliases?: Record<EntId, string[]>
 }
 
 const CORE_MIN = 200
