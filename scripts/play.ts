@@ -59,9 +59,9 @@ const FINAL_MOVE_PROBE = '我拉开门闩，推门走到街上。'
 
 async function main(): Promise<void> {
   const usage = {
-    cognition: { input: 0, output: 0, ms: 0, retries: 0, calls: 0 },
-    referee: { input: 0, output: 0, ms: 0, retries: 0, calls: 0 },
-    narration: { input: 0, output: 0, ms: 0, retries: 0, calls: 0 },
+    cognition: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
+    referee: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
+    narration: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
   }
   // 默认模型跟着 pi 自己的设置走（settings.json / PI_MODEL），配置文件只做覆盖
   const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL
@@ -75,6 +75,8 @@ async function main(): Promise<void> {
       const u = usage[s.role]
       u.input += s.input
       u.output += s.output
+      u.cacheRead += s.cacheRead
+      u.cacheWrite += s.cacheWrite
       u.ms += s.ms
       u.retries += s.retries
       u.calls += 1
@@ -229,7 +231,7 @@ async function main(): Promise<void> {
   for (const role of ['cognition', 'referee', 'narration'] as const) {
     const u = usage[role]
     const avg = u.calls === 0 ? 0 : Math.round(u.ms / u.calls)
-    stdout.write(`tokens ${role.padEnd(9)} ${u.input} / ${u.output} | 调用 ${u.calls} 次 均耗时 ${avg}ms 重试 ${u.retries}\n`)
+    stdout.write(`tokens ${role.padEnd(9)} ${u.input} / ${u.output} | cache ${u.cacheRead} / ${u.cacheWrite} | 调用 ${u.calls} 次 均耗时 ${avg}ms 重试 ${u.retries}\n`)
   }
   stdout.write('\n三条判据请自己回答：\n')
   stdout.write('  1) 你还想不想跟这个人说第 21 句话？\n')

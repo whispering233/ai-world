@@ -77,19 +77,20 @@ function split(text: string): CognitionOutput {
 
 function buildSystem(ch: Character, canon: string[], now: number, names?: Record<string, string>): string {
   const label = (id: string): string => names?.[id] ?? id
+  // 缓存按前缀匹配：core/voice/输出指令是稳定段，必须排在 canon 与易变状态之前。
   const parts: string[] = []
   if (ch.core) parts.push(`你是什么样的人（不能违背）：\n${ch.core}`)
   if (ch.voice) parts.push(`说话方式：${ch.voice}`)
+  parts.push(
+    '只输出一个 JSON 对象，三个字段：' +
+      '{"inner":"没说出口的话与忍住的反应","outward":"说出口的话或做出的动作","selfChange":"可选，一条具体的人、事或决定，没有就空串"}',
+  )
+  if (canon.length) parts.push(`世界设定：\n${canon.map((c) => `- ${c}`).join('\n')}`)
   if (ch.drives.length) parts.push(`此刻的冲动：\n${ch.drives.map((d) => `- ${d.text}（热度 ${d.heat}）`).join('\n')}`)
   const beliefs = Object.entries(ch.beliefs)
   if (beliefs.length) parts.push(`你认定的事：\n${beliefs.map(([who, claim]) => `- ${label(who)}：${claim}`).join('\n')}`)
   const memory = recall(ch, now)
   if (memory.length) parts.push(`你记得的事：\n${memory.map((e) => `- ${e.text}`).join('\n')}`)
-  if (canon.length) parts.push(`世界设定：\n${canon.map((c) => `- ${c}`).join('\n')}`)
-  parts.push(
-    '只输出一个 JSON 对象，三个字段：' +
-      '{"inner":"没说出口的话与忍住的反应","outward":"说出口的话或做出的动作","selfChange":"可选，一条具体的人、事或决定，没有就空串"}',
-  )
   return parts.join('\n\n')
 }
 

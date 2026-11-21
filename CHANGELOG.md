@@ -11,6 +11,7 @@
 - `docs/research/multi-round-experiment.md`：pilot 6 拍三臂结果（回声率、no_rate、成本、硬冲突）与结论。
 
 ### Changed
+- `cognition` 的 system 前缀按稳定度重排（core/voice → 输出指令 → canon → drives/beliefs/记忆），并把 provider 的 `cacheRead`/`cacheWrite` 接入 `ChatResult`、`UsageSample` 与试玩体检表。
 - 试玩器默认续跑：有 journal 就重放世界与人物记忆，`--fresh` 显式重开一局。
 - `fact` 语义收窄：只记会改变后续判断的事件（承诺、威胁、谎言、公开宣告、交易完成、身份揭示、状态改变），账本已记过的状态不再复述；`facts/beat` 从 4.45 降到 1.10–1.20（目标 ≤1.0，未达标）。体检表增加 `facts/beat` 与「无变化拍」。
 - `ContentPack.aliases`：额外检索词，只用于事实切片匹配（裁判把玩家写成“玩家”，而显示名是“你”）。
