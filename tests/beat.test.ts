@@ -159,7 +159,7 @@ describe('runBeat：裁判降级', () => {
 })
 
 describe('runBeat：三拍连续', () => {
-  it('每拍落一条 journal，时钟按最长动作推进', async () => {
+  it('每拍落一条 journal，时钟只按已提交的最长动作推进', async () => {
     const store = tmpStore()
     const referee: RefereeOutput[] = [
       { order: ['ann'], verdicts: [verdict('p0', [{ op: 'rel', from: 'ann', to: 'player', delta: 1 }], 2)], observations: { player: { claimIds: ['p0'], summary: '她把杯子推过来' } }, driveHits: [] },
@@ -178,7 +178,7 @@ describe('runBeat：三拍连续', () => {
 
     const journal = store.readJournal()
     expect(journal.map((e) => e.seq)).toEqual([1, 2, 3])
-    expect(journal.map((e) => e.clock)).toEqual([2, 3, 4])
+    expect(journal.map((e) => e.clock)).toEqual([2, 3, 3])
     expect(store.readPassage().map((p) => p.text)).toEqual(['雨还没停。', '灯灭了一盏。', '没人再说话。'])
     expect(store.readPassage().every((p) => p.source === 'narrator')).toBe(true)
     expect(r.world.ledger.rel.ann?.player).toBe(1)
@@ -336,6 +336,95 @@ describe('runBeat：已提交 claim', () => {
 
     expect(r.committedClaims).toContain('p0')
     expect(r.committedClaims).not.toContain('a0')
+  })
+})
+
+describe('runBeat：clock 只按已提交 claim 推进', () => {
+  it('被拒绝的 480 分钟 claim 不推进 clock', async () => {
+    const store = tmpStore()
+    const referee: RefereeOutput[] = [
+      {
+        order: ['ann'],
+        verdicts: [{ claimId: 'p0', actor: 'player', ok: false, reason: '没有一整夜可睡', deltas: [], duration: 480 }],
+        observations: {},
+        driveHits: [],
+      },
+    ]
+    const input = base(store, referee)
+    input.playerClaim = '我睡一整夜'
+    const r = await runBeat(input)
+
+    expect(r.committedClaims).toEqual([])
+    expect(r.world.ledger.clock).toBe(0)
+    expect(store.readJournal()[0]?.clock).toBe(0)
+  })
+
+  it('ok 但 op 非法整条回滚的 480 分钟 claim 不推进 clock', async () => {
+    const store = tmpStore()
+    const referee: RefereeOutput[] = [
+      {
+        order: ['ann'],
+        verdicts: [
+          {
+            claimId: 'p0',
+            actor: 'player',
+            ok: true,
+            deltas: [{ op: 'consume', from: 'player', item: 'ghost', n: 1 }],
+            duration: 480,
+          },
+        ],
+        observations: {},
+        driveHits: [],
+      },
+    ]
+    const input = base(store, referee)
+    input.playerClaim = '我喝掉不存在的东西'
+    const r = await runBeat(input)
+
+    expect(r.committedClaims).toEqual([])
+    expect(r.world.ledger.clock).toBe(0)
+    expect(store.readJournal()[0]?.clock).toBe(0)
+  })
+
+  it('合法 480 分钟 claim 推进 clock，fact.at 落在结束时刻', async () => {
+    const store = tmpStore()
+    const referee: RefereeOutput[] = [
+      {
+        order: ['ann'],
+        verdicts: [{ claimId: 'p0', actor: 'player', ok: true, deltas: [{ op: 'fact', text: '他睡了一整夜' }], duration: 480 }],
+        observations: {},
+        driveHits: [],
+      },
+    ]
+    const input = base(store, referee)
+    input.playerClaim = '我睡一整夜'
+    const r = await runBeat(input)
+
+    expect(r.committedClaims).toEqual(['p0'])
+    expect(r.world.ledger.clock).toBe(480)
+    expect(Object.values(r.world.facts).find((f) => f.text === '他睡了一整夜')?.at).toBe(480)
+    expect(r.folded?.reason).toBe('time')
+  })
+
+  it('拒绝的 480 不遮蔽合法 claim 的 5 分钟', async () => {
+    const store = tmpStore()
+    const referee: RefereeOutput[] = [
+      {
+        order: ['ann'],
+        verdicts: [
+          { claimId: 'p0', actor: 'player', ok: false, reason: '没有一整夜可睡', deltas: [], duration: 480 },
+          verdict('a0', [{ op: 'fact', text: '安应了一声' }], 5),
+        ],
+        observations: {},
+        driveHits: [],
+      },
+    ]
+    const input = base(store, referee)
+    input.playerClaim = '我睡一整夜'
+    const r = await runBeat(input)
+
+    expect(r.committedClaims).toContain('a0')
+    expect(r.world.ledger.clock).toBe(5)
   })
 })
 

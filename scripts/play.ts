@@ -34,16 +34,18 @@ const DIR = 'data/starter-town'
 // 探针混合四类：短对话 / 物理动作 / 长动作 / 知识交换；别只喂短对话。
 const AUTO_LINES = [
   '我推门进去，找了个靠门的位子坐下。',
+  '我在靠墙的桌边坐了一会儿，等雨小一点。',
   '我走到柜台前，问老板娘还有没有酒。',
   '我把两枚银元塞进安手里，要一杯威士忌。',
   '我把自己那杯威士忌喝掉。',
-  '我趴在靠墙的桌上睡了一整夜，天亮才醒。',
   '我告诉医生，安早就还清了债。',
   '我把那本账本推到柜台中间。',
   '我帮安把空杯收进木盆，端到柜台后面。',
   '我问医生这镇上最近死了几个人。',
 ]
-// 移动探针放在最后一拍：出门后可能被门闩锁在外面，不能污染前面的基线。
+// 长动作只跑一次；移动探针放最后一拍，避免出门后污染前面的基线。
+const LONG_PROBE = '我趴在靠墙的桌上睡了一整夜，天亮才醒。'
+const LONG_BEAT = 5
 const FINAL_MOVE_PROBE = '我拉开门闩，推门走到街上。'
 
 async function main(): Promise<void> {
@@ -92,7 +94,13 @@ async function main(): Promise<void> {
   const initialHolds = structuredClone(world.ledger.holds)
 
   for (let i = 1; i <= BEATS; i += 1) {
-    const line = AUTO ? (i === BEATS ? FINAL_MOVE_PROBE : (AUTO_LINES[(i - 1) % AUTO_LINES.length] ?? '')) : await rl?.question('你> ')
+    const line = AUTO
+      ? i === BEATS
+        ? FINAL_MOVE_PROBE
+        : i === LONG_BEAT
+          ? LONG_PROBE
+          : (AUTO_LINES[(i - 1) % AUTO_LINES.length] ?? '')
+      : await rl?.question('你> ')
     // 自己试玩时用 /quit 收尾，否则 Ctrl+C 会跳过体检表
     if (line !== undefined && ['/quit', '/q'].includes(line.trim())) break
     const res = await runBeat({
