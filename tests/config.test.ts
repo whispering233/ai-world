@@ -19,27 +19,27 @@ afterEach(() => {
 })
 
 describe('loadModelConfig', () => {
-  it('文件不存在时三档都指向传入的基准模型', () => {
+  it('文件不存在时三个角色都指向传入的基准模型', () => {
     const cfg = loadModelConfig(file(null), 'opencode-go/deepseek-v4.1-flash')
     expect(cfg.models).toEqual({
-      fast: 'opencode-go/deepseek-v4.1-flash',
-      strong: 'opencode-go/deepseek-v4.1-flash',
-      mid: 'opencode-go/deepseek-v4.1-flash',
+      cognition: 'opencode-go/deepseek-v4.1-flash',
+      referee: 'opencode-go/deepseek-v4.1-flash',
+      narration: 'opencode-go/deepseek-v4.1-flash',
     })
   })
 
   it('不给基准模型时退回常量', () => {
-    expect(loadModelConfig(file(null)).models.fast).toBe(FALLBACK_MODEL)
+    expect(loadModelConfig(file(null)).models.cognition).toBe(FALLBACK_MODEL)
   })
 
-  it('只覆盖写了的档位，其余跟随基准模型', () => {
-    const cfg = loadModelConfig(file(JSON.stringify({ models: { strong: 'deepseek/deepseek-v4-pro' } })), 'pi/base')
-    expect(cfg.models.strong).toBe('deepseek/deepseek-v4-pro')
-    expect(cfg.models.fast).toBe('pi/base')
+  it('只覆盖写了的角色，其余跟随基准模型', () => {
+    const cfg = loadModelConfig(file(JSON.stringify({ models: { referee: 'deepseek/deepseek-v4-pro' } })), 'pi/base')
+    expect(cfg.models.referee).toBe('deepseek/deepseek-v4-pro')
+    expect(cfg.models.cognition).toBe('pi/base')
   })
 
-  it('档位写成空字符串时抛错，不静默降级', () => {
-    expect(() => loadModelConfig(file(JSON.stringify({ models: { fast: '  ' } })))).toThrow(/models\.fast/)
+  it('角色写成空字符串时抛错，不静默降级', () => {
+    expect(() => loadModelConfig(file(JSON.stringify({ models: { cognition: '  ' } })))).toThrow(/models\.cognition/)
   })
 })
 

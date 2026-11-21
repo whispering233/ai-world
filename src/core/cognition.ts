@@ -92,7 +92,7 @@ export function createCognition(llm: Llm): Cognition {
   return {
     async think(input) {
       const res = await llm.chat({
-        tier: 'fast',
+        role: 'cognition',
         system: buildSystem(input.character, input.canon, input.now),
         messages: [{ role: 'user', content: buildPrompt(input) }],
       })

@@ -7,11 +7,11 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { RetryPolicy } from '@earendil-works/pi-ai'
-import type { Tier } from './llm.ts'
+import type { ModelRole } from './llm.ts'
 
 export interface ModelConfig {
-  /** 三档只是角色标签与成本分桶；允许都指向同一个模型 */
-  models: Record<Tier, string>
+  /** 三个角色只是调用点标签；允许都指向同一个模型 */
+  models: Record<ModelRole, string>
   /** opencode 用会话头做路由；前缀 + 随机后缀 */
   sessionIdPrefix?: string
   /** 临时错误的重试策略；缺省 2 次、800ms 起退避 */
@@ -45,12 +45,12 @@ export function readPiDefaultModel(agentDir: string): string | undefined {
 }
 
 export function defaultConfig(base: string = FALLBACK_MODEL): ModelConfig {
-  const models: Record<Tier, string> = { fast: base, strong: base, mid: base }
+  const models: Record<ModelRole, string> = { cognition: base, referee: base, narration: base }
   return { models, sessionIdPrefix: 'play' }
 }
 
 
-const TIERS: Tier[] = ['fast', 'strong', 'mid']
+const ROLES: ModelRole[] = ['cognition', 'referee', 'narration']
 
 /** 读配置。文件不存在 = 用默认值（不算错误）；文件存在但写坏了 = 抛错，不静默降级。 */
 export function loadModelConfig(path: string, base: string = FALLBACK_MODEL): ModelConfig {
@@ -64,14 +64,14 @@ export function loadModelConfig(path: string, base: string = FALLBACK_MODEL): Mo
   const parsed: unknown = JSON.parse(text)
   const raw = asRecord(parsed) ?? {}
   const models = asRecord(raw['models']) ?? {}
-  const resolved: Record<Tier, string> = { fast: base, strong: base, mid: base }
-  for (const tier of TIERS) {
-    const value = models[tier]
+  const resolved: Record<ModelRole, string> = { cognition: base, referee: base, narration: base }
+  for (const role of ROLES) {
+    const value = models[role]
     if (value === undefined) continue
     if (typeof value !== 'string' || value.trim() === '') {
-      throw new Error(`配置错误：models.${tier} 必须是非空字符串（当前 ${JSON.stringify(value)}）`)
+      throw new Error(`配置错误：models.${role} 必须是非空字符串（当前 ${JSON.stringify(value)}）`)
     }
-    resolved[tier] = value.trim()
+    resolved[role] = value.trim()
   }
 
   const prefix = raw['sessionIdPrefix']

@@ -276,7 +276,7 @@ export function createLlmReferee(llm: Llm): Referee {
   return {
     async judge(input) {
       const res = await llm.chat({
-        tier: 'strong',
+        role: 'referee',
         system: REFEREE_SYSTEM,
         tools: [SUBMIT_VERDICT_TOOL],
         messages: [{ role: 'user', content: refereePrompt(input) }],

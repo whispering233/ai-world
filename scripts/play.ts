@@ -41,9 +41,9 @@ const AUTO_LINES = [
 
 async function main(): Promise<void> {
   const usage = {
-    fast: { input: 0, output: 0, ms: 0, retries: 0, calls: 0 },
-    strong: { input: 0, output: 0, ms: 0, retries: 0, calls: 0 },
-    mid: { input: 0, output: 0, ms: 0, retries: 0, calls: 0 },
+    cognition: { input: 0, output: 0, ms: 0, retries: 0, calls: 0 },
+    referee: { input: 0, output: 0, ms: 0, retries: 0, calls: 0 },
+    narration: { input: 0, output: 0, ms: 0, retries: 0, calls: 0 },
   }
   // 默认模型跟着 pi 自己的设置走（settings.json / PI_MODEL），配置文件只做覆盖
   const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL
@@ -54,7 +54,7 @@ async function main(): Promise<void> {
     sessionId: `${cfg.sessionIdPrefix ?? 'play'}-${randomUUID()}`,
     ...(cfg.retry ? { retry: cfg.retry } : {}),
     onUsage: (s) => {
-      const u = usage[s.tier]
+      const u = usage[s.role]
       u.input += s.input
       u.output += s.output
       u.ms += s.ms
@@ -76,7 +76,7 @@ async function main(): Promise<void> {
   let scene: Scene = openScene({ id: 's1', place: world.ledger.at[player] ?? 'saloon', clock: 0, participants })
 
   stdout.write(`世界初始化：${participants.length} 个参与者，${STARTER_TOWN.canon.length} 条 canon\n`)
-  stdout.write(`模型：fast=${cfg.models.fast} strong=${cfg.models.strong} mid=${cfg.models.mid}\n\n`)
+  stdout.write(`模型：cognition=${cfg.models.cognition} referee=${cfg.models.referee} narration=${cfg.models.narration}\n\n`)
   if (!AUTO) stdout.write('你说一句话或做一件事，一行就是一拍；输入 /quit 结束并出体检表。\n\n')
   const rl = AUTO ? undefined : createInterface({ input: stdin, output: stdout })
 
@@ -122,10 +122,10 @@ async function main(): Promise<void> {
   stdout.write(`空结果占比      ${pct(empty.length, verdicts.length)}   （期望 < 50%）\n`)
   stdout.write(`长动作占比      ${pct(longActions.length, verdicts.length)}   （期望 < 20%）\n`)
   stdout.write(`结束时刻        ${fmt(world.ledger.clock)}\n`)
-  for (const tier of ['fast', 'strong', 'mid'] as const) {
-    const u = usage[tier]
+  for (const role of ['cognition', 'referee', 'narration'] as const) {
+    const u = usage[role]
     const avg = u.calls === 0 ? 0 : Math.round(u.ms / u.calls)
-    stdout.write(`tokens ${tier.padEnd(7)} ${u.input} / ${u.output} | 调用 ${u.calls} 次 均耗时 ${avg}ms 重试 ${u.retries}\n`)
+    stdout.write(`tokens ${role.padEnd(9)} ${u.input} / ${u.output} | 调用 ${u.calls} 次 均耗时 ${avg}ms 重试 ${u.retries}\n`)
   }
   stdout.write('\n三条判据请自己回答：\n')
   stdout.write('  1) 你还想不想跟这个人说第 21 句话？\n')

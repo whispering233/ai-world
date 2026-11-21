@@ -50,7 +50,7 @@ config/models.json 显式值 > PI_MODEL 环境变量 > ~/.pi/agent/settings.json
 provider 一律取 settings.json 的 defaultProvider
 ```
 
-`config/models.json` 只写要覆盖的档位（`fast` 人物认知 / `strong` 裁判 / `mid` 渲染）；三档缺省指向同一模型。启动第一行会打印实际使用的模型串，调错立刻可见。
+`config/models.json` 只写要覆盖的角色（`cognition` 人物认知 / `referee` 裁判 / `narration` 渲染）；三个角色缺省指向同一模型。启动第一行会打印实际使用的模型串，调错立刻可见。
 
 换供应商只改配置，不改代码。凭据从 `~/.pi/agent/auth.json` 只读解析，本程序不改写 pi 的登录状态。
 

@@ -59,7 +59,7 @@ export function createNarrator(llm: Llm): Narrator {
   return {
     async narrate(input) {
       const res = await llm.chat({
-        tier: 'mid',
+        role: 'narration',
         system: NARRATOR_SYSTEM,
         messages: [{ role: 'user', content: buildPrompt(input) }],
       })
