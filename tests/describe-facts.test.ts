@@ -30,14 +30,13 @@ describe('describeFacts：喂给裁判的事件流', () => {
   })
 
   it('别名也能匹配：裁判把玩家写成“玩家”，显示名是“你”', () => {
-    const w = world([
-      { id: 'f0', text: '玩家把两枚银元递给安', at: 10 },
-      { id: 'f1', text: '街对面有匹马跑了', at: 90 },
-    ])
-    const out = describeFacts(w, ['player', 'ann'], 100, { player: '你' }, { player: ['玩家'] })
-    expect(out.split('\n')).toHaveLength(2)
-    // 玩家事实靠别名拿到权重，而不是靠时间
-    expect(out).toContain(line('玩家把两枚银元递给安'))
+    // 13 条事实、全部在 10 分钟内、玩家那条更旧：时间权重只会把它挤出名额，只有别名能救它。
+    const noise: Fact[] = Array.from({ length: FACT_BUDGET }, (_, i) => ({ id: `n${i}`, text: `街边杂事${i}`, at: 96 }))
+    const facts = [...noise, { id: 'mine', text: '玩家把门闩推了回去', at: 95 }]
+    const named = describeFacts(world(facts), ['player'], 100, { player: '你' }, { player: ['玩家'] })
+    const unnamed = describeFacts(world(facts), ['player'], 100, { player: '你' })
+    expect(named).toContain(line('玩家把门闩推了回去'))
+    expect(unnamed).not.toContain(line('玩家把门闩推了回去'))
   })
 
   it('事实用显示名时，在场者仍能匹配到 +2', () => {
@@ -49,12 +48,15 @@ describe('describeFacts：喂给裁判的事件流', () => {
   })
 
   it('显示名事实在超预算时不被挤出', () => {
-    const facts: Fact[] = Array.from({ length: FACT_BUDGET }, (_, i) => ({ id: `f${i}`, text: `旧事${i}`, at: i }))
-    facts.push({ id: 'hot', text: '道森医生说要关门', at: 200 })
-    const out = describeFacts(world(facts), ['doc'], 100, { doc: '道森医生' }).split('\n')
-    expect(out).toHaveLength(FACT_BUDGET)
-    expect(out[out.length - 1]).toBe(line('道森医生说要关门'))
-    expect(out).not.toContain(line('旧事0'))
+    // 全部事实都在 10 分钟内：时间权重打平，只有“提到在场者”的 +2 能分出胜负。
+    const facts: Fact[] = Array.from({ length: FACT_BUDGET }, (_, i) => ({ id: `f${i}`, text: `旧事${i}`, at: 96 }))
+    facts.push({ id: 'hot', text: '道森医生说要关门', at: 95 })
+    const named = describeFacts(world(facts), ['doc'], 100, { doc: '道森医生' }).split('\n')
+    const unnamed = describeFacts(world(facts), ['doc'], 100).split('\n')
+    expect(named).toHaveLength(FACT_BUDGET)
+    expect(named).toContain(line('道森医生说要关门'))
+    // 只匹配 id 时 hot 更旧，与旧事打平后退回时间倒序，被名额挤掉
+    expect(unnamed).not.toContain(line('道森医生说要关门'))
   })
 
   it('超出预算时只留权重高的，且按时间正序排列', () => {
