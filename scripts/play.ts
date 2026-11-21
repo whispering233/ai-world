@@ -7,6 +7,7 @@
  *   node --experimental-strip-types scripts/play.ts --beats 3 --auto
  */
 import { randomUUID } from 'node:crypto'
+import { rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline/promises'
@@ -21,7 +22,7 @@ import { createLlm } from '../src/core/llm.ts'
 import { createNarrator } from '../src/core/narrate.ts'
 import { createLlmReferee, noRate } from '../src/core/referee.ts'
 import { openScene, type Scene } from '../src/core/scene.ts'
-import { openStore } from '../src/core/store.ts'
+import { openStore, replay, replayCharacters } from '../src/core/store.ts'
 import { STARTER_TOWN } from '../content/starter-town.ts'
 import type { Op, World } from '../src/core/world.ts'
 
@@ -29,6 +30,7 @@ const args = new Set(process.argv.slice(2))
 const beatsArg = process.argv.indexOf('--beats')
 const BEATS = beatsArg > 0 ? Number(process.argv[beatsArg + 1] ?? 20) : 20
 const AUTO = args.has('--auto')
+const FRESH = args.has('--fresh')
 const DIR = 'data/starter-town'
 
 // 探针混合四类：短对话 / 物理动作 / 长动作 / 知识交换；别只喂短对话。
@@ -78,6 +80,11 @@ async function main(): Promise<void> {
       u.calls += 1
     },
   })
+  // --fresh 显式重开一局：只清 world 的两条日志，不碰其它目录。
+  if (FRESH) {
+    rmSync(join(DIR, 'journal.jsonl'), { force: true })
+    rmSync(join(DIR, 'passage.jsonl'), { force: true })
+  }
   const deps: BeatDeps = {
     referee: createLlmReferee(llm),
     cognition: createCognition(llm),
@@ -85,13 +92,24 @@ async function main(): Promise<void> {
     store: openStore(DIR),
   }
 
-  let world: World = structuredClone(STARTER_TOWN.world)
-  let characters = new Map(STARTER_TOWN.characters.map((c) => [c.id, c as Character]))
   const player = STARTER_TOWN.player
   const participants = [player, ...STARTER_TOWN.characters.map((c) => c.id)]
-  let scene: Scene = openScene({ id: 's1', place: world.ledger.at[player] ?? 'saloon', clock: 0, participants })
+  const freshCharacters = (): Map<string, Character> =>
+    new Map(STARTER_TOWN.characters.map((c) => [c.id, structuredClone(c) as Character]))
 
-  stdout.write(`世界初始化：${participants.length} 个参与者，${STARTER_TOWN.canon.length} 条 canon\n`)
+  // 有 journal 就续跑：世界由 replay 复原，人物记忆由 replayCharacters 复原。
+  const prior = deps.store.readJournal()
+  const priorBeats = prior.filter((e) => e.type === 'beat').length
+  let world: World = prior.length > 0 ? replay(prior, structuredClone(STARTER_TOWN.world)) : structuredClone(STARTER_TOWN.world)
+  let characters = prior.length > 0 ? replayCharacters(prior, freshCharacters()) : freshCharacters()
+  // 场景上下文不落 journal，续跑从新场景开始；人物记忆已经由 experience 复原。
+  let scene: Scene = openScene({ id: `s${priorBeats + 1}`, place: world.ledger.at[player] ?? 'saloon', clock: world.ledger.clock, participants })
+
+  if (priorBeats > 0) {
+    stdout.write(`续跑：已完成 ${priorBeats} 拍，世界时刻 ${fmt(world.ledger.clock)}，人物 ${characters.size} 位\n`)
+  } else {
+    stdout.write(`世界初始化：${participants.length} 个参与者，${STARTER_TOWN.canon.length} 条 canon\n`)
+  }
   stdout.write(`模型：cognition=${cfg.models.cognition} referee=${cfg.models.referee} narration=${cfg.models.narration}\n\n`)
   if (!AUTO) stdout.write('你说一句话或做一件事，一行就是一拍；输入 /quit 结束并出体检表。\n\n')
   const rl = AUTO ? undefined : createInterface({ input: stdin, output: stdout })
@@ -131,7 +149,7 @@ async function main(): Promise<void> {
     for (const claimId of res.committedClaims) committedClaims.add(`${res.journalSeq}:${claimId}`)
     beatNotes.push(...res.notes)
 
-    stdout.write(`\n—— 第 ${i} 拍 · ${fmt(world.ledger.clock)} ——\n${res.passage}\n`)
+    stdout.write(`\n—— 第 ${priorBeats + i} 拍 · ${fmt(world.ledger.clock)} ——\n${res.passage}\n`)
     if (res.notes.length) stdout.write(`  · ${res.notes.join('\n  · ')}\n`)
 
     if (res.folded) {
