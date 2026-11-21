@@ -510,6 +510,20 @@ describe('runBeat：人物状态可回放', () => {
   })
 })
 
+describe('runBeat：未落 journal 不推进记忆', () => {
+  it('裁判失败时返回入参人物，记忆不会比 journal 多一条', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.playerClaim = '我把门推上'
+    const referee = { judge: () => Promise.reject(new Error('ETIMEDOUT')) }
+    const r = await runBeat({ ...input, deps: { ...input.deps, referee } })
+
+    expect(r.journalSeq).toBe(0)
+    expect(r.characters).toBe(input.characters)
+    expect(replayCharacters(store.readJournal(), input.characters)).toEqual(r.characters)
+  })
+})
+
 describe('runBeat：可回放', () => {
   it('按 journal 重放得到的 World 与最后一拍相同', async () => {
     const store = tmpStore()

@@ -20,7 +20,7 @@ import { appendFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'no
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { estimateTokens, runBeat } from '../src/core/beat.ts'
-import { remember, type Character, type Experience } from '../src/core/character.ts'
+import { applyDriveHit, remember, type Character, type Experience } from '../src/core/character.ts'
 import { calledActors, fmt } from '../src/core/clock.ts'
 import { createCognition, type Cognition, type CognitionOutput } from '../src/core/cognition.ts'
 import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '../src/core/config.ts'
@@ -229,14 +229,8 @@ function applyDriveHits(
 ): void {
   for (const hit of hits) {
     const ch = characters.get(hit.ent)
-    if (!ch) continue
-    const drives = ch.drives.map((d) => (d.id === hit.driveId ? { ...d, heat: clamp01(d.heat + hit.delta) } : d))
-    characters.set(hit.ent, { ...ch, drives })
+    if (ch) characters.set(hit.ent, applyDriveHit(ch, hit))
   }
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value))
 }
 
 function describe(v: Verdict | undefined): string {

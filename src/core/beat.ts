@@ -119,7 +119,8 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   }
 
   if (claims.length === 0) {
-    return { world: input.world, scene: input.scene, characters, passage: '', journalSeq: 0, committedClaims: [], notes: [...degraded, '没有主张，本拍未发生'] }
+    // 未落 journal 的拍不推进记忆：否则重启后记忆会比 journal 多一条。
+    return { world: input.world, scene: input.scene, characters: input.characters, passage: '', journalSeq: 0, committedClaims: [], notes: [...degraded, '没有主张，本拍未发生'] }
   }
 
   let out
@@ -136,7 +137,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     return {
       world: input.world,
       scene: input.scene,
-      characters,
+      characters: input.characters,
       passage: '',
       journalSeq: 0,
       committedClaims: [],

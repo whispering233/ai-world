@@ -129,7 +129,7 @@ export function replayCharacters(
 ): Map<EntId, Character> {
   const chars = new Map(initial)
   for (const e of [...entries].sort((a, b) => a.seq - b.seq)) {
-    for (const hit of e.driveHits) {
+    for (const hit of e.driveHits ?? []) {
       const ch = chars.get(hit.ent)
       if (ch) chars.set(hit.ent, applyDriveHit(ch, hit))
     }

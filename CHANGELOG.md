@@ -25,6 +25,7 @@
 - 架构决策：裁判仍是唯一写入口；per-character agent 与 Super-agent 式中央代理不直接写世界状态，最多作为 claim 来源/导演层。
 
 ### Fixed
+- 未落 journal 的拍（裁判失败 / 无主张）不再推进人物记忆，重启后记忆与 journal 保持一致。
 - 事件流排序恢复：`describeFacts` 之前只匹配实体 id，而事实文本是显示名（“安说…”），`提到在场者 +2` 的权重从未命中，切片退化为纯时间倒序。现在按 id / 显示名 / 别名匹配。
 - 时钟只按已提交 claim 的 duration 推进；被拒绝或整条回滚的 claim 不再推进世界时间。
 - `readPiDefaultModel` 的用例先清掉 `PI_MODEL`：在 pi 会话里跑测试时该环境变量优先级更高，会把用例跑红。
