@@ -5,11 +5,12 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { runBeat, type BeatInput } from '../src/core/beat.ts'
 import { createStubCognition } from '../src/core/cognition.ts'
 import type { Character } from '../src/core/character.ts'
-import { createStubNarrator } from '../src/core/narrate.ts'
-import { createStubReferee, type RefereeOutput } from '../src/core/referee.ts'
+import { createStubNarrator, type NarrationInput } from '../src/core/narrate.ts'
+import { createStubReferee, type RefereeInput, type RefereeOutput } from '../src/core/referee.ts'
 import { openScene } from '../src/core/scene.ts'
 import { openStore, replay, type Store } from '../src/core/store.ts'
 import type { EntId, World } from '../src/core/world.ts'
+import type { Referee } from '../src/core/referee.ts'
 
 const dirs: string[] = []
 
@@ -179,6 +180,7 @@ describe('runBeat：三拍连续', () => {
     expect(journal.map((e) => e.seq)).toEqual([1, 2, 3])
     expect(journal.map((e) => e.clock)).toEqual([2, 3, 4])
     expect(store.readPassage().map((p) => p.text)).toEqual(['雨还没停。', '灯灭了一盏。', '没人再说话。'])
+    expect(store.readPassage().every((p) => p.source === 'narrator')).toBe(true)
     expect(r.world.ledger.rel.ann?.player).toBe(1)
     expect(r.world.ledger.phys.ann?.lamp).toBe(false)
     // 被拒绝的理由进当事人记忆，不进 notes（notes 只记 op 级失败）
@@ -206,6 +208,134 @@ describe('runBeat：观测与后果写回人物', () => {
     expect(r.characters.get('ann')?.drives[0]?.heat).toBeCloseTo(0.5)
     // 玩家看得到自己失败的理由
     expect(r.characters.get('player')?.experience).toEqual([])
+  })
+})
+
+describe('runBeat：旁白失败', () => {
+  const referee: RefereeOutput[] = [
+    {
+      order: ['ann'],
+      verdicts: [
+        { claimId: 'p0', actor: 'player', ok: false, reason: '门是铸铁焊死的', deltas: [], duration: 1 },
+        verdict('a0', [], 1),
+        verdict('d0', [], 1),
+      ],
+      observations: {},
+      driveHits: [],
+    },
+  ]
+
+  it('旁白抛错时保留账本，落 fallback passage 并留 notes', async () => {
+    const store = tmpStore()
+    const input = base(store, referee)
+    input.playerClaim = '我一脚踹开铁门'
+    const narrator = { narrate: () => Promise.reject(new Error('ETIMEDOUT')) }
+    const r = await runBeat({ ...input, deps: { ...input.deps, narrator } })
+
+    expect(r.passage).toContain('叙述没有生成')
+    expect(r.passage).toContain('门是铸铁焊死的')
+    expect(r.notes.some((n) => n.includes('旁白失败'))).toBe(true)
+    expect(store.readJournal()).toHaveLength(1)
+    expect(store.readPassage()).toHaveLength(1)
+    expect(store.readPassage()[0]?.source).toBe('fallback')
+  })
+
+  it('旁白返回空文本时同样不丢拍', async () => {
+    const store = tmpStore()
+    const input = base(store, referee)
+    input.playerClaim = '我一脚踹开铁门'
+    const narrator = { narrate: async () => ({ text: '   ', absoluteTime: [] }) }
+    const r = await runBeat({ ...input, deps: { ...input.deps, narrator } })
+
+    expect(r.passage).toContain('叙述没有生成')
+    expect(r.notes.some((n) => n.includes('旁白失败'))).toBe(true)
+    expect(store.readJournal()).toHaveLength(1)
+    expect(store.readPassage()[0]?.source).toBe('fallback')
+  })
+})
+
+describe('runBeat：显示名', () => {
+  it('旁白事件带显示名，正文不泄漏玩家 id', async () => {
+    const store = tmpStore()
+    const referee: RefereeOutput[] = [
+      {
+        order: ['ann'],
+        verdicts: [verdict('p0', [], 1), verdict('a0', [], 1), verdict('d0', [], 1)],
+        observations: {},
+        driveHits: [],
+      },
+    ]
+    const input = base(store, referee)
+    input.playerClaim = '我推门进去'
+    let firstEventName = ''
+    const narrator = {
+      narrate: async (req: NarrationInput) => {
+        firstEventName = req.events[0]?.name ?? ''
+        return { text: '你推门进去，雨声跟了进来。', absoluteTime: [] }
+      },
+    }
+    const r = await runBeat({
+      ...input,
+      names: { player: '你', ann: '安', doc: '医生' },
+      items: { 'silver-dollar': '银元' },
+      deps: { ...input.deps, narrator },
+    })
+
+    expect(firstEventName).toBe('你')
+    expect(r.passage).not.toContain('player')
+  })
+
+  it('裁判上下文保留物品 id，避免把显示名当 item id', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.playerClaim = '我把两枚银元塞进安手里'
+    input.world = {
+      ...input.world,
+      ledger: { ...input.world.ledger, holds: { player: { 'silver-dollar': 2 } } },
+    }
+    let context = ''
+    const referee: Referee = {
+      async judge(req: RefereeInput) {
+        context = req.context
+        return {
+          order: ['ann'],
+          verdicts: [verdict('p0', [], 1), verdict('a0', [], 1), verdict('d0', [], 1)],
+          observations: {},
+          driveHits: [],
+        }
+      },
+    }
+    await runBeat({
+      ...input,
+      names: { player: '你', ann: '安', doc: '医生' },
+      items: { 'silver-dollar': '银元' },
+      deps: { ...input.deps, referee },
+    })
+
+    expect(context).toContain('银元(silver-dollar)×2')
+  })
+})
+
+describe('runBeat：已提交 claim', () => {
+  it('只把全部 op 都通过的 claim 记为已提交', async () => {
+    const store = tmpStore()
+    const referee: RefereeOutput[] = [
+      {
+        order: ['ann'],
+        verdicts: [
+          verdict('p0', [{ op: 'fact', text: '雨小了' }], 1),
+          { claimId: 'a0', actor: 'ann', ok: true, deltas: [{ op: 'give', from: 'ann', to: 'player', item: 'missing', n: 1 }], duration: 1 },
+        ],
+        observations: {},
+        driveHits: [],
+      },
+    ]
+    const input = base(store, referee)
+    input.playerClaim = '我看了看窗外'
+    const r = await runBeat(input)
+
+    expect(r.committedClaims).toContain('p0')
+    expect(r.committedClaims).not.toContain('a0')
   })
 })
 

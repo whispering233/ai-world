@@ -16,6 +16,22 @@ function input(over: Partial<CognitionInput> = {}): CognitionInput {
   return { character, sceneText: '他把杯子推过来。', canon: ['屋里只有一盏灯'], now: 100, ...over }
 }
 
+describe('createCognition：显示名', () => {
+  it('beliefs 的键用显示名，不泄漏 id', async () => {
+    const seen: ChatRequest[] = []
+    const llm = {
+      async chat(req: ChatRequest) {
+        seen.push(req)
+        return { text: JSON.stringify({ inner: '', outward: '我看着他。' }), toolCalls: [], inputTokens: 0, outputTokens: 0, model: 'faux/cognition' }
+      },
+    }
+    await createCognition(llm).think(input({ names: { bob: '鲍勃' } }))
+    const system = seen[0]?.system ?? ''
+    expect(system).toContain('鲍勃：他撒过谎')
+    expect(system).not.toContain('bob：')
+  })
+})
+
 describe('createCognition：crossTalk 第二轮', () => {
   it('prompt 含其他人的公开输出与自己的草稿，不要求他人 inner', async () => {
     const seen: ChatRequest[] = []

@@ -72,5 +72,12 @@
 | ledger | 是 | Ledger | | 见 §1 |
 | facts | 是 | Record<FactId, Fact> | | 只增不改 |
 | places | 是 | Record<PlaceId, string> | | 地点白名单：id → 人读的名字；`move` 只能去这里 |
-| names | 是 | Record<EntId, string> | | 人物/实体显示名：id → 人读的名字；静态内容，不进账本 |
-| items | 是 | Record<ItemId, string> | | 物品显示名：id → 人读的名字；静态内容，不进账本 |
+
+显示名不在 `world` 里：它们是作者层 `ContentPack` 的静态映射，不参与 replay，也不进账本。
+
+## 8. `ContentPack`（作者层，不是运行时状态）
+
+| 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
+| :--- | :--- | :--- | :--- | :--- |
+| names | 是 | Record<EntId, string> | | 人物/实体显示名：id → 人读的名字；覆盖 `ledger.at` 的全部实体 |
+| items | 是 | Record<ItemId, string> | | 物品显示名：id → 人读的名字；覆盖 `ledger.holds` 里出现的物品 |

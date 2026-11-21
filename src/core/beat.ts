@@ -7,7 +7,7 @@
 import { calledActors, fmt } from './clock.ts'
 import { remember, type Character } from './character.ts'
 import type { Cognition } from './cognition.ts'
-import type { Narrator } from './narrate.ts'
+import { fallbackPassage, type Narrator } from './narrate.ts'
 import { commit, type Claim, type Referee, type Verdict } from './referee.ts'
 import { appendBeat, contextOf, fold, foldReason, type FoldMaterial, type Scene } from './scene.ts'
 import type { Store } from './store.ts'
@@ -28,6 +28,10 @@ export interface BeatInput {
   /** 场景的静态描述（装配时拼好的那一段） */
   sceneText: string
   canon: readonly string[]
+  /** 人物显示名：id → 名字；缺省时正文/prompt 回退 id */
+  names?: Record<EntId, string>
+  /** 物品显示名：id → 名字；缺省时正文/prompt 回退 id */
+  items?: Record<string, string>
   /** 玩家自由输入原文；为空表示玩家这拍不发言 */
   playerClaim?: string
   deps: BeatDeps
@@ -39,6 +43,8 @@ export interface BeatResult {
   characters: Map<EntId, Character>
   passage: string
   journalSeq: number
+  /** 本拍所有 op 都通过、真正落账的 claim id */
+  committedClaims: string[]
   folded?: FoldMaterial
   notes: string[]
 }
@@ -70,7 +76,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   // 人物本拍要能看见玩家刚说的话/做的事；只给公开输入，不给玩家的私有状态。
   const playerLine = input.playerClaim ? `玩家刚才说/做：${input.playerClaim}` : ''
   const sceneFor = (ent: EntId): string =>
-    [input.sceneText, playerLine, describeLedger(input.world, inScene), contextOf(input.scene, ent)]
+    [input.sceneText, playerLine, describeLedger(input.world, inScene, input.names, input.items), contextOf(input.scene, ent)]
       .filter(Boolean)
       .join('\n')
   // 同一拍内多个 actor 的认知互不依赖：并发跑，但按人位顺序落 claims（结算顺序仍由裁判给）。
@@ -88,6 +94,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
           sceneText: sceneFor(ent),
           canon: [...input.canon],
           now: clock,
+          ...(input.names ? { names: input.names } : {}),
         })
         return { ok: true as const, ent, ch, res }
       } catch (error) {
@@ -110,12 +117,12 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   }
 
   if (claims.length === 0) {
-    return { world: input.world, scene: input.scene, characters, passage: '', journalSeq: 0, notes: [...degraded, '没有主张，本拍未发生'] }
+    return { world: input.world, scene: input.scene, characters, passage: '', journalSeq: 0, committedClaims: [], notes: [...degraded, '没有主张，本拍未发生'] }
   }
 
   let out
   try {
-    out = await deps.referee.judge({ clock, claims, context: [input.sceneText, describeLedger(input.world, present), contextOf(input.scene, input.player)].filter(Boolean).join('\n') })
+    out = await deps.referee.judge({ clock, claims, context: [input.sceneText, describeLedger(input.world, present, input.names, input.items, true), contextOf(input.scene, input.player)].filter(Boolean).join('\n') })
   } catch (error) {
     // 裁判挂了 = 这一拍没有任何事被确认发生。宁可整拍空转，也不编一个没结算过的世界。
     return {
@@ -124,6 +131,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
       characters,
       passage: '',
       journalSeq: 0,
+      committedClaims: [],
       notes: [...degraded, `裁决失败（本拍无进展）：${(error as Error).message}`],
     }
   }
@@ -141,19 +149,33 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
 
   const narratorEvents = claims.map((c) => {
     const v = out.verdicts.find((x) => x.claimId === c.id)
-    return { actor: c.actor, text: c.text, outcome: describe(v) }
+    return { actor: c.actor, name: input.names?.[c.actor] ?? c.actor, text: c.text, outcome: describe(v) }
   })
-  const narration = await deps.narrator.narrate({ clockBefore: clock, clockAfter, sceneText: input.sceneText, events: narratorEvents })
-  deps.store.appendPassage({ clock: clockAfter, text: narration.text, source: 'narrator' })
+
+  let passage = ''
+  let narrationFailed = false
+  const narrationNotes: string[] = []
+  try {
+    const narration = await deps.narrator.narrate({ clockBefore: clock, clockAfter, sceneText: input.sceneText, events: narratorEvents })
+    passage = narration.text
+    // 空文本和抛错同样是“没有旁白”：不能把空 passage 当成正常结果落盘。
+    if (passage.trim() === '') throw new Error('旁白为空')
+    narrationNotes.push(...narration.absoluteTime.map((t) => `叙述里出现绝对时间：${t}`))
+  } catch (error) {
+    narrationFailed = true
+    passage = fallbackPassage(narratorEvents)
+    narrationNotes.push(`旁白失败（事实摘要兜底）：${(error as Error).message}`)
+  }
 
   const texts: Record<EntId, string> = {}
   for (const e of narratorEvents) texts[e.actor] = `${e.actor}：${e.text} → ${e.outcome}`
   const scene = appendBeat(input.scene, {
     clock: clockAfter,
-    tokens: estimateTokens([input.sceneText, narration.text].join('\n')),
+    tokens: estimateTokens([input.sceneText, passage].join('\n')),
     texts,
     signed: out.verdicts.some(isSigned),
   })
+  // journal 是账本的凭据；先落 journal，再落派生的 passage。
   const entry = deps.store.appendBeat({
     type: 'beat',
     scene: scene.id,
@@ -164,14 +186,21 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     observations: out.observations,
     driveHits: out.driveHits,
   })
+  try {
+    deps.store.appendPassage({ clock: clockAfter, text: passage, source: narrationFailed ? 'fallback' : 'narrator' })
+  } catch (error) {
+    // passage 是派生文本；写失败不能反过来抹掉已经落盘的 journal。
+    narrationNotes.push(`passage 写入失败（journal 已落）：${(error as Error).message}`)
+  }
 
   const result: BeatResult = {
     world,
     scene,
     characters,
-    passage: narration.text,
+    passage,
     journalSeq: entry.seq,
-    notes: [...degraded, ...notes, ...narration.absoluteTime.map((t) => `叙述里出现绝对时间：${t}`)],
+    committedClaims: applied.filter((a) => a.committed).map((a) => a.claimId),
+    notes: [...degraded, ...notes, ...narrationNotes],
   }
 
   const reason = foldReason(scene, { place: result.world.ledger.at[input.player] ?? scene.place, clock: clockAfter, tokens: scene.tokens })
@@ -184,13 +213,15 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
 }
 
 /** shortcut: 只给“在场者的持有物 + 地点表”，不做相关实体剪枝；实体多了再按场景切片 */
-function describeLedger(world: World, present: readonly EntId[]): string {
+function describeLedger(world: World, present: readonly EntId[], names?: Record<EntId, string>, items?: Record<string, string>, withIds = false): string {
+  const label = (id: string): string => (withIds ? `${names?.[id] ?? id}(${id})` : (names?.[id] ?? id))
+  const itemLabel = (id: string): string => (withIds ? `${items?.[id] ?? id}(${id})` : (items?.[id] ?? id))
   const places = Object.entries(world.places).map(([id, name]) => `${name}(${id})`).join('、')
   const rows = present.map((ent) => {
     const place = world.ledger.at[ent] ?? '未知'
-    const bag = Object.entries(world.ledger.holds[ent] ?? {}).map(([item, n]) => `${item}×${n}`).join('、') || '空手'
+    const bag = Object.entries(world.ledger.holds[ent] ?? {}).map(([item, n]) => `${itemLabel(item)}×${n}`).join('、') || '空手'
     const phys = Object.entries(world.ledger.phys[ent] ?? {}).map(([k, v]) => `${k}=${String(v)}`).join('、')
-    return `- ${ent}：在 ${place}；持有 ${bag}${phys === '' ? '' : `；${phys}`}`
+    return `- ${label(ent)}：在 ${world.places[place] ?? place}；持有 ${bag}${phys === '' ? '' : `；${phys}`}`
   })
   const events = describeFacts(world, present, world.ledger.clock)
   return `已知地点：${places}\n账本现状：\n${rows.join('\n')}${events === '' ? '' : `\n最近发生过的事：\n${events}`}`

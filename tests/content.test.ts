@@ -18,6 +18,17 @@ describe('validatePack', () => {
     expect(validatePack(STARTER_TOWN)).toEqual([])
   })
 
+  it('缺人物名或物品名时各报一条', () => {
+    const broken: ContentPack = {
+      ...STARTER_TOWN,
+      names: { ...STARTER_TOWN.names, ann: '' },
+      items: { ...STARTER_TOWN.items, whiskey: '' },
+    }
+    const errors = validatePack(broken)
+    expect(errors).toContain('实体 ann 缺少显示名')
+    expect(errors).toContain('物品 whiskey 缺少显示名')
+  })
+
   it('core 过长、heat 越界、实体不在 at 里：三处各报一条，互不遮蔽', () => {
     const broken: ContentPack = {
       ...STARTER_TOWN,

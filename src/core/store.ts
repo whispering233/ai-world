@@ -25,7 +25,7 @@ export interface PassageEntry {
   seq: number
   clock: number
   text: string
-  source: 'narrator' | 'player' | 'npc'
+  source: 'narrator' | 'player' | 'npc' | 'fallback'
 }
 
 export interface Store {

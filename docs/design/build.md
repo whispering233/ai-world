@@ -52,6 +52,8 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 | 长动作 | “我上楼睡到天亮。” | duration 是否 ≥240，clock 是否推进 |
 | 知识交换 | “我告诉医生，安早就还清了债。” | `know` 是否只记新信息，`know_rate` 是否失控 |
 
+移动探针放在**最后一拍**：出门后可能被门闩锁在外面，不能污染前面的基线。长动作被裁判拒绝时，本身就是“时间钉死”的证据，不要为了凑出 ≥240 分钟而改裁判。
+
 ## 3. 产物位置
 
 | 路径 | 内容 |
