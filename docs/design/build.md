@@ -36,6 +36,7 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 
 - `no_rate`（按有风险的 claim 分桶）
 - 写操作分布：`move/transfer/consume/phys/rel/fact/know`
+- `facts/beat`：事实数 / 拍数；配合 `FACT_BUDGET = 12` 看裁判能看多远（≤1.0 = 12 条覆盖一整场 12 拍）
 - `know_rate`：`know` 占全部写操作的比例
 - `know/claim` 与平均听众数：判断是否又变回逐句广播
 - `duration` 分桶：0–3 / 4–30 / 31–239 / ≥240 分钟
@@ -54,7 +55,8 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 | 等待 / 谈话 | “我在靠墙的桌边坐了一会儿，等雨小一点。” | duration 是否落在 4–30 分钟 |
 | 物理动作 | “我把两枚银元放在柜台上。” | `transfer/consume/move/phys` 是否出现 |
 | 长动作 | “我趴桌上睡到天亮。” | duration 是否 ≥240，clock 是否推进 |
-| 知识交换 | “我告诉医生，安早就还清了债。” | `know` 是否只记新信息，`know_rate` 是否失控 |
+| 知识交换 | 耳语“账本在柜台下面” | `know` 是否只给自己听见的人 |
+| 事实守卫 | 交易 / 承诺 / 威胁 / 谎言 / 公开宣告各一条 | 这 5 类事件必须仍落 `fact`，减量不能减掉信号 |
 
 长动作只跑**一次**，避免自动循环把“睡一整夜”重复成假长动作。移动探针放在**最后一拍**：出门后可能被门闩锁在外面，不能污染前面的基线。长动作若仍被裁判以“当前 clock 尚早”拒绝，优先查 duration 语义，不要为了凑 ≥240 分钟而加强制时长表。
 
