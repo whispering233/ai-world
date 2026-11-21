@@ -2,95 +2,92 @@
 
 > 只放**未完成**的卡片。完成的卡片直接删除，不留历史——历史在 `CHANGELOG.md` 与 git 记录里。
 
-## 1. 当前批次：W3b-B 事实密度
+## 1. 当前批次：W4 人物状态持久化
 
 | # | 卡片 | 状态 | 依赖 | 验收 |
 | :--- | :--- | :--- | :--- | :--- |
-| W3b-B1 | rule 8 收窄 + 5 类守卫探针 | 待办 | 无 | 承诺/威胁/谎言/公开宣告/交易仍落 fact；寒暄类不再落 fact（6 拍 smoke 看） |
-| W3b-B2 | 20 拍重测 + 基线 | 待办 | W3b-B1 | `facts/beat ≤ 1.0`；守卫 5 类事件都在；`no_rate` 10–40%；基线文档更新 |
-
-**串行执行：W3b-B1 → W3b-B2。**
-
-判据只看 `facts/beat`（≤1.0 = 12 条覆盖一整场 12 拍）+ 守卫 5 类事件 + `no_rate`，不看“读起来是否更干净”。
+| W4-1 | journal 记录人物的本拍产出，重放可复原 | 待办 | 无 | 只用 journal 就能重建 characters（experience/drives），不调模型 |
+| W4-2 | 试玩器改为从 journal 续跑 | 待办 | W4-1 | 重启后人物记忆不丢；“继续”不再骗人 |
 
 ---
 
-## W3b-B1：rule 8 收窄 + 守卫探针
+## W4-1：journal 记录人物产出
 
 ### 目标
 
-把 `fact` 从“每句台词都留痕”收窄为“只有会改变后续判断的事件”。`facts` 的唯一消费者是裁判的 12 条切片，记成流水账等于把裁判视野压到两三拍。
+现在 `journal` 只存账本的凭据（claims / verdicts / observations / driveHits），人物状态（`experience`、`self` 条目）只在内存里。进程一停，人物记忆全丢——`data/` 里那条世界历史还在，但没人记得。
+
+修法：把**本拍每人新增的 experience** 一起写进 `journal`，`replay` 时按顺序应用，重建 characters。
 
 ### 范围
 
-- `src/core/referee.ts` rule 8 重写：
-  - 只有承诺、威胁、谎言、公开宣告、交易完成、身份揭示、状态改变才落 `fact`；
-  - 判断句：“下一拍若不知道这条，会不会判错？会就记，不会就不记。”
-  - 明确不记：寒暄、重复点单、已知信息、纯动作细节（收杯、擦桌、挪椅子）；
-  - 在场者的即时记忆由 `observations` 承担；
-  - 删掉“ann 说她明天就走可以记”这个鼓励记录台词的例子。
-- `scripts/play.ts`：加 5 类守卫探针（交易 / 承诺 / 威胁 / 谎言 / 公开宣告），各出现一次；现有短对话、等待、长动作、末拍 move 保留。
-- `scripts/play.ts` 体检表：加 `facts/beat`。
-- `docs/design/10-world-model.md` §3、`docs/design/build.md` §2.1/§2.2、`docs/design/backlog.md` §2：已更新，按文档实现。
-- `CHANGELOG.md` 的 `Unreleased`。
+- `src/core/store.ts`：`JournalEntry` 增加 `experience: Record<EntId, Experience[]>`（只存**本拍新增**的条目，不是快照）。
+- `src/core/beat.ts`：`runBeat` 结束时把本拍新增的 experience 随 journal 落盘。
+- `src/core/character.ts` / `beat.ts`：新增 `applyExperience(chars, entries)` 之类的纯函数，供 replay 使用（与 `remember` 共用同一套逻辑，不新造第二份）。
+- `src/core/store.ts`：`replay` 之外增加 `replayCharacters(journal, initial)`；不把人物塞进 `World`（世界仍只有 ledger/facts/places）。
+- `docs/db/schema.md` §3：`journal` 增加 `experience` 字段。
+- `tests/beat.test.ts` / `tests/store.test.ts`：两拍之后只用 journal 重建的人物，与内存结果相等。
 
 ### 不做
 
-- 不加每拍 fact 硬上限（那是截断，不是判断）。
-- 不做 fact 分层（major/minor）、近似去重、`supersededBy`。
-- 不改 `FACT_BUDGET`；不改 `know`、时间、物质语义。
-- 不动 `journal` / `passage` 的全量记录。
+- 不存人物快照（`core`/`voice` 是作者层，从 content 来）。
+- 不改 `World` 结构，不把 characters 塞进账本。
+- 不做“人物状态进账本事务”——experience 是派生记忆，失败也不该回滚账本。
+- 不改 cognition / referee 的 prompt。
 
 ### 验收
 
-- 6 拍 smoke：5 类守卫探针在相应拍里各落 1 条 `fact`；寒暄/点单类不再产生 fact。
-- `facts/beat` 有数值输出。
-- `npm run typecheck` 0；`npm test` 全绿（本卡不应改测试）。
+- 两拍后 `replayCharacters(journal)` 与 `runBeat` 返回的 characters 深相等。
+- 旧 journal（没有 `experience` 字段）仍能 replay 世界，人物为空而不是崩。
+- `npm run typecheck` 0；`npm test` 全绿。
 
 ### 独立验证
 
-subAgent 只读检查 rule 8 文本、5 条探针、`facts/beat` 输出、6 拍样本；最多 5 条。
+subAgent 只读检查 schema、落盘位置、重放相等测试、旧 journal 兼容；最多 5 条。
 
 ---
 
-## W3b-B2：20 拍重测 + 基线
+## W4-2：试玩器从 journal 续跑
 
 ### 目标
 
-用 20 拍回答“减量是否真的落地、有没有减掉信号”。
+`npm run play` 现在每次从 `content` 重新开一局，`data/` 里的 journal 只 append、不被读回。结果：进程重启后人物记忆清零，但世界账本还在——“继续”看起来像真的，其实人已经忘了。
 
 ### 范围
 
-- 跑 `rm -rf data && npm run play -- --beats 20 --auto`。
-- 记录：`facts/beat`、`fact/claim`、守卫 5 类事件是否都在、`no_rate`、`transfer/consume`、`know`。
-- 更新 `docs/research/world-baseline.md` 与 `docs/design/backlog.md` §4。
-- 若 `facts/beat` 仍 >1.5，在文档里明确写“rule 8 收窄无效”，不要粉饰，也不要在本卡追加硬上限。
+- `scripts/play.ts`：
+  - 启动时若 `journal.jsonl` 存在，读回 world + characters + clock + scene，从已发生的最后一拍继续；
+  - 打印明确的续跑提示（拍数、clock、人物条数）；
+  - `--fresh` 开关强制从零开始（替代现在“手动 rm -rf data”）。
+- `docs/design/build.md`：更新游玩说明与 `--fresh`。
+- `tests`：无新增（脚本层），靠 typecheck + 手工 6 拍续跑验证。
 
 ### 不做
 
-- 不因指标难看当场再改 prompt；记录后另开卡。
-- 不改 `FACT_BUDGET`。
+- 不做多存档、不做分支时间线。
+- 不读 `passage.jsonl` 重建任何状态（它只是文本）。
+- 不改折场/场景重建规则；续跑时按 journal 的 scene 字段复原。
 
 ### 验收
 
-- `facts/beat ≤ 1.0`（20 拍 ≤20 条事实）；5 类守卫事件都在 facts 中。
-- `no_rate` 落在 10%–40%。
-- 基线数字与 `journal.jsonl` 一致；typecheck 0；测试全绿。
+- 跑 3 拍 → 退出 → 再跑 2 拍：第二段拍到 journal 的 seq 从 4 开始，人物 `experience` 累加而不是清零；体检表分母覆盖 5 拍。
+- `--fresh` 能从零开始。
+- typecheck 0；测试全绿。
 
 ### 独立验证
 
-subAgent 只读核对 `facts/beat`、守卫事件、`no_rate`、基线与 journal 一致；最多 5 条。
+subAgent 只读检查续跑读取逻辑、`--fresh`、seq 连续性；最多 5 条。
 
 ---
 
-## 2. 后续候选（W3b-B 完成后再讨论）
+## 2. 后续候选（W4 完成后再讨论）
 
 | 候选 | 触发 |
 | :--- | :--- |
-| W4 人物状态持久化 | 人物 `experience/self` 未进 journal |
+| `fact` 结构化（actor / kind） | 事实密度停在 1.1–1.2，且“主语写错/把动作写成事件”反复出现 |
 | W5 缓存前缀 / per-role sessionId | prompt 稳定后再调 |
-| W6 服务端 + 阅读面 | 世界层 W3b–W4 有结论后 |
-| `facts` 分层 | 只有在 `facts/beat ≤1` 仍丢信号时才考虑 |
+| W6 服务端 + 阅读面 | 世界层稳定后 |
+| 折场时压 experience | 上下文预算吃紧时 |
 
 ## 3. 已固化的小约定
 
@@ -104,6 +101,7 @@ subAgent 只读核对 `facts/beat`、守卫事件、`no_rate`、基线与 journa
 - `know` 只记听众原本不知道且以后会用的信息；在场记忆交给 `observations`；耳语只发给听见的人。
 - 事实切片的“提到在场者”按 id / 显示名 / 别名匹配；别名只用于匹配，不改显示名。
 - `fact` 只记会改变后续判断的事件；`journal`/`passage` 才是全量记录。
+- `facts/beat` 当前 1.10–1.20，已接受为已知缺口；不再用 prompt 硬压。
 - 在 pi 会话里跑测试时先清 `PI_MODEL`，避免环境泄漏把 config 用例跑红。
 
 ## 4. 执行与验证约定
