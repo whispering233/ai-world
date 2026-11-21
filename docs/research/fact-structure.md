@@ -15,7 +15,7 @@
 | `kind` 覆盖 | 10 / 10 |
 | `facts/beat` | 1.67（6 拍样本） |
 
-`kind` 分布：`speech` 5、`state` 2、`promise` 1、`other` 2。
+`kind` 分布：`speech` 6、`state` 2、`promise` 1、`other` 1。
 
 ## 样本
 
