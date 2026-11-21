@@ -21,6 +21,12 @@
 | :--- | :--- |
 | [schema.md](db/schema.md) | ledger / fact / journal / passage / character / experience |
 
+## ui/
+
+| 文件 | 内容 |
+| :--- | :--- |
+| [DESIGN.md](ui/DESIGN.md) | 玩家阅读面布局、视觉方向与交互契约 |
+
 ## 其他
 
 | 文件 | 内容 |
