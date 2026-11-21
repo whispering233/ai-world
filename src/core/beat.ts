@@ -32,6 +32,8 @@ export interface BeatInput {
   names?: Record<EntId, string>
   /** 物品显示名：id → 名字；缺省时正文/prompt 回退 id */
   items?: Record<string, string>
+  /** 额外检索词：id → 别名；只用于事实切片的“提到谁”匹配 */
+  aliases?: Record<EntId, string[]>
   /** 玩家自由输入原文；为空表示玩家这拍不发言 */
   playerClaim?: string
   deps: BeatDeps
@@ -76,7 +78,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   // 人物本拍要能看见玩家刚说的话/做的事；只给公开输入，不给玩家的私有状态。
   const playerLine = input.playerClaim ? `玩家刚才说/做：${input.playerClaim}` : ''
   const sceneFor = (ent: EntId): string =>
-    [input.sceneText, playerLine, describeLedger(input.world, inScene, input.names, input.items), contextOf(input.scene, ent)]
+    [input.sceneText, playerLine, describeLedger(input.world, inScene, { names: input.names, items: input.items, aliases: input.aliases }), contextOf(input.scene, ent)]
       .filter(Boolean)
       .join('\n')
   // 同一拍内多个 actor 的认知互不依赖：并发跑，但按人位顺序落 claims（结算顺序仍由裁判给）。
@@ -122,7 +124,13 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
 
   let out
   try {
-    out = await deps.referee.judge({ clock, claims, context: [input.sceneText, describeLedger(input.world, present, input.names, input.items, true), contextOf(input.scene, input.player)].filter(Boolean).join('\n') })
+    out = await deps.referee.judge({
+      clock,
+      claims,
+      context: [input.sceneText, describeLedger(input.world, present, { names: input.names, items: input.items, aliases: input.aliases, withIds: true }), contextOf(input.scene, input.player)]
+        .filter(Boolean)
+        .join('\n'),
+    })
   } catch (error) {
     // 裁判挂了 = 这一拍没有任何事被确认发生。宁可整拍空转，也不编一个没结算过的世界。
     return {
@@ -217,10 +225,18 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   return result
 }
 
+export interface LedgerView {
+  names?: Record<EntId, string>
+  items?: Record<string, string>
+  aliases?: Record<EntId, string[]>
+  /** 裁判视角：实体与物品名后面补 `(id)`，方便它写 op 参数 */
+  withIds?: boolean
+}
+
 /** shortcut: 只给“在场者的持有物 + 地点表”，不做相关实体剪枝；实体多了再按场景切片 */
-function describeLedger(world: World, present: readonly EntId[], names?: Record<EntId, string>, items?: Record<string, string>, withIds = false): string {
-  const label = (id: string): string => (withIds ? `${names?.[id] ?? id}(${id})` : (names?.[id] ?? id))
-  const itemLabel = (id: string): string => (withIds ? `${items?.[id] ?? id}(${id})` : (items?.[id] ?? id))
+function describeLedger(world: World, present: readonly EntId[], view: LedgerView = {}): string {
+  const label = (id: string): string => (view.withIds ? `${view.names?.[id] ?? id}(${id})` : (view.names?.[id] ?? id))
+  const itemLabel = (id: string): string => (view.withIds ? `${view.items?.[id] ?? id}(${id})` : (view.items?.[id] ?? id))
   const places = Object.entries(world.places).map(([id, name]) => `${name}(${id})`).join('、')
   const rows = present.map((ent) => {
     const place = world.ledger.at[ent] ?? '未知'
@@ -228,7 +244,7 @@ function describeLedger(world: World, present: readonly EntId[], names?: Record<
     const phys = Object.entries(world.ledger.phys[ent] ?? {}).map(([k, v]) => `${k}=${String(v)}`).join('、')
     return `- ${label(ent)}：在 ${world.places[place] ?? place}；持有 ${bag}${phys === '' ? '' : `；${phys}`}`
   })
-  const events = describeFacts(world, present, world.ledger.clock)
+  const events = describeFacts(world, present, world.ledger.clock, view.names, view.aliases)
   return `已知地点：${places}\n账本现状：\n${rows.join('\n')}${events === '' ? '' : `\n最近发生过的事：\n${events}`}`
 }
 
@@ -239,9 +255,17 @@ export const FACT_BUDGET = 12
  * 挑出要喂给裁判的事件：被推翻的不喂；提到在场者的、刚发生的优先；
  * 名额之外按时间倒序补齐，最后按时间正序排出——读起来像一条时间线。
  */
-export function describeFacts(world: World, present: readonly EntId[], clock: number): string {
+export function describeFacts(
+  world: World,
+  present: readonly EntId[],
+  clock: number,
+  names?: Record<EntId, string>,
+  aliases?: Record<EntId, string[]>,
+): string {
+  // 事实文本是裁判用显示名写的（“安说…”），不是 id（ann）；只匹配 id 会让 +2 永远不命中。
+  const mentionTokens = present.flatMap((ent) => [ent, names?.[ent] ?? ent, ...(aliases?.[ent] ?? [])])
   const weight = (fact: { text: string; at: number }): number =>
-    (present.some((ent) => fact.text.includes(ent)) ? 2 : 0) + (clock - fact.at <= 10 ? 1 : 0)
+    (mentionTokens.some((token) => token !== '' && fact.text.includes(token)) ? 2 : 0) + (clock - fact.at <= 10 ? 1 : 0)
   return Object.values(world.facts)
     .filter((f) => f.supersededBy === undefined)
     .map((f) => ({ f, w: weight(f) }))

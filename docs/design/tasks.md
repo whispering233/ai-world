@@ -21,9 +21,11 @@
 ### 范围
 
 - `src/core/beat.ts`：
-  - `describeFacts(world, present, clock, names?)` 按 `[id, 显示名]` 匹配；
-  - `describeLedger` 把已有的 `names` 传下去。
-- `scripts/experiment-multi-round.ts`：同名私有实现同步（脚本不抽公共层）。
+  - `describeFacts(world, present, clock, names?, aliases?)` 按 `[id, 显示名, 别名]` 匹配；
+  - `describeLedger` 改成 `(world, present, view)` 选项对象（原来 5 个位置参数再加一个就超限），把 names/items/aliases 传下去。
+- `src/core/content.ts` / `content/starter-town.ts`：`ContentPack.aliases`，`player: ['玩家']`（裁判在事实文本里就是写“玩家”）。
+- `scripts/experiment-multi-round.ts`：私有 `describeLedger` 同步加 aliases。
+- `scripts/play.ts`：把 `STARTER_TOWN.aliases` 传进 `runBeat`。
 - `tests/describe-facts.test.ts`：
   - 事实用显示名、在场者给 names 时，仍优先于更晚的无关事实；
   - 超预算时，显示名事实不被挤出；
@@ -35,7 +37,7 @@
 
 - 不改 `FACT_BUDGET`（仍是 12）。
 - 不改“什么事件值得成为 fact”，不动 rule 8。
-- 不把玩家显示名改成“玩家”（那会伤旁白的第二人称）；不在本卡做称呼统一。
+- 不把玩家显示名改成“玩家”（那会伤旁白的第二人称）；别名只用于匹配，不改称呼。
 - 不动 `know`、时间、物质流。
 
 ### 验收

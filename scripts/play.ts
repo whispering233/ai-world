@@ -112,6 +112,7 @@ async function main(): Promise<void> {
       canon: STARTER_TOWN.canon,
       names: STARTER_TOWN.names,
       items: STARTER_TOWN.items,
+      aliases: STARTER_TOWN.aliases,
       playerClaim: line,
       deps,
     })

@@ -171,7 +171,7 @@ function describeScene(world: World): string {
 }
 
 /** 与 src/core/beat.ts 的私有实现保持一致；实验脚本不把它抽成公共层。 */
-function describeLedger(world: World, present: readonly EntId[], names?: Record<EntId, string>, items?: Record<string, string>, withIds = false): string {
+function describeLedger(world: World, present: readonly EntId[], names?: Record<EntId, string>, items?: Record<string, string>, withIds = false, aliases?: Record<EntId, string[]>): string {
   const label = (id: string): string => (withIds ? `${names?.[id] ?? id}(${id})` : (names?.[id] ?? id))
   const itemLabel = (id: string): string => (withIds ? `${items?.[id] ?? id}(${id})` : (items?.[id] ?? id))
   const places = Object.entries(world.places).map(([id, name]) => `${name}(${id})`).join('、')
@@ -181,7 +181,7 @@ function describeLedger(world: World, present: readonly EntId[], names?: Record<
     const phys = Object.entries(world.ledger.phys[ent] ?? {}).map(([k, v]) => `${k}=${String(v)}`).join('、')
     return `- ${label(ent)}：在 ${world.places[place] ?? place}；持有 ${bag}${phys === '' ? '' : `；${phys}`}`
   })
-  const events = describeFacts(world, present, world.ledger.clock)
+  const events = describeFacts(world, present, world.ledger.clock, names, aliases)
   return `已知地点：${places}\n账本现状：\n${rows.join('\n')}${events === '' ? '' : `\n最近发生过的事：\n${events}`}`
 }
 
@@ -351,6 +351,7 @@ async function runCrossTalkBeat(input: {
   canon: readonly string[]
   names?: Record<EntId, string>
   items?: Record<string, string>
+  aliases?: Record<EntId, string[]>
   playerClaim: string
   /** true = 第二轮看到其他人的公开草稿；false = 只看自己的草稿（控制臂） */
   seeOthers: boolean
@@ -373,7 +374,7 @@ async function runCrossTalkBeat(input: {
   }
   const playerLine = input.playerClaim ? `玩家刚才说/做：${input.playerClaim}` : ''
   const sceneFor = (ent: EntId): string =>
-    [input.sceneText, playerLine, describeLedger(input.world, inScene, input.names, input.items), contextOf(input.scene, ent)]
+    [input.sceneText, playerLine, describeLedger(input.world, inScene, input.names, input.items, false, input.aliases), contextOf(input.scene, ent)]
       .filter(Boolean)
       .join('\n')
 
@@ -471,7 +472,7 @@ async function runCrossTalkBeat(input: {
     out = await deps.referee.judge({
       clock,
       claims,
-      context: [input.sceneText, describeLedger(input.world, present, input.names, input.items, true), contextOf(input.scene, input.player)]
+      context: [input.sceneText, describeLedger(input.world, present, input.names, input.items, true, input.aliases), contextOf(input.scene, input.player)]
         .filter(Boolean)
         .join('\n'),
     })
@@ -786,6 +787,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         canon: STARTER_TOWN.canon,
         names: STARTER_TOWN.names,
         items: STARTER_TOWN.items,
+        aliases: STARTER_TOWN.aliases,
         playerClaim,
         deps,
       })
@@ -815,6 +817,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         canon: STARTER_TOWN.canon,
         names: STARTER_TOWN.names,
         items: STARTER_TOWN.items,
+        aliases: STARTER_TOWN.aliases,
         playerClaim,
         seeOthers: arm === 'cross-talk',
         deps,
