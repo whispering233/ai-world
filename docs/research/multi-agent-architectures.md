@@ -175,6 +175,8 @@ npm run experiment:multi-round -- --beats 6 --mode all --tag pilot-1
 
 产物：`data/experiment/<tag>/<arm>/{journal.jsonl,passage.jsonl,metrics.jsonl,metrics.json,report.md}`。`report.md` 含汇总表、写操作分布和 3 个样本拍（人工看人物声音）。
 
+首次 pilot 结果见 [multi-round-experiment.md](multi-round-experiment.md)：6 拍三臂，cross-talk 回声 45.8%、`no_rate` 13.3%、成本约 +10%（对 self-retry）；没有硬冲突优势。
+
 ## 7. 结论
 
 - **保留裁判**：它是这个项目的提交层，不是可选的中间件。
