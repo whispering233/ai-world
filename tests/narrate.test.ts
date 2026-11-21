@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createStubNarrator, type NarrationInput } from '../src/core/narrate.ts'
+import { createStubNarrator, fallbackPassage, type NarrationInput } from '../src/core/narrate.ts'
 
 function input(): NarrationInput {
   return {
@@ -14,6 +14,14 @@ function input(): NarrationInput {
 }
 
 describe('渲染：只出文本，不写回', () => {
+  it('旁白失败 fallback 只列已结算结果，不新增事实', () => {
+    const text = fallbackPassage(input().events)
+    expect(text).toContain('叙述没有生成')
+    expect(text).toContain('ann：我一脚踹开铁门 → 门被踹开了')
+    expect(text).toContain('bob：我抓住那把枪 → 被拒绝了：枪压在对方身下')
+    // 不写绝对时间，也不写额外的世界变化
+    expect(text).not.toContain('第 ')
+  })
   it('正常文本原样返回，absoluteTime 为空', async () => {
     const prose = '雨还没停。\n门上留下一个新鲜的脚印。'
     const out = await createStubNarrator([prose]).narrate(input())

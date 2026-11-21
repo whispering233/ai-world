@@ -179,6 +179,7 @@ describe('runBeat：三拍连续', () => {
     expect(journal.map((e) => e.seq)).toEqual([1, 2, 3])
     expect(journal.map((e) => e.clock)).toEqual([2, 3, 4])
     expect(store.readPassage().map((p) => p.text)).toEqual(['雨还没停。', '灯灭了一盏。', '没人再说话。'])
+    expect(store.readPassage().every((p) => p.source === 'narrator')).toBe(true)
     expect(r.world.ledger.rel.ann?.player).toBe(1)
     expect(r.world.ledger.phys.ann?.lamp).toBe(false)
     // 被拒绝的理由进当事人记忆，不进 notes（notes 只记 op 级失败）
@@ -206,6 +207,49 @@ describe('runBeat：观测与后果写回人物', () => {
     expect(r.characters.get('ann')?.drives[0]?.heat).toBeCloseTo(0.5)
     // 玩家看得到自己失败的理由
     expect(r.characters.get('player')?.experience).toEqual([])
+  })
+})
+
+describe('runBeat：旁白失败', () => {
+  const referee: RefereeOutput[] = [
+    {
+      order: ['ann'],
+      verdicts: [
+        { claimId: 'p0', actor: 'player', ok: false, reason: '门是铸铁焊死的', deltas: [], duration: 1 },
+        verdict('a0', [], 1),
+        verdict('d0', [], 1),
+      ],
+      observations: {},
+      driveHits: [],
+    },
+  ]
+
+  it('旁白抛错时保留账本，落 fallback passage 并留 notes', async () => {
+    const store = tmpStore()
+    const input = base(store, referee)
+    input.playerClaim = '我一脚踹开铁门'
+    const narrator = { narrate: () => Promise.reject(new Error('ETIMEDOUT')) }
+    const r = await runBeat({ ...input, deps: { ...input.deps, narrator } })
+
+    expect(r.passage).toContain('叙述没有生成')
+    expect(r.passage).toContain('门是铸铁焊死的')
+    expect(r.notes.some((n) => n.includes('旁白失败'))).toBe(true)
+    expect(store.readJournal()).toHaveLength(1)
+    expect(store.readPassage()).toHaveLength(1)
+    expect(store.readPassage()[0]?.source).toBe('fallback')
+  })
+
+  it('旁白返回空文本时同样不丢拍', async () => {
+    const store = tmpStore()
+    const input = base(store, referee)
+    input.playerClaim = '我一脚踹开铁门'
+    const narrator = { narrate: async () => ({ text: '   ', absoluteTime: [] }) }
+    const r = await runBeat({ ...input, deps: { ...input.deps, narrator } })
+
+    expect(r.passage).toContain('叙述没有生成')
+    expect(r.notes.some((n) => n.includes('旁白失败'))).toBe(true)
+    expect(store.readJournal()).toHaveLength(1)
+    expect(store.readPassage()[0]?.source).toBe('fallback')
   })
 })
 

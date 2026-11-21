@@ -26,6 +26,19 @@ export interface Narrator {
   narrate(input: NarrationInput): Promise<{ text: string; absoluteTime: string[] }>
 }
 
+/**
+ * 旁白失败时的确定性兜底：只列已结算的 claim 与 outcome，不调模型、不编新事实。
+ * 文本很丑，但比丢拍诚实；source 会标成 fallback。
+ */
+export function fallbackPassage(events: readonly NarrationEvent[]): string {
+  const lines = events.map((e) => `- ${e.actor}：${e.text} → ${e.outcome}`)
+  return [
+    '（这一拍的叙述没有生成；以下是已结算的结果。）',
+    '',
+    lines.length > 0 ? lines.join('\n') : '（没有可呈现的结果）',
+  ].join('\n')
+}
+
 /** 找出文本里的绝对时间表达；空数组表示干净。只报告命中，不改文本。 */
 export function findAbsoluteTime(text: string): string[] {
   const num = '[一二三四五六七八九十百零〇\\d]'

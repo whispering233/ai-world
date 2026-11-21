@@ -7,7 +7,7 @@
 import { calledActors, fmt } from './clock.ts'
 import { remember, type Character } from './character.ts'
 import type { Cognition } from './cognition.ts'
-import type { Narrator } from './narrate.ts'
+import { fallbackPassage, type Narrator } from './narrate.ts'
 import { commit, type Claim, type Referee, type Verdict } from './referee.ts'
 import { appendBeat, contextOf, fold, foldReason, type FoldMaterial, type Scene } from './scene.ts'
 import type { Store } from './store.ts'
@@ -143,17 +143,31 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     const v = out.verdicts.find((x) => x.claimId === c.id)
     return { actor: c.actor, text: c.text, outcome: describe(v) }
   })
-  const narration = await deps.narrator.narrate({ clockBefore: clock, clockAfter, sceneText: input.sceneText, events: narratorEvents })
-  deps.store.appendPassage({ clock: clockAfter, text: narration.text, source: 'narrator' })
+
+  let passage = ''
+  let narrationFailed = false
+  const narrationNotes: string[] = []
+  try {
+    const narration = await deps.narrator.narrate({ clockBefore: clock, clockAfter, sceneText: input.sceneText, events: narratorEvents })
+    passage = narration.text
+    // 空文本和抛错同样是“没有旁白”：不能把空 passage 当成正常结果落盘。
+    if (passage.trim() === '') throw new Error('旁白为空')
+    narrationNotes.push(...narration.absoluteTime.map((t) => `叙述里出现绝对时间：${t}`))
+  } catch (error) {
+    narrationFailed = true
+    passage = fallbackPassage(narratorEvents)
+    narrationNotes.push(`旁白失败（事实摘要兜底）：${(error as Error).message}`)
+  }
 
   const texts: Record<EntId, string> = {}
   for (const e of narratorEvents) texts[e.actor] = `${e.actor}：${e.text} → ${e.outcome}`
   const scene = appendBeat(input.scene, {
     clock: clockAfter,
-    tokens: estimateTokens([input.sceneText, narration.text].join('\n')),
+    tokens: estimateTokens([input.sceneText, passage].join('\n')),
     texts,
     signed: out.verdicts.some(isSigned),
   })
+  // journal 是账本的凭据；先落 journal，再落派生的 passage。
   const entry = deps.store.appendBeat({
     type: 'beat',
     scene: scene.id,
@@ -164,14 +178,20 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     observations: out.observations,
     driveHits: out.driveHits,
   })
+  try {
+    deps.store.appendPassage({ clock: clockAfter, text: passage, source: narrationFailed ? 'fallback' : 'narrator' })
+  } catch (error) {
+    // passage 是派生文本；写失败不能反过来抹掉已经落盘的 journal。
+    narrationNotes.push(`passage 写入失败（journal 已落）：${(error as Error).message}`)
+  }
 
   const result: BeatResult = {
     world,
     scene,
     characters,
-    passage: narration.text,
+    passage,
     journalSeq: entry.seq,
-    notes: [...degraded, ...notes, ...narration.absoluteTime.map((t) => `叙述里出现绝对时间：${t}`)],
+    notes: [...degraded, ...notes, ...narrationNotes],
   }
 
   const reason = foldReason(scene, { place: result.world.ledger.at[input.player] ?? scene.place, clock: clockAfter, tokens: scene.tokens })
