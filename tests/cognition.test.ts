@@ -16,6 +16,29 @@ function input(over: Partial<CognitionInput> = {}): CognitionInput {
   return { character, sceneText: '他把杯子推过来。', canon: ['屋里只有一盏灯'], now: 100, ...over }
 }
 
+describe('createCognition：system 前缀顺序', () => {
+  it('稳定段在 canon 前，canon 在易变状态前', async () => {
+    const seen: ChatRequest[] = []
+    const llm = {
+      async chat(req: ChatRequest) {
+        seen.push(req)
+        return { text: JSON.stringify({ inner: '', outward: '嗯。' }), toolCalls: [], inputTokens: 0, outputTokens: 0, model: 'faux/cognition' }
+      },
+    }
+    const req = input()
+    req.character.experience = [{ t: 100, kind: 'seen', text: '他昨天来过', w: 3 }]
+    await createCognition(llm).think(req)
+    const system = seen[0]?.system ?? ''
+    const segments = ['你是什么样的人', '说话方式', '只输出一个 JSON', '世界设定', '此刻的冲动', '你认定的事', '你记得的事']
+    let previous = -1
+    for (const segment of segments) {
+      const at = system.indexOf(segment)
+      expect(at, segment).toBeGreaterThan(previous)
+      previous = at
+    }
+  })
+})
+
 describe('createCognition：显示名', () => {
   it('beliefs 的键用显示名，不泄漏 id', async () => {
     const seen: ChatRequest[] = []

@@ -43,6 +43,9 @@ export interface ChatResult {
   inputTokens: number
   outputTokens: number
   model: string
+  /** provider 报回的缓存命中量；不报时缺省 */
+  cacheRead?: number
+  cacheWrite?: number
 }
 
 export interface UsageSample {
@@ -50,6 +53,8 @@ export interface UsageSample {
   model: string
   input: number
   output: number
+  cacheRead: number
+  cacheWrite: number
   /** 本次调用总耗时（含重试与退避） */
   ms: number
   /** 本次调用触发的重试次数 */
@@ -157,12 +162,16 @@ export function createLlm(config: LlmConfig): Llm {
         inputTokens: res.usage.input,
         outputTokens: res.usage.output,
         model: ref,
+        cacheRead: res.usage.cacheRead,
+        cacheWrite: res.usage.cacheWrite,
       }
       config.onUsage?.({
         role: req.role,
         model: ref,
         input: result.inputTokens,
         output: result.outputTokens,
+        cacheRead: res.usage.cacheRead,
+        cacheWrite: res.usage.cacheWrite,
         ms: Math.round(performance.now() - startedAt),
         retries,
       })
