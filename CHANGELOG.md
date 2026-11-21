@@ -4,12 +4,13 @@
 
 ## [Unreleased]
 ### Added
-- `docs/research/world-baseline.md`：20 拍新基线（`know` 1 条 / `fact` 89 条、`fact/claim` 0.99、`know_rate` 1.0%、`transfer` 1 / `consume` 1 / `move` 1、净持有变化“安 威士忌 -1；安 银元 +2”、1 次 480 分钟长动作、4–30 分钟 2 次、3 次折场）。
+- `docs/research/world-baseline.md`：20 拍基线（`fact` 24 条、`facts/beat` 1.20、`fact/claim` 0.27、`know` 2 条、`transfer` 3 / `consume` 0 / `move` 0、无变化拍 5/20、2 次折场），并记录“事实密度未达 ≤1.0”的三类残留。
 - `docs/research/multi-agent-architectures.md`：Claude Code Agent Teams / Orca·Herdr / DeepSeek Super-agent / pi 生态的编排架构调研，以及 ai-world 保留裁判作为唯一提交层的理由。
 - `scripts/experiment-multi-round.ts`：baseline / self-retry / cross-talk 三臂的一拍内多轮对话实验，输出 journal/passage/metrics/report。
 - `docs/research/multi-round-experiment.md`：pilot 6 拍三臂结果（回声率、no_rate、成本、硬冲突）与结论。
 
 ### Changed
+- `fact` 语义收窄：只记会改变后续判断的事件（承诺、威胁、谎言、公开宣告、交易完成、身份揭示、状态改变），账本已记过的状态不再复述；`facts/beat` 从 4.45 降到 1.10–1.20（目标 ≤1.0，未达标）。体检表增加 `facts/beat` 与「无变化拍」。
 - `ContentPack.aliases`：额外检索词，只用于事实切片匹配（裁判把玩家写成“玩家”，而显示名是“你”）。
 - 知识写入收窄：普通对话不再逐句 `know`；`know` 只用于听众原本不知道且以后会用的信息（秘密、计划、债务、身份、跨场景承诺），在场者的即时记忆交给 `observations`。体检表增加 `know/claim` 与平均听众数。
 - 秘密探针改为耳语，并要求 `know.who` 只列确实听见的人。
