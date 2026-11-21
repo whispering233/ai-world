@@ -108,7 +108,7 @@ async function main(): Promise<void> {
     world = res.world
     characters = res.characters
     scene = res.scene
-    for (const claimId of res.committedClaims) committedClaims.add(claimId)
+    for (const claimId of res.committedClaims) committedClaims.add(`${res.journalSeq}:${claimId}`)
 
     stdout.write(`\n—— 第 ${i} 拍 · ${fmt(world.ledger.clock)} ——\n${res.passage}\n`)
     if (res.notes.length) stdout.write(`  · ${res.notes.join('\n  · ')}\n`)
@@ -124,7 +124,8 @@ async function main(): Promise<void> {
   const beats = journal.filter((e) => e.type === 'beat')
   const verdicts = journal.flatMap((e) => e.verdicts)
   const claims = journal.flatMap((e) => e.claims)
-  const committedVerdicts = verdicts.filter((v) => committedClaims.has(v.claimId))
+  // claim id 只含拍前 clock；duration=0 时可能跨拍重名，用 journal seq 一起做键。
+  const committedVerdicts = journal.flatMap((e) => e.verdicts.filter((v) => committedClaims.has(`${e.seq}:${v.claimId}`)))
   const ops = committedVerdicts.flatMap((v) => v.deltas)
   const opCounts: Record<string, number> = {}
   for (const op of ops) opCounts[op.op] = (opCounts[op.op] ?? 0) + 1
