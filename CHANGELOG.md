@@ -5,6 +5,7 @@
 ## [Unreleased]
 ### Added
 - `docs/research/multi-agent-architectures.md`：Claude Code Agent Teams / Orca·Herdr / DeepSeek Super-agent / pi 生态的编排架构调研，以及 ai-world 保留裁判作为唯一提交层的理由。
+- `scripts/experiment-multi-round.ts`：baseline / cross-talk 两臂的一拍内多轮对话实验，输出 journal/passage/metrics/report。
 
 ### Changed
 - 玩家 UI 布局定稿：单栏阅读面 + 顶部细栏 + 底部输入 + 按需右抽屉；三栏仅作者/调试模式，记入 backlog。

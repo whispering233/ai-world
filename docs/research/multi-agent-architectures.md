@@ -159,6 +159,20 @@ referee 本身是 LLM，输出不确定；但 `commit()` 是纯函数，裁决�
 
 实验都必须在**裁判仍是唯一写入口**的前提下做；否则不是“更灵活”，是换了一个产品。
 
+### 6.1 运行方式
+
+```sh
+npm run experiment:multi-round -- --beats 6 --mode both --tag pilot-1
+```
+
+- `--mode baseline|cross-talk|both`：只跑一臂或两臂；
+- `--beats N`：拍数上限；
+- `--tag`：数据目录后缀，避免两轮混在一起；
+- `--data`：根目录，默认 `data/experiment`；
+- `--force`：覆盖同 tag 的已有 journal。
+
+产物：`data/experiment/<tag>/<arm>/{journal.jsonl,passage.jsonl,metrics.jsonl,metrics.json,report.md}`。`report.md` 含汇总表、写操作分布和 3 个样本拍（人工看人物声音）。
+
 ## 7. 结论
 
 - **保留裁判**：它是这个项目的提交层，不是可选的中间件。

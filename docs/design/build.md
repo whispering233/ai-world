@@ -62,6 +62,14 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 
 对照两种输出通道（带工具 / 纯文本）的总耗时、输入输出 token、首字耗时，用来判断变慢是出在供应商、输出量还是工具调用上。
 
+### 5.1 多轮交叉对话实验（可选，一次性）
+
+```sh
+npm run experiment:multi-round -- --beats 6 --mode both --tag pilot-1
+```
+
+两臂：`baseline`（当前单次认知）与 `cross-talk`（每人一轮草稿 + 一轮看他人公开输出后定稿）。只共享 `outward`，`inner` 永不跨人；裁判仍是唯一写入口。产物在 `data/experiment/<tag>/<arm>/`，`report.md` 是汇总与样本。设计与指标见 [../research/multi-agent-architectures.md](../research/multi-agent-architectures.md) §6。
+
 ## 6. 常见故障
 
 | 现象 | 含义 | 处理 |
