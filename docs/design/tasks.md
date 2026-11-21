@@ -2,19 +2,63 @@
 
 > 只放**未完成**的卡片。完成的卡片直接删除，不留历史——历史在 `CHANGELOG.md` 与 git 记录里。
 
-## 1. 当前批次
+## 1. 当前批次：W3b-A 事件流排序
 
-当前没有卡片。下一张先讨论 fact 密度，不要直接开工。
+| # | 卡片 | 状态 | 依赖 | 验收 |
+| :--- | :--- | :--- | :--- | :--- |
+| W3b-A | `describeFacts` 按 id 或显示名匹配在场者 | 待办 | 无 | 显示名事实能拿到 +2；超预算时在场者事实不被挤出；测试锁住 |
 
-## 2. 下一批候选（待讨论）
+本卡只修排序 bug，不改“什么事件值得成为 fact”。fact 密度、fact 词表、`FACT_BUDGET` 都不动。
 
-| 候选 | 为什么现在做 | 先看什么 |
-| :--- | :--- | :--- |
-| W3b `fact` 密度 | `fact/claim` 0.99，`know+fact` 仍占 91.8% 的写操作；`FACT_BUDGET = 12` 会被近期闲聊挤满 | 哪些言语事件值得成为公共事实（承诺/威胁/谎言/公开宣告），哪些只属于在场者 observations |
-| W4 人物状态持久化 | 人物 `experience/self` 未进 journal，重开一局会丢 | journal 记录 cognition/experience 的 schema |
-| W5 缓存前缀 / per-role sessionId | 三角色共用 sessionId；canon 在易变段后 | prompt 顺序与缓存命中 |
-| W6 服务端 + 阅读面 | 世界层 W3b–W4 有结论后再做 | UI 设计已定稿，不重复讨论 |
-| `knows` 接入认知/裁判（方案 B） | 秘密/谎言真正进入玩法时才做 | 当前 `knows` 只写不读 |
+---
+
+## W3b-A：`describeFacts` 相关性匹配
+
+### 目标
+
+让喂给裁判的事件流真正按“提到在场者优先”排序。C2 之后事实文本用显示名（安 / 道森医生 / 科迪 / 格蕾妮），但排序只匹配实体 id（`ann` / `doc`…），`+2` 这一档永远不命中，切片退化成纯时间倒序。
+
+### 范围
+
+- `src/core/beat.ts`：
+  - `describeFacts(world, present, clock, names?)` 按 `[id, 显示名]` 匹配；
+  - `describeLedger` 把已有的 `names` 传下去。
+- `scripts/experiment-multi-round.ts`：同名私有实现同步（脚本不抽公共层）。
+- `tests/describe-facts.test.ts`：
+  - 事实用显示名、在场者给 names 时，仍优先于更晚的无关事实；
+  - 超预算时，显示名事实不被挤出；
+  - 现有 id 匹配用例保持不变。
+- `docs/design/10-world-model.md` §7：已更新（含“玩家写成‘玩家’、names 是‘你’”的已知限制）。
+- `CHANGELOG.md` 的 `Unreleased`。
+
+### 不做
+
+- 不改 `FACT_BUDGET`（仍是 12）。
+- 不改“什么事件值得成为 fact”，不动 rule 8。
+- 不把玩家显示名改成“玩家”（那会伤旁白的第二人称）；不在本卡做称呼统一。
+- 不动 `know`、时间、物质流。
+
+### 验收
+
+- 显示名事实能拿到 +2；超预算时仍在切片里。
+- `npm run typecheck` 0；`npm test` 全绿。
+- 4 拍 smoke 的 `fact` 文本与排序行为可肉眼核对；不要求重跑 20 拍基线（数字不动，改的是排序）。
+
+### 独立验证
+
+subAgent 只读检查匹配逻辑、两处实现一致、三个测试用例；最多 4 条。
+
+---
+
+## 2. 后续候选（W3b-A 完成后再讨论）
+
+| 候选 | 触发 |
+| :--- | :--- |
+| W3b-B fact 密度 | 修完排序再测；若早期后果仍被闲聊挤掉，再定“什么事件值得成为 fact” |
+| W4 人物状态持久化 | 人物 `experience/self` 未进 journal |
+| W5 缓存前缀 / per-role sessionId | prompt 稳定后再调 |
+| W6 服务端 + 阅读面 | 世界层 W3b–W4 有结论后 |
+| 称呼统一 | 裁判写“玩家”、names 写“你”，两套称呼并存 |
 
 ## 3. 已固化的小约定
 
