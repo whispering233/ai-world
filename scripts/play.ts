@@ -169,7 +169,9 @@ async function main(): Promise<void> {
   const committedVerdicts = journal.flatMap((e) => e.verdicts.filter((v) => committedClaims.has(`${e.seq}:${v.claimId}`)))
   const ops = committedVerdicts.flatMap((v) => v.deltas)
   const knowOps = ops.filter((d): d is Extract<Op, { op: 'know' }> => d.op === 'know')
-  const factOps = ops.filter((d) => d.op === 'fact')
+  const factOps = ops.filter((d): d is Extract<Op, { op: 'fact' }> => d.op === 'fact')
+  const actorFacts = factOps.filter((d) => d.actor !== undefined).length
+  const kindFacts = factOps.filter((d) => d.kind !== undefined).length
   const knowPerClaim = committedVerdicts.length === 0 ? 0 : knowOps.length / committedVerdicts.length
   const knowListeners = knowOps.reduce((n, d) => n + d.who.length, 0)
   const knowAvgListeners = knowOps.length === 0 ? 0 : knowListeners / knowOps.length
@@ -222,6 +224,7 @@ async function main(): Promise<void> {
   stdout.write(`know/claim     ${knowPerClaim.toFixed(2)}   平均听众 ${knowAvgListeners.toFixed(2)}\n`)
   stdout.write(`fact/claim     ${factPerClaim.toFixed(2)}\n`)
   stdout.write(`facts/beat     ${(factOps.length / Math.max(1, beats.length)).toFixed(2)}   （≤1.0 = 12 条覆盖一整场）\n`)
+  stdout.write(`fact 结构化    actor ${actorFacts}/${factOps.length} · kind ${kindFacts}/${factOps.length}\n`)
   stdout.write(`duration 分桶   ${Object.entries(durationBuckets).map(([k, n]) => `${k}: ${n}`).join(' | ')}\n`)
   stdout.write(`名字泄漏        ${nameLeaks}   （期望 0）\n`)
   stdout.write(`item/持有错误   ${itemErrors}   （含“身上没有这么多”）\n`)

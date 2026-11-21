@@ -21,6 +21,16 @@ describe('describeFacts：喂给裁判的事件流', () => {
     expect(describeFacts(w, [], 100)).toBe(line('门关上了'))
   })
 
+  it('fact.actor 命中在场者时优先，不依赖文本里有名字', () => {
+    const noise: Fact[] = Array.from({ length: FACT_BUDGET }, (_, i) => ({ id: `n${i}`, text: `街边杂事${i}`, at: 96 }))
+    const facts = [...noise, { id: 'mine', text: '收了银元', at: 95, actor: 'ann' }]
+    const named = describeFacts(world(facts), ['ann'], 100)
+    const unnamed = describeFacts(world(facts), [], 100)
+    expect(named.split('\n')).toHaveLength(FACT_BUDGET)
+    expect(named).toContain(line('收了银元'))
+    expect(unnamed).not.toContain(line('收了银元'))
+  })
+
   it('提到在场者的事实优先于更晚但与在场者无关的事实', () => {
     const w = world([
       { id: 'f0', text: 'ann 把银元收进围裙', at: 10 },
