@@ -75,3 +75,17 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 ## 7. 分发
 
 首切片不分发。运行依赖本机的 pi 凭据与 `src/`、`content/`、`config/` 三处源码目录，拷走即可运行。
+
+## 8. CI
+
+`.github/workflows/ci.yml` 在 push 到 `main`、PR 和手动触发时跑：
+
+```sh
+npm ci
+npm run typecheck
+npm test
+```
+
+**不跑 `npm run play`**：它需要模型凭据与网络，结果不可重复。模型调用的回归靠 `scripts/play.ts --auto` 在本机跑，不进 CI。
+
+CI 使用 Node 22 与 npm 缓存；本地等价命令就是上面三条。`package-lock.json` 必须提交，CI 用 `npm ci` 而不是 `npm install`。
