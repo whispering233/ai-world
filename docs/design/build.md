@@ -39,6 +39,7 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 - `no_rate`（按有风险的 claim 分桶）
 - 写操作分布：`move/transfer/consume/phys/rel/fact/know`
 - `facts/beat`：事实数 / 拍数；配合 `FACT_BUDGET = 12` 看裁判能看多远（≤1.0 = 12 条覆盖一整场 12 拍）
+- `cacheRead` / `cacheWrite`：provider 报回的缓存命中量；不报时只显示 0，不能推断“没命中”
 - `know_rate`：`know` 占全部写操作的比例
 - `know/claim` 与平均听众数：判断是否又变回逐句广播
 - `duration` 分桶：0–3 / 4–30 / 31–239 / ≥240 分钟

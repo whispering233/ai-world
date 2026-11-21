@@ -133,6 +133,10 @@ pi 仓库共 10 个包（均已发布为 npm 公开包，MIT）。**只引入 `p
 - 三类调用（人物/裁判/渲染）各自一份稳定前缀，分别命中。
 - 缓存断点（若 provider 需要显式标注）：放在第 1 段之后，其次第 2 段之后。
 
+当前实现里只有 `cognition` 的 system 段是可变的（referee / narration 的 system 是单段固定文本）。`buildSystem` 的顺序必须是：`core + voice` → 输出指令 → `canon` → `drives` → `beliefs` → 记忆。输出指令是稳定段，必须放在 `canon` 之前，不能留在最后。
+
+**验收量是 `cacheRead` / `cacheWrite`，不是“看起来更像缓存”。** provider 不报这两个数时，只能记录“未上报”，不能宣称命中。
+
 ### 10.3 压缩：折场，不是截断
 
 chat 应用必须压缩，因为 transcript 线性增长。本项目的上下文是**场景内追加**的（见 40 §2）：
