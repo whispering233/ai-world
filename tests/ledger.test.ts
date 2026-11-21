@@ -113,11 +113,46 @@ describe('apply：前置条件与拒绝', () => {
     expect(Object.keys(w.facts)).toHaveLength(0)
   })
 
+  it('fact 可带 actor 与 kind', () => {
+    const { world: w, results } = apply(world(), [
+      { op: 'fact', text: '安答应明天还钱', actor: 'ann', kind: 'promise' },
+    ])
+    expect(results[0]?.ok).toBe(true)
+    expect(w.facts.f0).toMatchObject({ text: '安答应明天还钱', actor: 'ann', kind: 'promise' })
+  })
+
+  it('fact 的 actor 不存在时被拒', () => {
+    const { world: w, results } = apply(world(), [
+      { op: 'fact', text: '幽灵答应还钱', actor: 'ghost', kind: 'promise' },
+    ])
+    expect(results[0]?.ok).toBe(false)
+    expect(Object.keys(w.facts)).toHaveLength(0)
+  })
+
+  it('fact 的 kind 不在枚举内时被拒', () => {
+    const { world: w, results } = apply(world(), [
+      { op: 'fact', text: '安答应还钱', actor: 'ann', kind: 'gossip' as never },
+    ])
+    expect(results[0]?.ok).toBe(false)
+    expect(Object.keys(w.facts)).toHaveLength(0)
+  })
+
+  it('旧 fact 没有 actor/kind 仍可 replay 并被 know 引用', () => {
+    const old = world()
+    old.facts.f0 = { id: 'f0', text: '旧事实', at: 0 }
+    const { world: w, results } = apply(old, [{ op: 'know', who: ['bob'], fact: 'f0' }])
+    expect(results[0]?.ok).toBe(true)
+    expect(w.facts.f0).toEqual({ id: 'f0', text: '旧事实', at: 0 })
+    expect(w.ledger.knows.bob).toEqual(['f0'])
+  })
+
   it('know 用一段文本时会当场建事实并授予（裁判看不到 fact id）', () => {
     const { world: w, results } = apply(world(), [{ op: 'know', who: ['ann'], fact: '药包在里屋' }])
     expect(results[0]?.ok).toBe(true)
     expect(w.ledger.knows.ann).toEqual(['f0'])
     expect(w.facts.f0?.text).toBe('药包在里屋')
+    expect(w.facts.f0?.kind).toBe('speech')
+    expect(w.facts.f0?.actor).toBeUndefined()
   })
 })
 
