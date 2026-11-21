@@ -7,19 +7,21 @@
 ```json
 {
   "models": {
-    "fast": "opencode-go/deepseek-v4.1-flash",
-    "strong": "opencode-go/deepseek-v4.1-flash",
-    "mid": "opencode-go/deepseek-v4.1-flash"
+    "cognition": "opencode-go/deepseek-v4.1-flash",
+    "referee": "opencode-go/deepseek-v4.1-flash",
+    "narration": "opencode-go/deepseek-v4.1-flash"
   },
   "sessionIdPrefix": "play"
 }
 ```
 
+键名就是调用点：`cognition` = 人物认知，`referee` = 裁判，`narration` = 渲染。
+
 | 字段 | 必选 | 说明 |
 | :--- | :--- | :--- |
-| `models.fast` | 否 | 人物认知档。缺省跟随 pi 的默认模型（见 §1.1） |
-| `models.strong` | 否 | 裁判档。缺省同上 |
-| `models.mid` | 否 | 渲染档。缺省同上 |
+| `models.cognition` | 否 | 人物认知角色。缺省跟随 pi 的默认模型（见 §1.1） |
+| `models.referee` | 否 | 裁判角色。缺省同上 |
+| `models.narration` | 否 | 渲染角色。缺省同上 |
 | `sessionIdPrefix` | 否 | opencode 的路由头前缀，缺省 `play`；每次运行追加随机后缀 |
 | `retry` | 否 | 临时错误重试：`{ enabled, maxRetries, baseDelayMs }`，缺省 `true / 2 / 800` |
 
@@ -35,8 +37,8 @@ provider 一律取 settings.json 的 defaultProvider
 规则：
 
 - **文件不存在 = 跟随 pi 的默认模型**，不报错。
-- **文件存在但写坏了 = 抛错**，不静默降级（把 `fast` 写成空串会直接报 `models.fast` 相关错误）。
-- 三档只是**角色标签与成本分桶**，允许全部指向同一个模型。默认就是同一个。
+- **文件存在但写坏了 = 抛错**，不静默降级（把 `cognition` 写成空串会直接报 `models.cognition` 相关错误）。
+- 三个角色只是**调用点标签与成本分桶**，允许全部指向同一个模型。默认就是同一个。
 - 路径可用环境变量 `AI_WORLD_CONFIG` 覆盖，便于并行跑不同通道。
 
 ## 2. 模型串格式

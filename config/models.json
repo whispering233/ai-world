@@ -1,8 +1,8 @@
 {
   "models": {
-    "fast": "opencode-go/deepseek-v4.1-flash",
-    "strong": "opencode-go/deepseek-v4.1-flash",
-    "mid": "opencode-go/deepseek-v4.1-flash"
+    "cognition": "opencode-go/deepseek-v4.1-flash",
+    "referee": "opencode-go/deepseek-v4.1-flash",
+    "narration": "opencode-go/deepseek-v4.1-flash"
   },
   "sessionIdPrefix": "play",
   "retry": { "enabled": true, "maxRetries": 2, "baseDelayMs": 800 }

@@ -6,15 +6,15 @@
 
 **不写的东西**：provider 适配器、重试、流式协议解析、token 计数、成本计算、key 管理。
 
-## 2. 三个调用点，三档模型
+## 2. 三个调用点，三个模型角色
 
-| 调用点 | 频次 | 档位 | 需要结构化输出 |
+| 调用点 | 频次 | 配置角色 | 需要结构化输出 |
 | :--- | :--- | :--- | :--- |
-| 人物认知 | 每拍 × 被叫到的人数 | 便宜/快 | 否（自由文本，含 `inner` / `outward`） |
-| 裁判 referee | 每拍 1 次 | **最强** | 是（`order` / `verdicts` / `deltas` / `duration`） |
-| 渲染 narrate | 每拍 1 次 | 中 | 否（流式散文） |
+| 人物认知 | 每拍 × 被叫到的人数 | `cognition`（便宜/快） | 否（自由文本，含 `inner` / `outward`） |
+| 裁判 referee | 每拍 1 次 | `referee`（**最强**） | 是（`order` / `verdicts` / `deltas` / `duration`） |
+| 渲染 narrate | 每拍 1 次 | `narration`（中） | 否（流式散文） |
 
-三档用配置里的 `provider/model` 表达，**不硬编码**。差档成本差约一个数量级，这是唯一有效的降本手段。
+三个角色用配置里的 `provider/model` 表达，**不硬编码**。不同角色的成本可以差一个数量级，这是唯一有效的降本手段。
 
 ## 3. 真实 API 形状（源自 pi-ai 1.5.2 README，勿凭记忆改写）
 
@@ -172,11 +172,11 @@ chat 应用必须压缩，因为 transcript 线性增长。本项目的上下文
 
 默认走 **`opencode-go` 订阅**（与 pi CLI 同一档），不直连 DeepSeek：
 
-| 档位 | 模型 | 输入 $/M | 输出 $/M |
+| 角色 | 模型 | 输入 $/M | 输出 $/M |
 | :--- | :--- | :--- | :--- |
-| fast / mid / strong | `opencode-go/deepseek-v4.1-flash` | 0.15 | 0.60 |
+| `cognition` / `referee` / `narration` | `opencode-go/deepseek-v4.1-flash` | 0.15 | 0.60 |
 
-**测试与运行一律用这一个模型。** 三档（fast / strong / mid）只是角色标签与成本分桶，不预设换模型；等真的需要为裁判单独升级时再改一行配置。
+**测试与运行一律用这一个模型。** 三个角色（`cognition` / `referee` / `narration`）只是调用点标签与成本分桶，不预设换模型；等真的需要为裁判单独升级时再改一行配置。
 
 直连 `deepseek` 同样两个模型是 0.30/1.20 与 1.32/3.96——**订阅价大约是直连的一半**。
 凭据复用 pi CLI 的 `~/.pi/agent/auth.json`（只读），不另存 key；`sessionId` 每次运行一个，opencode 用它做路由与缓存亲和。
@@ -187,7 +187,7 @@ chat 应用必须压缩，因为 transcript 线性增长。本项目的上下文
 
 优先级：`config/models.json` 显式值 > `PI_MODEL` > `~/.pi/agent/settings.json` 的 `defaultModel` > 兜底常量；provider 取 `defaultProvider`。代码里出现具体模型串即为缺陷——它会让项目停留在某一天的默认档上。
 
-启动必须打印实际模型串。三档默认指向同一模型，分档只表达"这个调用点值得多贵的模型"，不表达"要用不同模型"。
+启动必须打印实际模型串。三个角色默认指向同一模型，分角色只表达"这个调用点值得多贵的模型"，不表达"要用不同模型"。
 
 ### 13.2 延迟的真实构成
 

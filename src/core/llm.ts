@@ -12,8 +12,8 @@ import {
   type ToolCall,
 } from '@earendil-works/pi-ai'
 
-/** 三档模型：人物认知 = fast，裁判 = strong，渲染 = mid（见 docs/design/50-llm.md §2）。 */
-export type Tier = 'fast' | 'strong' | 'mid'
+/** 三个模型角色：cognition = 人物认知，referee = 裁判，narration = 渲染（见 docs/design/50-llm.md §2）。 */
+export type ModelRole = 'cognition' | 'referee' | 'narration'
 
 export interface ChatMessage {
   role: 'user' | 'assistant'
@@ -28,7 +28,7 @@ export interface ToolSpec {
 }
 
 export interface ChatRequest {
-  tier: Tier
+  role: ModelRole
   system?: string
   messages: ChatMessage[]
   signal?: AbortSignal
@@ -46,7 +46,7 @@ export interface ChatResult {
 }
 
 export interface UsageSample {
-  tier: Tier
+  role: ModelRole
   model: string
   input: number
   output: number
@@ -101,9 +101,9 @@ function toMessage(m: ChatMessage, model: Model<Api>, at: number): Message {
   }
 }
 
-/** 模型串为 "provider/modelId"，档位只能来自配置，不硬编码。 */
+/** 模型串为 "provider/modelId"，角色名只能来自配置，不硬编码。 */
 export interface LlmConfig {
-  models: Record<Tier, string>
+  models: Record<ModelRole, string>
   onUsage?: (sample: UsageSample) => void
   /** 订阅式供应商（如 opencode-go）的凭据存储；不给就走环境变量 */
   credentials?: CredentialStore
@@ -117,12 +117,12 @@ export function createLlm(config: LlmConfig): Llm {
   const loadModels = modelLoader(config.credentials)
   return {
     async chat(req) {
-      const ref = config.models[req.tier] ?? ''
+      const ref = config.models[req.role] ?? ''
       const at = ref.indexOf('/')
       const models_ = await loadModels()
       const model =
         at > 0 && at < ref.length - 1 ? models_.getModel(ref.slice(0, at), ref.slice(at + 1)) : undefined
-      if (!model) throw new Error(`模型未配置或不存在：tier=${req.tier} model=${ref || '(空)'}`)
+      if (!model) throw new Error(`模型未配置或不存在：role=${req.role} model=${ref || '(空)'}`)
 
       const context: Context = {
         systemPrompt: req.system,
@@ -148,7 +148,7 @@ export function createLlm(config: LlmConfig): Llm {
         },
       )
       if (res.stopReason === 'error') {
-        throw new Error(`模型调用失败：tier=${req.tier} model=${ref}：${res.errorMessage ?? '无错误详情'}`)
+        throw new Error(`模型调用失败：role=${req.role} model=${ref}：${res.errorMessage ?? '无错误详情'}`)
       }
 
       const result: ChatResult = {
@@ -159,7 +159,7 @@ export function createLlm(config: LlmConfig): Llm {
         model: ref,
       }
       config.onUsage?.({
-        tier: req.tier,
+        role: req.role,
         model: ref,
         input: result.inputTokens,
         output: result.outputTokens,
@@ -177,7 +177,7 @@ export function createFauxLlm(script: string[]): Llm {
   return {
     async chat(req) {
       const text = script.length === 0 ? '' : (script[Math.min(i++, script.length - 1)] ?? '')
-      return { text, toolCalls: [], inputTokens: 0, outputTokens: 0, model: `faux/${req.tier}` }
+      return { text, toolCalls: [], inputTokens: 0, outputTokens: 0, model: `faux/${req.role}` }
     },
   }
 }

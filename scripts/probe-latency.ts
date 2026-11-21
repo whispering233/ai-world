@@ -12,7 +12,7 @@ const cfg = loadModelConfig(
   process.env.AI_WORLD_CONFIG ?? 'config/models.json',
   readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL,
 )
-const ref = cfg.models.strong
+const ref = cfg.models.referee
 const sessionId = `probe-${Date.now()}`
 
 // 一段形状与真实裁判调用相当的输入
@@ -36,7 +36,7 @@ async function total(label: string, tools: ToolSpec[] | undefined): Promise<void
   const t0 = performance.now()
   try {
     const res = await llm.chat({
-      tier: 'strong',
+      role: 'referee',
       system: REFEREE_SYSTEM,
       messages: [{ role: 'user', content: user }],
       ...(tools ? { tools } : {}),

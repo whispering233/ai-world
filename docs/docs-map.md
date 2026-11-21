@@ -9,7 +9,7 @@
 | [20-referee.md](design/20-referee.md) | 裁判契约、批量结算、三种 verdict、体检指标 |
 | [30-cognition.md](design/30-cognition.md) | 人物四层、单次调用、成长三道闸、检索与预算 |
 | [40-time-and-loop.md](design/40-time-and-loop.md) | clock / busyUntil / 一拍、时长归属、时间唯一出口 |
-| [50-llm.md](design/50-llm.md) | pi-ai 接入、三档模型、Context 入档、测试策略 |
+| [50-llm.md](design/50-llm.md) | pi-ai 接入、三个模型角色、Context 入档、测试策略 |
 | [backlog.md](design/backlog.md) | 延后项与触发条件、监控指标、已知失败模式 |
 | [build.md](design/build.md) | 环境、游玩、模型配置、产物位置、故障处理 |
 | [config.md](design/config.md) | 模型配置、模型串格式、凭据来源 |
@@ -26,6 +26,7 @@
 | 文件 | 内容 |
 | :--- | :--- |
 | [../CHANGELOG.md](../CHANGELOG.md) | 版本变更记录 |
+| [../LICENSE](../LICENSE) | MIT 许可证 |
 | [../AGENTS.md](../AGENTS.md) | 项目规则（做错会返工的约束） |
 
 ## 尚未创建
