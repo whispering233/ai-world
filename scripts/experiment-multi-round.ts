@@ -40,7 +40,7 @@ import { describeFacts } from '../src/core/beat.ts'
 import { STARTER_TOWN } from '../content/starter-town.ts'
 import type { EntId, World } from '../src/core/world.ts'
 
-type Arm = 'baseline' | 'cross-talk'
+type Arm = 'baseline' | 'self-retry' | 'cross-talk'
 
 interface UsageTotals {
   calls: number
@@ -73,6 +73,7 @@ interface BeatMetrics {
   crossTalkCalls: number
   crossTalkChanged: number
   crossTalkRefs: number
+  crossTalkEcho: number
   passageChars: number
   newFacts: string[]
 }
@@ -90,6 +91,7 @@ interface ArmResult {
   crossTalkCalls: number
   crossTalkChanged: number
   crossTalkRefs: number
+  crossTalkEcho: number
 }
 
 interface BeatSample {
@@ -129,7 +131,7 @@ function arg(name: string, fallback: string): string {
 }
 
 const BEATS = Math.max(1, Math.min(40, Number(arg('--beats', '20')) || 20))
-const MODE = arg('--mode', 'both')
+const MODE = arg('--mode', 'all')
 const TAG = arg('--tag', `run-${new Date().toISOString().replace(/[:.]/g, '-')}`)
 const DATA_ROOT = arg('--data', 'data/experiment')
 const FORCE = process.argv.includes('--force')
@@ -249,6 +251,22 @@ function refsOthers(actor: EntId, text: string): boolean {
   return false
 }
 
+/** 4-gram 重叠：判断第二轮是否真的捡了别人的话，而不是只提到名字。 */
+function ngrams(text: string, n = 4): Set<string> {
+  const chars = Array.from(text.replace(/\s+/g, ''))
+  const out = new Set<string>()
+  for (let i = 0; i + n <= chars.length; i += 1) out.add(chars.slice(i, i + n).join(''))
+  return out
+}
+
+function hasEcho(text: string, others: readonly string[]): boolean {
+  const self = ngrams(text)
+  for (const other of others) {
+    for (const gram of ngrams(other)) if (self.has(gram)) return true
+  }
+  return false
+}
+
 function opCounts(verdicts: readonly Verdict[]): Record<string, number> {
   const out: Record<string, number> = {}
   for (const v of verdicts) {
@@ -317,7 +335,7 @@ function detectConflicts(world: World, verdicts: readonly Verdict[]): {
 }
 
 function failedOpsOf(world: World, verdicts: readonly Verdict[]): number {
-  const probe = commit(world, { order: [], verdicts, observations: {}, driveHits: [] })
+  const probe = commit(world, { order: [], verdicts: [...verdicts], observations: {}, driveHits: [] })
   return probe.applied.flatMap((a) => a.results).filter((r) => !r.ok).length
 }
 
@@ -329,6 +347,8 @@ async function runCrossTalkBeat(input: {
   sceneText: string
   canon: readonly string[]
   playerClaim: string
+  /** true = 第二轮看到其他人的公开草稿；false = 只看自己的草稿（控制臂） */
+  seeOthers: boolean
   deps: { referee: Referee; narrator: Narrator; cognition: Cognition; store: Store }
 }): Promise<ArmResult> {
   const { deps } = input
@@ -382,13 +402,16 @@ async function runCrossTalkBeat(input: {
   let crossTalkCalls = 0
   let crossTalkChanged = 0
   let crossTalkRefs = 0
+  let crossTalkEcho = 0
   const final = await Promise.all(
     round1
       .filter((r): r is Thought => r.ok)
       .map(async (r) => {
-        const others = round1
-          .filter((x): x is Thought => x.ok && x.ent !== r.ent)
-          .map((x) => ({ actor: x.ent, text: x.res.output.outward }))
+        const others = input.seeOthers
+          ? round1
+              .filter((x): x is Thought => x.ok && x.ent !== r.ent)
+              .map((x) => ({ actor: x.ent, text: x.res.output.outward }))
+          : []
         try {
           const res = await deps.cognition.think({
             character: r.ch,
@@ -400,6 +423,7 @@ async function runCrossTalkBeat(input: {
           crossTalkCalls += 1
           if (res.output.outward !== r.res.output.outward) crossTalkChanged += 1
           if (refsOthers(r.ent, res.output.outward)) crossTalkRefs += 1
+          if (input.seeOthers && hasEcho(res.output.outward, others.map((o) => o.text))) crossTalkEcho += 1
           return { ok: true as const, ent: r.ent, ch: r.ch, res }
         } catch (error) {
           // 第二轮失败就退回第一轮草稿：不丢这一拍。
@@ -431,6 +455,7 @@ async function runCrossTalkBeat(input: {
       crossTalkCalls,
       crossTalkChanged,
       crossTalkRefs,
+      crossTalkEcho,
     }
   }
 
@@ -456,6 +481,7 @@ async function runCrossTalkBeat(input: {
       crossTalkCalls,
       crossTalkChanged,
       crossTalkRefs,
+      crossTalkEcho,
     }
   }
 
@@ -520,6 +546,7 @@ async function runCrossTalkBeat(input: {
     crossTalkCalls,
     crossTalkChanged,
     crossTalkRefs,
+    crossTalkEcho,
   }
 
   const reason = foldReason(scene, {
@@ -554,6 +581,7 @@ function summaryOf(metrics: readonly BeatMetrics[]): {
   crossTalkCalls: number
   crossTalkChanged: number
   crossTalkRefs: number
+  crossTalkEcho: number
 } {
   const usage = zeroUsage()
   const ops: Record<string, number> = {}
@@ -569,6 +597,7 @@ function summaryOf(metrics: readonly BeatMetrics[]): {
   let crossTalkCalls = 0
   let crossTalkChanged = 0
   let crossTalkRefs = 0
+  let crossTalkEcho = 0
   let wallMs = 0
   for (const m of metrics) {
     for (const role of ['cognition', 'referee', 'narration'] as const) {
@@ -593,6 +622,7 @@ function summaryOf(metrics: readonly BeatMetrics[]): {
     crossTalkCalls += m.crossTalkCalls
     crossTalkChanged += m.crossTalkChanged
     crossTalkRefs += m.crossTalkRefs
+    crossTalkEcho += m.crossTalkEcho
     wallMs += m.wallMs
   }
   const first = metrics[0]
@@ -616,6 +646,7 @@ function summaryOf(metrics: readonly BeatMetrics[]): {
     crossTalkCalls,
     crossTalkChanged,
     crossTalkRefs,
+    crossTalkEcho,
   }
 }
 
@@ -633,16 +664,15 @@ function report(
   lines.push('')
   lines.push(`- 拍数上限：${beats}`)
   lines.push(`- 模型：${CFG.models.cognition} / ${CFG.models.referee} / ${CFG.models.narration}`)
-  lines.push('- 说明：两臂不是同一轨迹的对照；LLM 非确定，比较的是每拍分布与总量。')
+  lines.push('- 说明：各臂不是同一轨迹的对照；LLM 非确定，比较的是每拍分布与总量。self-retry 是控制臂：同样两次认知，但第二轮看不到别人。')
   lines.push('')
   lines.push('## 汇总')
   lines.push('')
-  lines.push('| 指标 | baseline | cross-talk |')
-  lines.push('| :--- | ---: | ---: |')
-  const get = (fn: (s: ReturnType<typeof summaryOf>) => string | number) => arms.map((a) => String(fn(a.summary)))
+  const headers = arms.map((a) => a.arm)
+  lines.push(`| 指标 | ${headers.join(' | ')} |`)
+  lines.push(`| :--- | ${headers.map(() => '---:').join(' | ')} |`)
   const row = (label: string, fn: (s: ReturnType<typeof summaryOf>) => string | number) => {
-    const [a = '', b = ''] = get(fn)
-    lines.push(`| ${label} | ${a} | ${b} |`)
+    lines.push(`| ${label} | ${arms.map((a) => String(fn(a.summary))).join(' | ')} |`)
   }
   row('拍数', (s) => s.beats)
   row('时钟推进（分钟）', (s) => s.clockAdvance)
@@ -666,6 +696,8 @@ function report(
   row('交叉对话改口', (s) => s.crossTalkChanged)
   row('交叉对话提及他人', (s) => s.crossTalkRefs)
   row('提及率', (s) => (s.crossTalkCalls === 0 ? '-' : pct(s.crossTalkRefs / s.crossTalkCalls)))
+  row('交叉对话回声（4-gram）', (s) => s.crossTalkEcho)
+  row('回声率', (s) => (s.crossTalkCalls === 0 ? '-' : pct(s.crossTalkEcho / s.crossTalkCalls)))
   lines.push('')
   lines.push('写操作分布：')
   lines.push('')
@@ -762,6 +794,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         crossTalkCalls: 0,
         crossTalkChanged: 0,
         crossTalkRefs: 0,
+        crossTalkEcho: 0,
       }
     } else {
       res = await runCrossTalkBeat({
@@ -772,6 +805,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         sceneText: describeScene(world),
         canon: STARTER_TOWN.canon,
         playerClaim,
+        seeOthers: arm === 'cross-talk',
         deps,
       })
     }
@@ -803,6 +837,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
       crossTalkCalls: res.crossTalkCalls,
       crossTalkChanged: res.crossTalkChanged,
       crossTalkRefs: res.crossTalkRefs,
+      crossTalkEcho: res.crossTalkEcho,
       passageChars: res.passage.length,
       newFacts: res.verdicts.filter((v) => v.ok).flatMap((v) => v.deltas.filter((d) => d.op === 'fact').map((d) => (d.op === 'fact' ? d.text : ''))),
     }
@@ -844,7 +879,16 @@ const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBAC
 const CFG = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json', piDefault)
 
 async function main(): Promise<void> {
-  const wanted: Arm[] = MODE === 'both' ? ['baseline', 'cross-talk'] : [MODE === 'cross-talk' ? 'cross-talk' : 'baseline']
+  const valid: Arm[] = ['baseline', 'self-retry', 'cross-talk']
+  const wanted: Arm[] =
+    MODE === 'all'
+      ? valid
+      : MODE === 'both'
+        ? ['baseline', 'cross-talk']
+        : valid.includes(MODE as Arm)
+          ? [MODE as Arm]
+          : []
+  if (wanted.length === 0) throw new Error(`--mode 只能是 baseline / self-retry / cross-talk / both / all（当前 ${MODE}）`)
   console.log(`实验 ${TAG}：${BEATS} 拍，${wanted.join(' + ')}`)
   console.log(`模型：cognition=${CFG.models.cognition} referee=${CFG.models.referee} narration=${CFG.models.narration}`)
   const arms = []
@@ -862,7 +906,8 @@ async function main(): Promise<void> {
     console.log(
       `${arm.arm.padEnd(10)} 拍 ${s.beats} 时钟 ${s.clockAdvance}min 硬冲突 ${s.hardConflicts} ` +
         `双花 ${s.doubleSpend} 失败op ${s.failedOps} no_rate ${pct(s.noRate)} ` +
-        `xrefs ${s.crossTalkRefs}/${s.crossTalkCalls}`,
+        `xrefs ${s.crossTalkRefs}/${s.crossTalkCalls}` +
+        ` echo ${s.crossTalkEcho}/${s.crossTalkCalls}`,
     )
   }
 }

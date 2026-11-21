@@ -152,6 +152,7 @@ referee 本身是 LLM，输出不确定；但 `commit()` 是纯函数，裁决�
 | 实验 | 做法 | 度量 | 结论门槛 |
 | :--- | :--- | :--- | :--- |
 | 一拍内多轮对话 | 人物 A 的 `outward` 先给 B 看，B 可回一句，再一起交给 referee；最多 2 轮 | 矛盾率、双花、成本、延迟、人物声音是否更活 | 质量提升 > 成本增加才保留 |
+| self-retry 控制臂 | 同样两轮，但第二轮只看到自己的草稿，不看别人 | 与 cross-talk 的差值 | 用来区分“多一次调用”本身的效果 |
 | 导演层作为第三 claim 来源 | Supervisor 只产出候选事件/节奏指令，不写账本 | 重复感、推进感、玩家找不到事做的比例 | 第 3 天仍不重复才保留 |
 | 裁判审计员 | referee 之后加一次只读审计，通过/打回，不共同写 | 纠正率、额外成本 | 高价值拍才启用 |
 | durable beat task | 用 `pi-durable` 把一拍做成 task，崩溃后续跑；账本仍由 referee 提交 | 恢复成功率、复杂度 | 只在需要崩溃恢复时做 |
@@ -162,10 +163,11 @@ referee 本身是 LLM，输出不确定；但 `commit()` 是纯函数，裁决�
 ### 6.1 运行方式
 
 ```sh
-npm run experiment:multi-round -- --beats 6 --mode both --tag pilot-1
+npm run experiment:multi-round -- --beats 6 --mode all --tag pilot-1
 ```
 
-- `--mode baseline|cross-talk|both`：只跑一臂或两臂；
+- `--mode baseline|self-retry|cross-talk|both|all`：只跑一臂或组合；默认 `all`（三臂）；
+- `self-retry` 是控制臂：同样两次认知，但第二轮只看到自己的草稿，看不到别人；
 - `--beats N`：拍数上限；
 - `--tag`：数据目录后缀，避免两轮混在一起；
 - `--data`：根目录，默认 `data/experiment`；

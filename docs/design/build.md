@@ -65,10 +65,10 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 ### 5.1 多轮交叉对话实验（可选，一次性）
 
 ```sh
-npm run experiment:multi-round -- --beats 6 --mode both --tag pilot-1
+npm run experiment:multi-round -- --beats 6 --mode all --tag pilot-1
 ```
 
-两臂：`baseline`（当前单次认知）与 `cross-talk`（每人一轮草稿 + 一轮看他人公开输出后定稿）。只共享 `outward`，`inner` 永不跨人；裁判仍是唯一写入口。产物在 `data/experiment/<tag>/<arm>/`，`report.md` 是汇总与样本。设计与指标见 [../research/multi-agent-architectures.md](../research/multi-agent-architectures.md) §6。
+三臂：`baseline`（当前单次认知）、`self-retry`（控制臂：同样两轮，但第二轮只看自己的草稿）、`cross-talk`（第二轮看其他人的公开输出）。只共享 `outward`，`inner` 永不跨人；裁判仍是唯一写入口。产物在 `data/experiment/<tag>/<arm>/`，`report.md` 是汇总与样本。设计与指标见 [../research/multi-agent-architectures.md](../research/multi-agent-architectures.md) §6。
 
 ## 6. 常见故障
 
