@@ -95,10 +95,10 @@ subAgent 只读检查 content 映射、prompt 中的名字、6 拍样本的名�
   - duration 分桶：0–3 / 4–30 / 31–239 / ≥240 分钟（统计全部 `ok` verdict，不再要求空 deltas）；
   - 名字泄漏计数：正文匹配 `player|ann|doc|cody|granny`；
   - `no_rate`、空结果、每拍墙钟耗时；
-  - `--auto` 探针混入四类：短对话、物理动作、长动作、知识交换（见 `docs/design/build.md` §2.2）。
+  - `--auto` 探针混入四类：短对话、物理动作、长动作、知识交换（见 `docs/design/build.md` §2.2）；移动探针放**最后一拍**，避免出门被门闩锁住后污染整轮。
 - `docs/design/build.md` §2.1/§2.2：已更新，按文档实现。
 - 运行并记录：
-  - 6 拍 smoke：确认探针能触发 `give/take/move` 与 ≥240 分钟；
+  - 6 拍 smoke：确认 `give/move` 能出现；长动作探针若被裁判拒绝，按“时间钉死”证据记录，不在本卡改裁判；
   - 20 拍基线：`rm -rf data && npm run play -- --beats 20 --auto`；
   - 结果写入 `docs/research/world-baseline.md`，并更新 `docs/design/backlog.md` §4 的旧 20 拍表。
 

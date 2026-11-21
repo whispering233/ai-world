@@ -119,7 +119,7 @@ cross-talk 的 `no_rate` 从 6.7% 升到 13.3%，两次 pilot 一致。
 
 每个人都在对玩家/账本表态，但彼此之间没有形成“你一句我一句”的对话链；而且名字泄漏（“多克”“奶奶”）比 cross-talk 更明显。
 
-**注意**：两臂都仍有 id/名字泄漏（`player`、`ann`、`doc`、`cody`、`granny` 进旁白），这是内容/prompt 问题，不是本实验的结论。
+**注意**：当时两臂都还有 id/名字泄漏（`player`、`ann`、`doc`、`cody`、`granny` 进旁白）；后续已用 `ContentPack.names/items` 修复，见 `docs/research/world-baseline.md` 的名字泄漏计数。
 
 ## 5. 结论
 
