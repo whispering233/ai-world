@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { runBeat, type BeatInput } from '../src/core/beat.ts'
 import { createStubCognition } from '../src/core/cognition.ts'
 import type { Character } from '../src/core/character.ts'
-import { createStubNarrator } from '../src/core/narrate.ts'
+import { createStubNarrator, type NarrationInput } from '../src/core/narrate.ts'
 import { createStubReferee, type RefereeOutput } from '../src/core/referee.ts'
 import { openScene } from '../src/core/scene.ts'
 import { openStore, replay, type Store } from '../src/core/store.ts'
@@ -250,6 +250,38 @@ describe('runBeat：旁白失败', () => {
     expect(r.notes.some((n) => n.includes('旁白失败'))).toBe(true)
     expect(store.readJournal()).toHaveLength(1)
     expect(store.readPassage()[0]?.source).toBe('fallback')
+  })
+})
+
+describe('runBeat：显示名', () => {
+  it('旁白事件带显示名，正文不泄漏玩家 id', async () => {
+    const store = tmpStore()
+    const referee: RefereeOutput[] = [
+      {
+        order: ['ann'],
+        verdicts: [verdict('p0', [], 1), verdict('a0', [], 1), verdict('d0', [], 1)],
+        observations: {},
+        driveHits: [],
+      },
+    ]
+    const input = base(store, referee)
+    input.playerClaim = '我推门进去'
+    let firstEventName = ''
+    const narrator = {
+      narrate: async (req: NarrationInput) => {
+        firstEventName = req.events[0]?.name ?? ''
+        return { text: '你推门进去，雨声跟了进来。', absoluteTime: [] }
+      },
+    }
+    const r = await runBeat({
+      ...input,
+      names: { player: '你', ann: '安', doc: '医生' },
+      items: { 'silver-dollar': '银元' },
+      deps: { ...input.deps, narrator },
+    })
+
+    expect(firstEventName).toBe('你')
+    expect(r.passage).not.toContain('player')
   })
 })
 

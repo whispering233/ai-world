@@ -55,12 +55,12 @@ subAgent 只读检查失败路径、journal/passage 顺序、是否有账本改�
 
 ### 设计
 
-- `World` 增加静态映射：`names: Record<EntId, string>`、`items: Record<ItemId, string>`（与 `places` 同层，不进账本、不被裁判改）。
-- `ContentPack` / `content/starter-town.ts` 提供全部人物、玩家、物品的显示名。
+- `ContentPack` 增加静态映射：`names: Record<EntId, string>`、`items: Record<ItemId, string>`（作者层内容，不进 World、不进账本、不被裁判改）。
+- `content/starter-town.ts` 提供全部人物、玩家、物品的显示名。
 - `validatePack` 要求：`ledger.at` 的每个实体有名字；`holds` 里出现的每个物品有名字；名字非空。
 - `describeLedger()`、`play.ts` 的 `describeScene()`、旁白的 `NarrationEvent` 使用显示名；缺失时回退 id（防御性）。
 - `NarrationEvent` 增加 `name` 字段（`actor` 仍保留 id，供 journal/工具对齐）。
-- 裁判 claim 的 `actor` 仍用 id（schema 需要）；在裁判现场文本里给名字映射，不要求模型把 id 当人名。
+- 裁判 claim 的 `actor` 仍用 id（schema 需要）；裁判现场文本用“名字(id)”保留映射，认知/旁白侧只用名字。
 
 ### 不做
 

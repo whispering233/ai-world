@@ -9,6 +9,7 @@
 - `docs/research/multi-round-experiment.md`：pilot 6 拍三臂结果（回声率、no_rate、成本、硬冲突）与结论。
 
 ### Changed
+- 人物/物品显示名进入 `ContentPack.names/items`；认知 prompt、旁白、试玩场景与体检表统一用名字，不再把 `player/ann/doc` 等 id 写进正文。
 - `typecheck` 现在覆盖 `scripts/`（实验脚本不再绕过类型检查）。
 - 玩家 UI 布局定稿：单栏阅读面 + 顶部细栏 + 底部输入 + 按需右抽屉；三栏仅作者/调试模式，记入 backlog。
 - 架构决策：裁判仍是唯一写入口；per-character agent 与 Super-agent 式中央代理不直接写世界状态，最多作为 claim 来源/导演层。

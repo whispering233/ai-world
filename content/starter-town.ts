@@ -109,4 +109,23 @@ export const STARTER_TOWN: ContentPack = {
     '安不许人在店里拔枪，也不许人把泥靴踩上柜台。',
   ],
   player: 'player',
+  names: {
+    player: '你',
+    ann: '安',
+    doc: '道森医生',
+    cody: '科迪',
+    granny: '格蕾妮',
+    lamp: '灯',
+    door: '门',
+    cellar: '地窖门',
+    streetlamp: '街灯',
+  },
+  items: {
+    'ledger-book': '账本',
+    whiskey: '威士忌',
+    morphine: '吗啡',
+    'private-bottle': '私酒',
+    keys: '钥匙串',
+    'silver-dollar': '银元',
+  },
 }

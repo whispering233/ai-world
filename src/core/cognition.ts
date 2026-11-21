@@ -18,6 +18,8 @@ export interface CognitionInput {
   character: Character
   sceneText: string
   canon: string[]
+  /** 人物显示名：id → 名字；缺省时 prompt 回退 id */
+  names?: Record<string, string>
   /** 时间出口值（分钟），写进 experience.t */
   now: number
   /** 上一拍的后果，用于“被拒绝后的反应” */
@@ -73,13 +75,14 @@ function split(text: string): CognitionOutput {
   }
 }
 
-function buildSystem(ch: Character, canon: string[], now: number): string {
+function buildSystem(ch: Character, canon: string[], now: number, names?: Record<string, string>): string {
+  const label = (id: string): string => names?.[id] ?? id
   const parts: string[] = []
   if (ch.core) parts.push(`你是什么样的人（不能违背）：\n${ch.core}`)
   if (ch.voice) parts.push(`说话方式：${ch.voice}`)
   if (ch.drives.length) parts.push(`此刻的冲动：\n${ch.drives.map((d) => `- ${d.text}（热度 ${d.heat}）`).join('\n')}`)
   const beliefs = Object.entries(ch.beliefs)
-  if (beliefs.length) parts.push(`你认定的事：\n${beliefs.map(([who, claim]) => `- ${who}：${claim}`).join('\n')}`)
+  if (beliefs.length) parts.push(`你认定的事：\n${beliefs.map(([who, claim]) => `- ${label(who)}：${claim}`).join('\n')}`)
   const memory = recall(ch, now)
   if (memory.length) parts.push(`你记得的事：\n${memory.map((e) => `- ${e.text}`).join('\n')}`)
   if (canon.length) parts.push(`世界设定：\n${canon.map((c) => `- ${c}`).join('\n')}`)
@@ -96,7 +99,7 @@ function buildPrompt(input: CognitionInput): string {
   const base = outcome ? `${input.sceneText}\n\n上一拍的结果：${outcome}` : input.sceneText
   if (!input.crossTalk) return base
 
-  const others = input.crossTalk.others.map((o) => `- ${o.actor}：${o.text}`).join('\n')
+  const others = input.crossTalk.others.map((o) => `- ${input.names?.[o.actor] ?? o.actor}：${o.text}`).join('\n')
   const blocks = [base, `这一拍其他人已经公开说/做的：\n${others || '（没有）'}`]
   if (input.crossTalk.self) blocks.push(`你刚才说/做的：${input.crossTalk.self}`)
   blocks.push('你可以坚持、补充、改口或沉默。')
@@ -108,7 +111,7 @@ export function createCognition(llm: Llm): Cognition {
     async think(input) {
       const res = await llm.chat({
         role: 'cognition',
-        system: buildSystem(input.character, input.canon, input.now),
+        system: buildSystem(input.character, input.canon, input.now, input.names),
         messages: [{ role: 'user', content: buildPrompt(input) }],
       })
       const output = split(res.text)

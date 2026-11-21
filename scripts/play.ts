@@ -91,6 +91,8 @@ async function main(): Promise<void> {
       player,
       sceneText: describeScene(world),
       canon: STARTER_TOWN.canon,
+      names: STARTER_TOWN.names,
+      items: STARTER_TOWN.items,
       playerClaim: line,
       deps,
     })
@@ -140,7 +142,7 @@ function describeScene(world: World): string {
     .filter(([ent, place]) => actors.has(ent) && place === here)
     .map(([ent]) => ent)
   const lit = world.ledger.phys['lamp']?.['lit'] === true ? '灯还亮着' : '灯已经灭了'
-  return `酒馆里：${present.join('、')}。${lit}。外面的雨没停。`
+  return `酒馆里：${present.map((ent) => STARTER_TOWN.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
 }
 
 function pct(part: number, total: number): string {

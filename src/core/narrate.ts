@@ -9,6 +9,8 @@ import type { EntId } from './world.ts'
 
 export interface NarrationEvent {
   actor: EntId
+  /** 人物显示名；缺省时回退 actor id */
+  name?: string
   text: string
   /** 结果的简短描述，如“门被踹开了” / “被拒绝了：门是铸铁焊死的” */
   outcome: string
@@ -31,7 +33,7 @@ export interface Narrator {
  * 文本很丑，但比丢拍诚实；source 会标成 fallback。
  */
 export function fallbackPassage(events: readonly NarrationEvent[]): string {
-  const lines = events.map((e) => `- ${e.actor}：${e.text} → ${e.outcome}`)
+  const lines = events.map((e) => `- ${e.name ?? e.actor}：${e.text} → ${e.outcome}`)
   return [
     '（这一拍的叙述没有生成；以下是已结算的结果。）',
     '',
@@ -64,7 +66,7 @@ const NARRATOR_SYSTEM = `你是这个世界的叙述者。你把裁判已经判�
 
 function buildPrompt(input: NarrationInput): string {
   const elapsed = input.clockAfter - input.clockBefore
-  const events = input.events.map((e) => `- ${e.actor}：${e.text} → ${e.outcome}`).join('\n')
+  const events = input.events.map((e) => `- ${e.name ?? e.actor}：${e.text} → ${e.outcome}`).join('\n')
   return `现场：\n${input.sceneText}\n\n这一拍过去的时间：${elapsed} 分钟（换算成相对说法，不要写出数字时刻）\n\n这一拍的结果：\n${events}`
 }
 

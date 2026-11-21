@@ -5,13 +5,17 @@
  * 因此不要求出现在 characters 里，只要求有一个位置。
  */
 import type { Character } from './character.ts'
-import type { EntId, World } from './world.ts'
+import type { EntId, ItemId, World } from './world.ts'
 
 export interface ContentPack {
   world: World
   characters: Character[]
   canon: string[]
   player: EntId
+  /** 人物/实体显示名：id → 人读的名字；作者层静态内容，不进账本 */
+  names: Record<EntId, string>
+  /** 物品显示名：id → 人读的名字；作者层静态内容，不进账本 */
+  items: Record<ItemId, string>
 }
 
 const CORE_MIN = 200
@@ -37,6 +41,12 @@ export function validatePack(pack: ContentPack): string[] {
   if (!(pack.player in at)) errors.push(`玩家 ${pack.player} 不在 ledger.at 里`)
   for (const [ent, place] of Object.entries(at)) {
     if (!(place in pack.world.places)) errors.push(`实体 ${ent} 所在地点 ${place} 不在 places 里`)
+    if ((pack.names[ent] ?? '').trim() === '') errors.push(`实体 ${ent} 缺少显示名`)
+  }
+  for (const bag of Object.values(pack.world.ledger.holds)) {
+    for (const item of Object.keys(bag)) {
+      if ((pack.items[item] ?? '').trim() === '') errors.push(`物品 ${item} 缺少显示名`)
+    }
   }
 
   for (const ch of pack.characters) {

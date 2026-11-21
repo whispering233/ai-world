@@ -28,6 +28,10 @@ export interface BeatInput {
   /** 场景的静态描述（装配时拼好的那一段） */
   sceneText: string
   canon: readonly string[]
+  /** 人物显示名：id → 名字；缺省时正文/prompt 回退 id */
+  names?: Record<EntId, string>
+  /** 物品显示名：id → 名字；缺省时正文/prompt 回退 id */
+  items?: Record<string, string>
   /** 玩家自由输入原文；为空表示玩家这拍不发言 */
   playerClaim?: string
   deps: BeatDeps
@@ -70,7 +74,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   // 人物本拍要能看见玩家刚说的话/做的事；只给公开输入，不给玩家的私有状态。
   const playerLine = input.playerClaim ? `玩家刚才说/做：${input.playerClaim}` : ''
   const sceneFor = (ent: EntId): string =>
-    [input.sceneText, playerLine, describeLedger(input.world, inScene), contextOf(input.scene, ent)]
+    [input.sceneText, playerLine, describeLedger(input.world, inScene, input.names, input.items), contextOf(input.scene, ent)]
       .filter(Boolean)
       .join('\n')
   // 同一拍内多个 actor 的认知互不依赖：并发跑，但按人位顺序落 claims（结算顺序仍由裁判给）。
@@ -88,6 +92,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
           sceneText: sceneFor(ent),
           canon: [...input.canon],
           now: clock,
+          ...(input.names ? { names: input.names } : {}),
         })
         return { ok: true as const, ent, ch, res }
       } catch (error) {
@@ -115,7 +120,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
 
   let out
   try {
-    out = await deps.referee.judge({ clock, claims, context: [input.sceneText, describeLedger(input.world, present), contextOf(input.scene, input.player)].filter(Boolean).join('\n') })
+    out = await deps.referee.judge({ clock, claims, context: [input.sceneText, describeLedger(input.world, present, input.names, input.items, true), contextOf(input.scene, input.player)].filter(Boolean).join('\n') })
   } catch (error) {
     // 裁判挂了 = 这一拍没有任何事被确认发生。宁可整拍空转，也不编一个没结算过的世界。
     return {
@@ -141,7 +146,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
 
   const narratorEvents = claims.map((c) => {
     const v = out.verdicts.find((x) => x.claimId === c.id)
-    return { actor: c.actor, text: c.text, outcome: describe(v) }
+    return { actor: c.actor, name: input.names?.[c.actor] ?? c.actor, text: c.text, outcome: describe(v) }
   })
 
   let passage = ''
@@ -204,13 +209,14 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
 }
 
 /** shortcut: 只给“在场者的持有物 + 地点表”，不做相关实体剪枝；实体多了再按场景切片 */
-function describeLedger(world: World, present: readonly EntId[]): string {
+function describeLedger(world: World, present: readonly EntId[], names?: Record<EntId, string>, items?: Record<string, string>, withIds = false): string {
+  const label = (id: string): string => (withIds ? `${names?.[id] ?? id}(${id})` : (names?.[id] ?? id))
   const places = Object.entries(world.places).map(([id, name]) => `${name}(${id})`).join('、')
   const rows = present.map((ent) => {
     const place = world.ledger.at[ent] ?? '未知'
-    const bag = Object.entries(world.ledger.holds[ent] ?? {}).map(([item, n]) => `${item}×${n}`).join('、') || '空手'
+    const bag = Object.entries(world.ledger.holds[ent] ?? {}).map(([item, n]) => `${items?.[item] ?? item}×${n}`).join('、') || '空手'
     const phys = Object.entries(world.ledger.phys[ent] ?? {}).map(([k, v]) => `${k}=${String(v)}`).join('、')
-    return `- ${ent}：在 ${place}；持有 ${bag}${phys === '' ? '' : `；${phys}`}`
+    return `- ${label(ent)}：在 ${world.places[place] ?? place}；持有 ${bag}${phys === '' ? '' : `；${phys}`}`
   })
   const events = describeFacts(world, present, world.ledger.clock)
   return `已知地点：${places}\n账本现状：\n${rows.join('\n')}${events === '' ? '' : `\n最近发生过的事：\n${events}`}`

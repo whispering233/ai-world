@@ -22,6 +22,12 @@ describe('渲染：只出文本，不写回', () => {
     // 不写绝对时间，也不写额外的世界变化
     expect(text).not.toContain('第 ')
   })
+
+  it('fallback 优先用显示名', () => {
+    const text = fallbackPassage([{ actor: 'ann', name: '安', text: '我把杯子推过去', outcome: '杯子到了柜台边' }])
+    expect(text).toContain('安：我把杯子推过去')
+    expect(text).not.toContain('ann：')
+  })
   it('正常文本原样返回，absoluteTime 为空', async () => {
     const prose = '雨还没停。\n门上留下一个新鲜的脚印。'
     const out = await createStubNarrator([prose]).narrate(input())
