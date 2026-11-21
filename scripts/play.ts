@@ -38,7 +38,7 @@ const AUTO_LINES = [
   '我走到柜台前，问老板娘还有没有酒。',
   '我把两枚银元塞进安手里，要一杯威士忌。',
   '我把自己那杯威士忌喝掉。',
-  '我告诉医生，安早就还清了债。',
+  '我凑到医生耳边，用只有他能听见的声音说：安把账本藏在柜台下面。',
   '我把那本账本推到柜台中间。',
   '我帮安把空杯收进木盆，端到柜台后面。',
   '我问医生这镇上最近死了几个人。',
@@ -95,7 +95,7 @@ async function main(): Promise<void> {
 
   for (let i = 1; i <= BEATS; i += 1) {
     const line = AUTO
-      ? i === BEATS
+      ? i === BEATS && BEATS >= 10
         ? FINAL_MOVE_PROBE
         : i === LONG_BEAT
           ? LONG_PROBE
