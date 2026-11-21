@@ -173,10 +173,11 @@ function describeScene(world: World): string {
 /** 与 src/core/beat.ts 的私有实现保持一致；实验脚本不把它抽成公共层。 */
 function describeLedger(world: World, present: readonly EntId[], names?: Record<EntId, string>, items?: Record<string, string>, withIds = false): string {
   const label = (id: string): string => (withIds ? `${names?.[id] ?? id}(${id})` : (names?.[id] ?? id))
+  const itemLabel = (id: string): string => (withIds ? `${items?.[id] ?? id}(${id})` : (items?.[id] ?? id))
   const places = Object.entries(world.places).map(([id, name]) => `${name}(${id})`).join('、')
   const rows = present.map((ent) => {
     const place = world.ledger.at[ent] ?? '未知'
-    const bag = Object.entries(world.ledger.holds[ent] ?? {}).map(([item, n]) => `${items?.[item] ?? item}×${n}`).join('、') || '空手'
+    const bag = Object.entries(world.ledger.holds[ent] ?? {}).map(([item, n]) => `${itemLabel(item)}×${n}`).join('、') || '空手'
     const phys = Object.entries(world.ledger.phys[ent] ?? {}).map(([k, v]) => `${k}=${String(v)}`).join('、')
     return `- ${label(ent)}：在 ${world.places[place] ?? place}；持有 ${bag}${phys === '' ? '' : `；${phys}`}`
   })

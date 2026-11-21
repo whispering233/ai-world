@@ -6,10 +6,11 @@ import { runBeat, type BeatInput } from '../src/core/beat.ts'
 import { createStubCognition } from '../src/core/cognition.ts'
 import type { Character } from '../src/core/character.ts'
 import { createStubNarrator, type NarrationInput } from '../src/core/narrate.ts'
-import { createStubReferee, type RefereeOutput } from '../src/core/referee.ts'
+import { createStubReferee, type RefereeInput, type RefereeOutput } from '../src/core/referee.ts'
 import { openScene } from '../src/core/scene.ts'
 import { openStore, replay, type Store } from '../src/core/store.ts'
 import type { EntId, World } from '../src/core/world.ts'
+import type { Referee } from '../src/core/referee.ts'
 
 const dirs: string[] = []
 
@@ -282,6 +283,59 @@ describe('runBeat：显示名', () => {
 
     expect(firstEventName).toBe('你')
     expect(r.passage).not.toContain('player')
+  })
+
+  it('裁判上下文保留物品 id，避免把显示名当 item id', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.playerClaim = '我把两枚银元塞进安手里'
+    input.world = {
+      ...input.world,
+      ledger: { ...input.world.ledger, holds: { player: { 'silver-dollar': 2 } } },
+    }
+    let context = ''
+    const referee: Referee = {
+      async judge(req: RefereeInput) {
+        context = req.context
+        return {
+          order: ['ann'],
+          verdicts: [verdict('p0', [], 1), verdict('a0', [], 1), verdict('d0', [], 1)],
+          observations: {},
+          driveHits: [],
+        }
+      },
+    }
+    await runBeat({
+      ...input,
+      names: { player: '你', ann: '安', doc: '医生' },
+      items: { 'silver-dollar': '银元' },
+      deps: { ...input.deps, referee },
+    })
+
+    expect(context).toContain('银元(silver-dollar)×2')
+  })
+})
+
+describe('runBeat：已提交 claim', () => {
+  it('只把全部 op 都通过的 claim 记为已提交', async () => {
+    const store = tmpStore()
+    const referee: RefereeOutput[] = [
+      {
+        order: ['ann'],
+        verdicts: [
+          verdict('p0', [{ op: 'fact', text: '雨小了' }], 1),
+          { claimId: 'a0', actor: 'ann', ok: true, deltas: [{ op: 'give', from: 'ann', to: 'player', item: 'missing', n: 1 }], duration: 1 },
+        ],
+        observations: {},
+        driveHits: [],
+      },
+    ]
+    const input = base(store, referee)
+    input.playerClaim = '我看了看窗外'
+    const r = await runBeat(input)
+
+    expect(r.committedClaims).toContain('p0')
+    expect(r.committedClaims).not.toContain('a0')
   })
 })
 

@@ -4,7 +4,7 @@
 
 ## [Unreleased]
 ### Added
-- `docs/research/world-baseline.md`：20 拍新基线（物质流 6 give / 1 move、`know_rate` 74%、长动作 0、时间钉死证据）。
+- `docs/research/world-baseline.md`：20 拍新基线（已提交 4 give / 1 move / 0 take、`know_rate` 68.6%、1 次 480 分钟长动作与时间跳跃证据）。
 - `docs/research/multi-agent-architectures.md`：Claude Code Agent Teams / Orca·Herdr / DeepSeek Super-agent / pi 生态的编排架构调研，以及 ai-world 保留裁判作为唯一提交层的理由。
 - `scripts/experiment-multi-round.ts`：baseline / self-retry / cross-talk 三臂的一拍内多轮对话实验，输出 journal/passage/metrics/report。
 - `docs/research/multi-round-experiment.md`：pilot 6 拍三臂结果（回声率、no_rate、成本、硬冲突）与结论。
@@ -19,6 +19,7 @@
 ### Fixed
 - 人物认知现在能看到玩家本拍的输入（此前只有裁判看得到）。
 - 旁白抛错或返回空文本时不再丢拍：journal 先落，passage 用事实摘要兜底并标记 `fallback`。
+- 裁判上下文的持有物补上 `item(id)` 映射；体检表只统计已提交 claim 的写操作，不再把回滚的 op 算成世界变化。
 
 ## [v0.0.1] - 2026-11-21
 ### Note

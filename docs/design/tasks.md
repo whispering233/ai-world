@@ -90,8 +90,8 @@ subAgent 只读检查 content 映射、prompt 中的名字、6 拍样本的名�
 ### 范围
 
 - `scripts/play.ts`：
-  - op 分布：`move/give/take/phys/rel/fact/know`；
-  - `know_rate` = `know` 写操作 / 全部写操作；
+  - op 分布：`move/give/take/phys/rel/fact/know`（只统计已提交 claim 的 deltas，回滚的不算）；
+  - `know_rate` = `know` 写操作 / 全部已提交写操作；
   - duration 分桶：0–3 / 4–30 / 31–239 / ≥240 分钟（统计全部 `ok` verdict，不再要求空 deltas）；
   - 名字泄漏计数：正文匹配 `player|ann|doc|cody|granny`；
   - `no_rate`、空结果、每拍墙钟耗时；

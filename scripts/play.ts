@@ -86,6 +86,7 @@ async function main(): Promise<void> {
   if (!AUTO) stdout.write('你说一句话或做一件事，一行就是一拍；输入 /quit 结束并出体检表。\n\n')
   const rl = AUTO ? undefined : createInterface({ input: stdin, output: stdout })
   const startedAt = performance.now()
+  const committedClaims = new Set<string>()
 
   for (let i = 1; i <= BEATS; i += 1) {
     const line = AUTO ? (i === BEATS ? FINAL_MOVE_PROBE : (AUTO_LINES[(i - 1) % AUTO_LINES.length] ?? '')) : await rl?.question('你> ')
@@ -107,6 +108,7 @@ async function main(): Promise<void> {
     world = res.world
     characters = res.characters
     scene = res.scene
+    for (const claimId of res.committedClaims) committedClaims.add(claimId)
 
     stdout.write(`\n—— 第 ${i} 拍 · ${fmt(world.ledger.clock)} ——\n${res.passage}\n`)
     if (res.notes.length) stdout.write(`  · ${res.notes.join('\n  · ')}\n`)
@@ -122,7 +124,8 @@ async function main(): Promise<void> {
   const beats = journal.filter((e) => e.type === 'beat')
   const verdicts = journal.flatMap((e) => e.verdicts)
   const claims = journal.flatMap((e) => e.claims)
-  const ops = verdicts.flatMap((v) => v.deltas)
+  const committedVerdicts = verdicts.filter((v) => committedClaims.has(v.claimId))
+  const ops = committedVerdicts.flatMap((v) => v.deltas)
   const opCounts: Record<string, number> = {}
   for (const op of ops) opCounts[op.op] = (opCounts[op.op] ?? 0) + 1
   const opNames = ['move', 'give', 'take', 'phys', 'rel', 'fact', 'know']
@@ -153,7 +156,8 @@ async function main(): Promise<void> {
   stdout.write(`空结果占比      ${pct(empty.length, verdicts.length)}   （期望 < 50%）\n`)
   stdout.write(`长动作占比      ${pct(longActions.length, verdicts.length)}   （≥240min，全部 ok）\n`)
   stdout.write(`长且空占比      ${pct(longEmpty.length, verdicts.length)}\n`)
-  stdout.write(`写操作          ${writeOps}   ${opNames.map((n) => `${n} ${opCounts[n] ?? 0}`).join(' / ')}\n`)
+  stdout.write(`提交 claim      ${committedVerdicts.length} / ${verdicts.length}\n`)
+  stdout.write(`写操作（已提交） ${writeOps}   ${opNames.map((n) => `${n} ${opCounts[n] ?? 0}`).join(' / ')}\n`)
   stdout.write(`know_rate      ${(knowRate * 100).toFixed(1)}%   （know / 全部写操作）\n`)
   stdout.write(`duration 分桶   ${Object.entries(durationBuckets).map(([k, n]) => `${k}: ${n}`).join(' | ')}\n`)
   stdout.write(`名字泄漏        ${nameLeaks}   （期望 0）\n`)
