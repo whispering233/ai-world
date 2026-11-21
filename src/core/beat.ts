@@ -135,8 +135,11 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
       notes: [...degraded, `裁决失败（本拍无进展）：${(error as Error).message}`],
     }
   }
-  // 先把时钟推到本拍结束，再提交：否则 learn 建出的 fact.at 会落后于重放时的值，回放就不相等了
-  const clockAfter = clock + maxDuration(out.verdicts)
+  // 先 dry run 找出真正会提交的 claim：被拒绝或整条回滚的 claim 不推进 clock。
+  // 再用 clockAfter 做真实 commit，保证本拍新建 fact 的 at 落在结束时刻，replay 仍相等。
+  const dry = commit(input.world, out)
+  const committedIds = new Set(dry.applied.filter((a) => a.committed).map((a) => a.claimId))
+  const clockAfter = clock + maxDuration(out.verdicts.filter((v) => committedIds.has(v.claimId)))
   const at = { ...input.world, ledger: { ...input.world.ledger, clock: clockAfter } }
   const { world, applied } = commit(at, out)
   const notes = applied.flatMap((a) => a.results.filter((r) => !r.ok).map((r) => `${a.claimId}: ${r.why ?? 'op 失败'}`))
