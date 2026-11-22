@@ -27,25 +27,19 @@ export interface Skeleton {
 
 export const SKELETONS: readonly Skeleton[] = [
   {
-    id: 'lamp-dies',
-    actor: 'lamp',
-    when: (w) => w.ledger.phys['lamp']?.['lit'] === true,
-    causeKeys: ['灯', '火', '灶'],
-    template: '灶膛里爆出一粒火星，落在灯芯上，灯焰跳了两下，然后灭了。',
-  },
-  {
     id: 'door-blown',
     actor: 'door',
     when: (w) => w.ledger.phys['door']?.['closed'] === true,
-    causeKeys: ['门', '雨', '风'],
+    causeKeys: ['风', '雨', '门'],
     template: '风从门缝里挤进来，把没插紧的门闩顶开，门自己撞在墙上。',
   },
   {
-    id: 'cellar-lifts',
-    actor: 'cellar',
-    when: (w) => w.ledger.phys['cellar']?.['open'] === false,
-    causeKeys: ['地窖', '水', '账本', '柜台'],
-    template: '地窖盖板被下面的水汽顶起一条缝，木边卡在半开的位置。',
+    id: 'lamp-dies',
+    actor: 'lamp',
+    // 门开了才有穿堂风；这一条把“风”写成账本能验证的链
+    when: (w) => w.ledger.phys['door']?.['closed'] === false && w.ledger.phys['lamp']?.['lit'] === true,
+    causeKeys: ['风', '雨', '门'],
+    template: '穿堂风把灯焰压得只剩一线，晃了两下，灭了。',
   },
 ]
 
@@ -64,10 +58,15 @@ export interface Pick {
   causes: Fact[]
 }
 
-/** 池里第一个"状态够 + 有前因"的骨架；一个都没有就返回 undefined（本拍无世界事件）。 */
-export function pickSkeleton(world: World): Pick | undefined {
+/** 同一张牌打过了就得凉一会儿，否则条件一直成立，每拍都重抽同一张。 */
+export const COOLDOWN_BEATS = 6
+
+/** 池里第一个“状态够 + 有前因 + 不在冷却”的骨架；一个都没有就返回 undefined。 */
+export function pickSkeleton(world: World, drawnAt: ReadonlyMap<string, number>): Pick | undefined {
   for (const skeleton of SKELETONS) {
     if (!skeleton.when(world)) continue
+    const last = drawnAt.get(skeleton.id)
+    if (last !== undefined && world.ledger.clock - last < COOLDOWN_BEATS) continue
     const causes = causesFor(world, skeleton.causeKeys)
     if (causes.length === 0) continue
     return { skeleton, causes }
@@ -125,22 +124,25 @@ export interface DrawStats {
   /** 有前因、被抽中 */
   picked: number
   pickedIds: string[]
+  /** 条件成立但还在冷却 */
+  cooldownSkips: number
 }
 
-let seq = 0
-
-/** 抽卡源：只读账本；产出 claim，不写状态。 */
-export function createStoryletSource(llm: Llm, sceneText: () => string, stats: DrawStats) {
+/** 抽卡源：只读账本，产出一条 claim，不写状态、不调模型（模板文本）。 */
+export function createStoryletSource(stats: DrawStats) {
+  const drawnAt = new Map<string, number>()
   return {
-    async draw(input: { world: World; clock: number }): Promise<Claim[]> {
+    draw(input: { world: World; clock: number }): Claim[] {
       stats.attempts += 1
-      const pick = pickSkeleton(input.world)
-      if (!pick) return []
+      const pick = pickSkeleton(input.world, drawnAt)
+      if (!pick) {
+        if (drawnAt.size > 0) stats.cooldownSkips += 1
+        return []
+      }
+      drawnAt.set(pick.skeleton.id, input.clock)
       stats.picked += 1
       stats.pickedIds.push(pick.skeleton.id)
-      const filled = await fillEvent(llm, sceneText(), pick.causes, pick.skeleton)
-      seq += 1
-      return [{ id: `w${input.clock}-${seq}`, actor: pick.skeleton.actor, text: filled.text, kind: 'act' }]
+      return [{ id: `w${input.clock}-${pick.skeleton.id}`, actor: pick.skeleton.actor, text: pick.skeleton.template, kind: 'act' }]
     },
   }
 }

@@ -36,7 +36,7 @@
 | [world-baseline.md](research/world-baseline.md) | 20 拍世界基线：物质流、时间钉死、知识通胀、名字泄漏与探针说明 |
 | [cache-prefix.md](research/cache-prefix.md) | cognition 前缀顺序与 6 拍缓存计量（cacheRead/cacheWrite），以及不能宣称的结论 |
 | [fact-structure.md](research/fact-structure.md) | fact 的 actor/kind 6 拍 smoke：10/10 覆盖、kind 分布与样本，不是密度回归 |
-| [storylet-probe.md](research/storylet-probe.md) | 裁判对非人 actor 世界事件的 6 次裁决；填肉 3 条；10 拍 A/B（净收益为负：连抽、假前因、填肉替人做动作） |
+| [storylet-probe.md](research/storylet-probe.md) | 裁判对非人 actor 世界事件的 6 次裁决；填肉 3 条；10 拍 A/B v1（净收益为负）与 v2（落账 2/2，但空转拍未降——“无因不抽”与“填最初的静”相互抵消） |
 
 ## 其他
 

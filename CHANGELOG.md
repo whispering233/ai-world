@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 ### Added
+- `scripts/storylet-pool.ts`：骨架池（冷却 6 拍、前因只认 `facts`、模板文本）、`pickSkeleton` / `causesFor` 与填肉入口。
+- `docs/research/storylet-probe.md` §10 §11：v2 10 拍 A/B（冷却 + 紧前因 + 模板文本）——世界事件落账 2/2、抽卡边际成本 0，但空转拍 2/10 → 3/10：“无因不抽”让抽卡只能事后跟风，填不到最早的静。
 - `BeatInput.claimSource`：世界事件作为 claim 第三来源的注入点，只读账本、产出仍由裁判裁决；缺省时一拍只有玩家与人物，抽卡失败只丢世界事件并注 `notes`。
 - `docs/research/storylet-probe.md` 增 §7 §8：填肉 3 条（硬检查全过，软规则被破），10 拍 A/B（空转拍 3/10 → 1/9，但 +21% 墙钟、一张牌连抽 6 次、7 条世界事件只落账 1 条）；同一份文档记录“第一版净收益为负”与四个实现级修正点。
 - `docs/research/storylet-probe.md`：6 次真实裁决的 storylet 探针（非人 actor 可行，缺前因会被拒，竞争臂世界事件 0/3 落账，裁判自造前提）；`scripts/probe-storylet.ts` 可重跑，`--replay` 不重复调用。

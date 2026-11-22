@@ -10,7 +10,7 @@
 
 | 候选 | 现在做它的理由 | 先看什么 |
 | :--- | :--- | :--- |
-| storylet v2（冷却 + 真前因 + 填肉禁写人）重跑 10 拍 | 第一版 A/B 净收益为负，四个失败点都在池与提示词：一张牌连抽 6 次、关键词假前因、填肉替人物做动作、骨架无物理可信度 | [storylet-probe.md §8](../research/storylet-probe.md) 的四个修正点 |
+| storylet v3（环境前因来自 canon）重跑 10 拍 | v2 证明机制可行（落账 2/2、零成本）但空转拍没降：两臂死拍都在第 2–3 拍与末拍，那时账本里还没有任何 fact 可当前因 | [storylet-probe.md §10](../research/storylet-probe.md) 的发现 2–3 |
 | W6 服务端 + 阅读面 | 世界层已能回放、续跑；`fact` 已有 actor/kind，阅读面可以按人/类别组织 | `/beat` SSE、`/state`、UI 设计稿 |
 | 折场时压 experience | 上下文预算吃紧时 | `recall` 的检索权重 |
 | 缓存 A/B | 有 before/after 需求时 | 同条件换前缀顺序各跑 6 拍 |

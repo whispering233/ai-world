@@ -101,8 +101,8 @@ async function main(): Promise<void> {
   let world: World = structuredClone(STARTER_TOWN.world)
   let characters = new Map(STARTER_TOWN.characters.map((c) => [c.id, structuredClone(c)]))
   let scene = openScene({ id: 's1', place: world.ledger.at[player] ?? 'saloon', clock: 0, participants })
-  const stats: DrawStats = { attempts: 0, picked: 0, pickedIds: [] }
-  const claimSource = ARM === 'storylet' ? createStoryletSource(llm, () => sceneText(world), stats) : undefined
+  const stats: DrawStats = { attempts: 0, picked: 0, pickedIds: [], cooldownSkips: 0 }
+  const claimSource = ARM === 'storylet' ? createStoryletSource(stats) : undefined
 
   process.stdout.write(`A/B 臂=${ARM}  拍数=${BEATS}  模型 referee=${cfg.models.referee}\n\n`)
   const startedAt = performance.now()
@@ -165,7 +165,7 @@ async function main(): Promise<void> {
   process.stdout.write(`facts/beat      ${(facts.length / Math.max(1, beats.length)).toFixed(2)}\n`)
   process.stdout.write(`duration 分桶   ${Object.entries(buckets).map(([k, n]) => `${k}: ${n}`).join(' | ')}\n`)
   if (ARM === 'storylet') {
-    process.stdout.write(`抽卡            尝试 ${stats.attempts} · 命中 ${stats.picked}（${stats.pickedIds.join(',') || '无'}）\n`)
+    process.stdout.write(`抽卡            尝试 ${stats.attempts} · 命中 ${stats.picked}（${stats.pickedIds.join(',') || '无'}）· 冷却跳过 ${stats.cooldownSkips}\n`)
     process.stdout.write(`世界事件落账    ${worldPaid.length} / ${worldClaims.length}\n`)
   }
   process.stdout.write(`耗时            ${Math.round(performance.now() - startedAt)}ms\n`)
