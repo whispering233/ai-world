@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 ### Added
+- `packages/web`：玩家阅读面（Vite + React 19 + Tailwind 4，**零组件库/图标库/状态库/路由库**）——`tokens.css` 单一改色入口（七色 + 四档字号 + 两个系统字体栈，暗色靠 `data-theme` 覆盖同名变量）、11 个手写基础件、8 个玩家组件、`api.ts`（SSE 分帧解析 + `fetch` + `AbortSignal`，不用 `EventSource`）。
+- `packages/web/src/discipline.test.ts`：源码扫描四条规则（不 import 作者壳 / 只依赖 shared / 不出现引擎标识符 / 颜色只在 tokens.css）**加规则自检**（违规样例必命中、合法样例必不误报）。
 - `packages/server`：单进程 Hono 服务端——`GET /api/session`、`POST /api/beat`（SSE：`progress`/`passage`/`state`/`done`/`error`）、`POST /api/reset`、`GET /api/author/{session,beat/:seq}`，静态托管与 SPA fallback；一拍单飞（并发 409），断连三路都接 `AbortController`。
 - `packages/server/src/session.ts`：`createSession` 把 boot / 单拍互斥 / abort / usage 累计 / prompt 环形缓冲收在一个不依赖 HTTP 的内核里，路由只是薄适配。
 - `JournalEntry.telemetry`（可选）：每拍的模型串与用量，由服务端注入；`replay` 不读它。

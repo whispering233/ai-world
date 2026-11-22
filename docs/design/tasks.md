@@ -8,13 +8,12 @@
 
 | 卡 | 内容 | 依赖 | 验收 |
 | :--- | :--- | :--- | :--- |
-| **W6-3** 玩家壳 | `packages/web/`（`package.json`/`tsconfig.json`/`index.html`/`vite.config.ts`/`main.tsx`/`App.tsx`/`tokens.css`）；11 个基础件；8 个玩家组件；`api.ts` + `api.test.ts`；`discipline.test.ts` | — | `api.test.ts` 覆盖 SSE 分帧 / 半帧 / 多帧粘包 / `[DONE]` 缺失；`discipline.test.ts` 三条断言全绿；`ui-verifier` 跑 6 条路径（空世界 / 发送 / 等待 / 失败 / 抽屉 / 切到作者壳），截图 ≤8 张 |
-| **W6-4** 作者壳 | `packages/web/src/author/*`（`AuthorApp`/`BeatList`/`BeatDetail`/`LedgerView`/`HealthPanel`/`ContentEditor`/`SaveDialog`）；`packages/server/src/routes/author.ts`；`POST /api/author/content` | W6-3 | 改 `core` 保存 → 横幅出现 → 开新局 → 桩模型收到的 prompt 里是新 `core`；保存非法内容返回 `E_INVALID_CONTENT` 且文件字节未变；作者端点无任何写 `data/` 的路径 |
+| **W6-4** 作者壳 | `packages/web/src/author/*`（`AuthorApp`/`BeatList`/`BeatDetail`/`LedgerView`/`HealthPanel`/`ContentEditor`/`SaveDialog`）；`packages/server/src/routes/author.ts`；`POST /api/author/content` | — | 改 `core` 保存 → 横幅出现 → 开新局 → 桩模型收到的 prompt 里是新 `core`；保存非法内容返回 `E_INVALID_CONTENT` 且文件字节未变；作者端点无任何写 `data/` 的路径 |
 
 ## 2. 并行分层
 
 ```text
-W6-3 → W6-4
+W6-4
 ```
 
 - 一层内的卡互不重叠，可在各自的临时 worktree 里并行。
@@ -69,6 +68,10 @@ W6-3 → W6-4
 - `session.beat()` 的 `signal` 不指望 provider 老实看：`withBeatScope` 把每次 `chat()` 与 `signal` 做 `Promise.race`。
 - `pnpm-workspace.yaml` 的 `minimumReleaseAgeExclude` 不是可选装饰：pnpm 12 默认发布冷却会让 `--frozen-lockfile` 直接拒掉刚发布的 `hono`。
 - `pnpm dev:server` / `serve` 必须带 `--network-family-autoselection-attempt-timeout=2000`，与 `play` 同理。
+- `<dialog>` 上不许直接写 `flex`/`block`：Tailwind 的 `.flex` 会压过 UA 的 `dialog:not([open]){display:none}`，抽屉会常开且拦住后面的按钮。用 `hidden` + `open:flex`（特异度 0,2,0 > 0,1,0）。
+- 静态托管的 content-type 看**实际发出的文件**，不看请求路径：SPA fallback 的路径（`/`、`/author`）通常没有扩展名。
+- `playerView` 的 `here` 必须用人物白名单：`ledger.at` 里有灯、门、地窖门这类实体，它们不是“在场的人”。
+- UI 改完必须跑一次浏览器实测：上面三条 bug 全部是 `pnpm test` 与 typecheck 绿的情况下漏过去的。
 
 ## 5. 执行与验证约定
 
