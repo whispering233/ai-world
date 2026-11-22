@@ -44,6 +44,9 @@
 
 一次只做一张卡；每张卡独立 commit，可单独回滚。测试前清掉 `PI_MODEL`，否则环境变量会覆盖 settings，config 用例会假红。
 
+- UI 卡改完必须跑一次**浏览器实测**：类型检查与单测全绿也会漏掉抽屉常开、`/` 返回 octet-stream、按钮被遮这类缺陷。
+- 并行卡都往 `packages/core/src/index.ts` 加导出时**按字母序插入**，否则合并必撞同一行。
+
 ## 别做的事
 
 - 不加 ECS、向量库、插件框架、storylet 运行时（已冻结：3 次重复测不出收益，见 `docs/design/backlog.md` 与 `docs/research/storylet-probe.md` §18）。

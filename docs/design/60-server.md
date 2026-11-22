@@ -13,6 +13,8 @@ packages/server   Hono + @hono/node-server
 
 不引入数据库、队列、后台任务、多进程。理由：一拍 50 秒、单用户、状态总量在几十 KB 级；引入这些只会在"账本可验证"之外再造一套需要对齐的状态。
 
+静态托管的 content-type 看**实际发出的文件**，不看请求路径：SPA fallback 的路径（`/`、`/author`）通常没有扩展名，按请求路径取会得到 `application/octet-stream`，浏览器直接下载而不是渲染。
+
 ## 2. 启动与续跑
 
 ```text
@@ -54,7 +56,9 @@ POST /api/beat
 | 提交后断开 | 服务端仍写完 passage 落盘；重连靠 `GET /api/session` 全量重建 |
 | 客户端主动取消 | 不发取消请求，断开连接即取消 |
 
-实现：每拍一个 `AbortController`；`Llm` 用一个薄包装把 `signal` 注入每次 `chat()`（`src/core` 的接口不变）。断连检测三路都接：`stream.onAbort`、`c.req.raw.signal`、`close`。
+实现：每拍一个 `AbortController`；`Llm` 用一个薄包装把 `signal` 注入每次 `chat()`，并把底层调用与 `signal` 做 `Promise.race`（不指望 provider 老实看 signal）。断连检测三路都接：`stream.onAbort`、`c.req.raw.signal`、`close`。
+
+单拍互斥在**开流之前**判（HTTP 409）：流一旦开了就只能发 `error` 帧，用不了状态码。
 
 ## 5. 内容生命周期
 
@@ -69,6 +73,10 @@ POST /api/beat
 | 不热生效 | 热切换会静默清掉本局的 `drives[].heat` 与 `beliefs`（两者既是作者字段又是运行时状态），等于"保存成功"在偷偷改世界 |
 
 保存后的三选一：**开新局（推荐）/ 只保存，本局不变 / 取消**。后两项都是"本局不变"。
+
+作者壳保存的是**整份** `JSON.stringify(pack)`，不是只拼可编辑字段：它不认识的字段（`ambient`、`aliases`）必须原样带回，否则一次保存会静默删掉半个内容包。
+
+prompt 只在内存环形缓冲保留最近 3 拍，不落盘（体积 + 隐私面）；进程一停就没了，作者壳要如实显示"已超出窗口"而不是空白。
 
 ## 6. 两种壳与投影
 
@@ -86,6 +94,12 @@ POST /api/beat
 3. **数据懒取**：作者数据只在切到作者壳时请求。
 
 不做服务端开关、不做独立 HTML entry、不做构建期移除。理由：本机单用户，真正的风险不是"别人看到调试数据"，是"玩家视图混进调试语义"——这只能由 1、2 挡住。
+
+投影的几条输入约束：
+
+- `playerView` 的 `player` 必须显式传入，不从内容包推；`at[player]` 缺失时退化成空 `place`/空 `here`，**不抛错**（投影崩掉比显示空更糟）。
+- `here` 必须用**人物白名单**：`ledger.at` 里还有灯、门、地窖门这类实体（它们的 `phys` 键要用），它们不是"在场的人"。
+- 玩家投影的"无 id"由 `view.test.ts` 两条断言守住：递归键集合无引擎词、序列化后不出现任何实体/物品 id。
 
 ## 7. 包结构与依赖方向
 

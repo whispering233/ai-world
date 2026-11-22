@@ -86,6 +86,12 @@ no_rate = verdict:'no' 的次数 / claim 总数
 
 必须按"应当有风险的 claim"分桶统计，否则低风险玩法会污染指标。
 
+### 7.1 口径
+
+- 体检只统计**已提交**的 claim 的 ops；回滚的 claim 不算世界变化。落账名单来自 `JournalEntry.committed`（[schema §3](../db/schema.md)）——不要用内存集合：进程重启后它是空的，会把有 deltas 的 journal 报成 0 次写操作。
+- 改世界之前先测量：用已提交 op / `duration` 分桶 / `know_rate` / `facts/beat` / `cacheRead` 定位，再决定改什么。
+- 体检口径只有一份实现（`packages/core/src/health.ts`），CLI 试玩器与作者壳共用。
+
 ## 8. 已知失败模式
 
 | 失败 | 表现 | 处置方向 |

@@ -24,6 +24,8 @@
 
 **没有阶段、没有工作记忆对象、没有中间产物。** 人物是一个 actor：收消息、回消息、休眠。循环在世界层（见 40）。
 
+system 顺序固定：`core/voice → 输出指令 → canon → drives/beliefs/记忆`。缓存按前缀匹配，所以易变段必须排在后面。
+
 ## 3. 输出切分（推荐，待确认）
 
 | 字段 | 内容 | 去向 |
@@ -48,6 +50,8 @@
 `self` 条目的写法约束：**必须是具体的人、事或决定，不许是感悟。** 反例（禁止）："我明白了信任的珍贵"。正例："我不再指望他替我说话"。
 
 `drives.heat` 的调整：被满足 −0.2，被阻碍 +0.2，由 referee 的 `driveHits` 给出，角色不能自己加温。
+
+本拍新增的记忆与 `driveHits` 必须进 journal（`experience` / `driveHits` 字段）；未落 journal 的拍不推进记忆，`replayCharacters` 只读 journal。
 
 ## 5. 检索
 

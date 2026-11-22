@@ -30,6 +30,8 @@ pnpm serve        # 单进程：API + 静态资源
 - `POST /api/reset` = 开新局：清两条日志、按磁盘上的内容包重建。前端必须二次确认。
 - 作者壳：顶栏 `⋯` 菜单「作者视图」或 `Ctrl/Cmd+Shift+D`；切换不重置任何状态。
 - 内容编辑只在新局生效；保存后顶栏常驻“内容已变更，未生效”。
+- `--network-family-autoselection-attempt-timeout=2000` 对服务端**同样不是可选项**（Node 默认 250ms 选路上限会提前掉断握手，报 `ETIMEDOUT`）；`dev:server` / `serve` / `play` 已带好，手敲命令容易漏。
+- `pnpm-workspace.yaml` 里的 `minimumReleaseAgeExclude` 不是装饰：pnpm 12 默认的发布冷却会让 `--frozen-lockfile` 直接拒掉刚发布的依赖版本（实测 `hono`）。
 
 ## 3. CLI 试玩
 

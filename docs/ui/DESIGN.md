@@ -170,3 +170,5 @@ v1 只读；打开抽屉不改变阅读位置。
 - 图标用文本字符（`×` `▸` `▾` `↻` `⋯`）。
 - 抽屉滚动锁定：`body:has(dialog[open]) { overflow: hidden }`。
 - `discipline.test.ts` 断言：玩家壳源码不出现 `claim`/`verdict`/`heat`/`rel`/`token`/`cost`/`no_rate`；玩家壳不 import 作者壳模块；颜色字面量只允许出现在 tokens 文件；字号只用四档。
+- `<dialog>` 上不许直接写 `flex`/`block`：Tailwind 的 `.flex` 会压过 UA 的 `dialog:not([open]){display:none}`，抽屉会常开、拦住后面的按钮，而且 `Esc` 后依然显示。用 `hidden` + `open:flex`（特异度 0,2,0 > 0,1,0）。
+- UI 改完必须跑一次**浏览器实测**：抽屉常开、`/` 返回 octet-stream、按钮被遮这三类缺陷，`pnpm test` 与 typecheck 全绿时都会漏过去。

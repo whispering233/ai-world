@@ -14,7 +14,7 @@
 | [backlog.md](design/backlog.md) | 延后项与触发条件、监控指标、已知失败模式 |
 | [build.md](design/build.md) | 环境、游玩、模型配置、产物位置、故障处理 |
 | [config.md](design/config.md) | 模型配置、模型串格式、凭据来源 |
-| [tasks.md](design/tasks.md) | 【临时】任务卡片与并行分层 |
+| [tasks.md](design/tasks.md) | 【临时】未完成的任务卡片（约定进设计文档，候选进 backlog §5） |
 
 ## db/
 
