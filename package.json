@@ -15,7 +15,9 @@
     "play": "node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types scripts/play.ts",
     "dev:server": "node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types packages/server/src/index.ts",
     "serve": "node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types packages/server/src/index.ts",
-    "experiment:multi-round": "node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types scripts/experiment-multi-round.ts"
+    "experiment:multi-round": "node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types scripts/experiment-multi-round.ts",
+    "dev:web": "pnpm --filter @ai-world/web dev",
+    "build": "pnpm --filter @ai-world/web build"
   },
   "devDependencies": {
     "@ai-world/content": "workspace:*",
