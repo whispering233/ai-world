@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+/*
+ * 唯一改色入口：组件里不写颜色/字号字面量。
+ * 暖纸 / 暖黑，零阴影、无渐变、无紫；正文对比度 ≥ 4.5:1（ink 15.1:1 / ink-soft 6.9:1）。
+ * 字号只四档：prose / title / body / meta。
+ */
+@theme {
+  --color-paper: #faf6ee;
+  --color-paper-2: #f2ecdf;
+  --color-ink: #23201a;
+  --color-ink-soft: #5c5446;
+  --color-rule: #d9d1c1;
+  --color-accent: #8a4a2f;
+  --color-danger: #9a2f2f;
+
+  /* 系统字体栈，不下载 webfont（离线可用） */
+  --font-serif: ui-serif, "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", Georgia, serif;
+  --font-sans: ui-sans-serif, "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif;
+
+  --text-prose: 19px;
+  --text-title: 23px;
+  --text-body: 16px;
+  --text-meta: 13px;
+  --leading-prose: 1.9;
+}
+
+:root[data-theme="dark"] {
+  --color-paper: #16130f;
+  --color-paper-2: #201c16;
+  --color-ink: #ece4d5;
+  --color-ink-soft: #b5a993;
+  --color-rule: #3a342b;
+  --color-accent: #dda06a;
+  --color-danger: #e79080;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 抽屉打开时锁住底层滚动 */
+  body:has(dialog[open]) {
+    overflow: hidden;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+/* 等待中的光标闪烁与进场渐显；reduced-motion 时由 main.tsx 摘掉 */
+@keyframes ink-blink {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.blink {
+  animation: ink-blink 1.1s steps(1, end) infinite;
+}
+
+@keyframes ink-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.fade-in {
+  animation: ink-fade 0.2s ease-out;
+}
+
+:root[data-motion="reduced"] .blink,
+:root[data-motion="reduced"] .fade-in {
+  animation: none;
+}

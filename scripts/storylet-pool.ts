@@ -5,10 +5,10 @@
  *   1. 条件只读账本，前因只认 `facts`（没有前因就不抽）；
  *   2. 骨架只产出一条 claim，写不写账本由裁判说了算。
  */
-import type { Claim } from '../src/core/referee.ts'
-import type { Llm } from '../src/core/llm.ts'
-import { findAbsoluteTime } from '../src/core/narrate.ts'
-import type { EntId, Fact, World } from '../src/core/world.ts'
+import type { Claim } from '@ai-world/core'
+import type { Llm } from '@ai-world/core'
+import { findAbsoluteTime } from '@ai-world/core'
+import type { EntId, Fact, World } from '@ai-world/core'
 
 /** 前因要比"刚刚发生"老一点，否则等于把同一拍的话又讲一遍。 */
 export const MIN_CAUSE_AGE = 2

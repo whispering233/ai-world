@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 ### Added
+- `JournalEntry.committed`（可选）：本拍真正落账的 claim id。`verdicts` 是裁判原话，可能含 `ok` 但整条回滚的条目；这个字段才是“账本真的变了”的名单。
+- `packages/web`：玩家阅读面（Vite + React 19 + Tailwind 4，**零组件库/图标库/状态库/路由库**）——`tokens.css` 单一改色入口（七色 + 四档字号 + 两个系统字体栈，暗色靠 `data-theme` 覆盖同名变量）、11 个手写基础件、8 个玩家组件、`api.ts`（SSE 分帧解析 + `fetch` + `AbortSignal`，不用 `EventSource`）。
+- `packages/web/src/discipline.test.ts`：源码扫描四条规则（不 import 作者壳 / 只依赖 shared / 不出现引擎标识符 / 颜色只在 tokens.css）**加规则自检**（违规样例必命中、合法样例必不误报）。
+- `packages/server`：单进程 Hono 服务端——`GET /api/session`、`POST /api/beat`（SSE：`progress`/`passage`/`state`/`done`/`error`）、`POST /api/reset`、`GET /api/author/{session,beat/:seq}`，静态托管与 SPA fallback；一拍单飞（并发 409），断连三路都接 `AbortController`。
+- `packages/server/src/session.ts`：`createSession` 把 boot / 单拍互斥 / abort / usage 累计 / prompt 环形缓冲收在一个不依赖 HTTP 的内核里，路由只是薄适配。
+- `JournalEntry.telemetry`（可选）：每拍的模型串与用量，由服务端注入；`replay` 不读它。
+- `PassageEntry.beatSeq`（可选）：连接玩家原话与旁白的稳定键；旧日志按 `clock` 回退。
+- `ChatResult.cost` / `ChatResult.retries`：把 pi-ai 报回的金额与重试次数透出来，作者模式要显示。
+- `content/starter-town.json`：世界内容从 TS 代码变成 git 跟踪的 JSON 数据包（含新增 `title`）；`packages/content` 提供 `loadContentPack` / `contentHash` / `STARTER_TOWN_PATH`，运行时字段由 `seedCharacters()` 补空。
+- `packages/core/src/view.ts`：`playerView` / `authorView` / `beatViews` 三个只读投影，玩家侧输出显示名与可验证状态，作者侧保留原值与全量 journal。
+- `packages/core/src/health.ts`：`healthView` 把体检口径抽成纯函数，作者投影与 CLI 试玩器共用。
+- `packages/shared/src/dto.ts`：玩家/作者投影与 SSE 帧的线上类型（零 import，浏览器安全）。
 - `World.ambient`（可选）：世界常态声明，只读根常量、与 `places` 同性质，不属于事实流；环境类故事事件的前因读它，缺键即不满足。
 - `docs/research/storylet-probe.md` §12 §13：v3 10 拍 A/B（两级前因）——世界事件落账 3/3、首条发生在第 1 拍，**净效果 1 个死拍**；同拍与玩家“推门”竞争时裁判判“风胜”，玩家动作被顶掉。
 - `tests/storylet-pool.test.ts`：锁住“ambient 与 facts 不许互借”与冷却规则。
@@ -25,6 +37,13 @@
 - `docs/research/multi-round-experiment.md`：pilot 6 拍三臂结果（回声率、no_rate、成本、硬冲突）与结论。
 
 ### Changed
+- 玩家壳与作者壳同在一个 SPA，纯前端开关切换；两套只读投影（玩家 / 作者）分成两个端点，隔离靠投影纯函数 + 源码扫描，不靠服务端开关。
+- 世界内容改为根 `content/<world>.json`（git 跟踪）；作者视图可编辑 `core` / `voice` / `drives` / `beliefs` / `canon`，保存只写盘，新局才生效。
+- 生产态改为单进程：`pnpm serve` 同时给 API 与 `packages/web/dist`；开发态拆成 `dev:server` + `dev:web`（Vite 热更新，`/api` 反代）。
+- `docs/design/tasks.md` 只保留未完成任务卡：设计口径按主题进设计文档，下一步候选进 `backlog.md` §5。
+- 仓库改为 pnpm workspace：`packages/{shared,core,content}`，包入口是 `.ts` 源码（`exports` 指向 `src/index.ts`，无构建步骤）；`npm install` / `npm test` 等命令换成 `pnpm`，锁文件由 `package-lock.json` 换成 `pnpm-lock.yaml`。
+- `AGENTS.md` 结构一节改为按包描述依赖方向（`shared ← core ← content ← server ← web`），并写明包入口策略。
+- `docs/design/build.md`：CI 改为 `pnpm install --frozen-lockfile`；抬版本改为只改根 `package.json`。
 - `AGENTS.md`：第 4 条补“空 `deltas` 不是状态”，新增第 9 条“`phys` 键要能写出解除者”；结构一节注明 `claimSource` 是唯一世界事件注入点。
 - `README.md`：用例数与每拍/20 拍时间口径按实测更新，补实验脚本入口。
 - `docs/design/backlog.md` §4：标注 20 拍基线在 R1 之后已过期，重跑前不作判据。
@@ -49,6 +68,12 @@
 - 架构决策：裁判仍是唯一写入口；per-character agent 与 Super-agent 式中央代理不直接写世界状态，最多作为 claim 来源/导演层。
 
 ### Fixed
+- `/` 与 SPA fallback 返回 `application/octet-stream`，浏览器直接下载而不是渲染：content-type 改为按**实际发出的文件**判定。
+- 「此刻」抽屉首屏就常开、`Esc` 关不掉、遮住「停止」与「此刻」按钮：`<dialog>` 不再直接写 `display`，改用 `hidden` + `open:flex`。
+- 玩家视图的「谁在这里」把灯、门、地窖门列成人：投影改用人物白名单。
+- 重启后作者视图的体检表报 0 次写操作：落账名单改由 `journal.committed` 提供，不再依赖内存集合。
+- 作者视图改标题后开新局，顶栏仍显示旧标题：标题改从内容包取。
+- `dev:server` / `serve` 漏了 `--network-family-autoselection-attempt-timeout=2000`：Node 默认 250ms 选路上限会掐断到供应商的握手。
 - 文档与注释清理：移除过期的计划编号与 `state.json` 存储描述，修正“裁判优先走 tool calling”的注释，并更新 `fact` 结构化后的遗留项说明。
 - 未落 journal 的拍（裁判失败 / 无主张）不再推进人物记忆，重启后记忆与 journal 保持一致。
 - 事件流排序恢复：`describeFacts` 之前只匹配实体 id，而事实文本是显示名（“安说…”），`提到在场者 +2` 的权重从未命中，切片退化为纯时间倒序。现在按 id / 显示名 / 别名匹配。
@@ -58,6 +83,9 @@
 - 人物认知现在能看到玩家本拍的输入（此前只有裁判看得到）。
 - 旁白抛错或返回空文本时不再丢拍：journal 先落，passage 用事实摘要兜底并标记 `fallback`。
 - 裁判上下文的持有物补上 `item(id)` 映射；体检表只统计已提交 claim 的写操作，不再把回滚的 op 算成世界变化。
+
+### Removed
+- `packages/content/src/starter-town.ts`：世界内容不再以 TS 代码形式存在，改为根 `content/starter-town.json`；运行时字段（`experience` / `busyUntil`）由 `seedCharacters()` 补空。
 
 ## [v0.0.1] - 2026-11-21
 ### Note

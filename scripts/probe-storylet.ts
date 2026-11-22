@@ -16,15 +16,16 @@ import { mkdirSync, appendFileSync, readFileSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { describeLedger } from '../src/core/beat.ts'
-import { createLlm } from '../src/core/llm.ts'
-import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '../src/core/config.ts'
-import { readonlyPiCredentials } from '../src/core/pi-credentials.ts'
-import { createLlmReferee, type Claim, type RefereeInput } from '../src/core/referee.ts'
-import { contextOf, openScene } from '../src/core/scene.ts'
-import { STARTER_TOWN } from '../content/starter-town.ts'
-import type { EntId, Op, World } from '../src/core/world.ts'
+import { describeLedger } from '@ai-world/core'
+import { createLlm } from '@ai-world/core'
+import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
+import { readonlyPiCredentials } from '@ai-world/core'
+import { createLlmReferee, type Claim, type RefereeInput } from '@ai-world/core'
+import { contextOf, openScene } from '@ai-world/core'
+import { loadContentPack, STARTER_TOWN_PATH } from '@ai-world/content'
+import type { EntId, Op, World } from '@ai-world/core'
 
+const { pack } = loadContentPack(STARTER_TOWN_PATH)
 const DIR = 'data/probe-storylet'
 const OUT = join(DIR, 'probe.jsonl')
 const PLACE = 'saloon'
@@ -67,7 +68,7 @@ const SKELETONS: Skeleton[] = [
 ]
 
 function clone(): World {
-  return structuredClone(STARTER_TOWN.world)
+  return structuredClone(pack.world)
 }
 
 function presentAt(world: World, place: string): EntId[] {
@@ -78,7 +79,7 @@ function presentAt(world: World, place: string): EntId[] {
 
 function sceneText(world: World): string {
   const here = presentAt(world, PLACE)
-  const names = here.map((ent) => STARTER_TOWN.names[ent] ?? ent).join('、')
+  const names = here.map((ent) => pack.names[ent] ?? ent).join('、')
   const lit = world.ledger.phys['lamp']?.['lit'] === true ? '灯还亮着' : '灯已经灭了'
   return `酒馆里：${names}。${lit}。外面的雨没停。`
 }
@@ -89,12 +90,12 @@ function refereeInput(world: World, claims: Claim[], clock: number): RefereeInpu
   const context = [
     sceneText(world),
     describeLedger(world, present, {
-      names: STARTER_TOWN.names,
-      items: STARTER_TOWN.items,
-      aliases: STARTER_TOWN.aliases,
+      names: pack.names,
+      items: pack.items,
+      aliases: pack.aliases,
       withIds: true,
     }),
-    contextOf(scene, STARTER_TOWN.player),
+    contextOf(scene, pack.player),
   ]
     .filter(Boolean)
     .join('\n')
@@ -106,7 +107,7 @@ function worldClaim(sk: Skeleton, clock: number): Claim {
 }
 
 function playerClaim(sk: Skeleton, clock: number): Claim {
-  return { id: `p${clock}-${sk.id}`, actor: STARTER_TOWN.player, text: sk.rival, kind: 'act' }
+  return { id: `p${clock}-${sk.id}`, actor: pack.player, text: sk.rival, kind: 'act' }
 }
 
 function describeOp(d: Op): string {
@@ -228,8 +229,8 @@ function report(rows: readonly Row[]): void {
   let playerWins = 0
   let nobody = 0
   for (const group of groups.values()) {
-    const worldPaid = group.some((r) => r.deltas.length > 0 && r.actor !== STARTER_TOWN.player)
-    const playerPaid = group.some((r) => r.deltas.length > 0 && r.actor === STARTER_TOWN.player)
+    const worldPaid = group.some((r) => r.deltas.length > 0 && r.actor !== pack.player)
+    const playerPaid = group.some((r) => r.deltas.length > 0 && r.actor === pack.player)
     if (worldPaid) worldWins += 1
     if (playerPaid) playerWins += 1
     if (!worldPaid && !playerPaid) nobody += 1

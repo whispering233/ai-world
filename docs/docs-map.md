@@ -10,10 +10,11 @@
 | [30-cognition.md](design/30-cognition.md) | 人物四层、单次调用、成长三道闸、检索与预算 |
 | [40-time-and-loop.md](design/40-time-and-loop.md) | clock / busyUntil / 一拍、时长归属、时间唯一出口 |
 | [50-llm.md](design/50-llm.md) | pi-ai 接入、三个模型角色、Context 入档、测试策略 |
+| [60-server.md](design/60-server.md) | 服务端进程、一拍生命周期、中止语义、内容生命周期、两种壳、包结构与组件方案 |
 | [backlog.md](design/backlog.md) | 延后项与触发条件、监控指标、已知失败模式 |
 | [build.md](design/build.md) | 环境、游玩、模型配置、产物位置、故障处理 |
 | [config.md](design/config.md) | 模型配置、模型串格式、凭据来源 |
-| [tasks.md](design/tasks.md) | 【临时】任务卡片与并行分层 |
+| [tasks.md](design/tasks.md) | 【临时】未完成的任务卡片（约定进设计文档，候选进 backlog §5） |
 
 ## db/
 
@@ -46,7 +47,17 @@
 | [../LICENSE](../LICENSE) | MIT 许可证 |
 | [../AGENTS.md](../AGENTS.md) | 项目规则（做错会返工的约束） |
 
+## api/
+
+| 文件 | 内容 |
+| :--- | :--- |
+| [00-api-index.md](api/00-api-index.md) | 端点索引、两种投影的允许/禁止字段 |
+| [api-public.md](api/api-public.md) | 基址、响应体结构、SSE 帧格式、时间与并发约定 |
+| [error-code.md](api/error-code.md) | 错误码表与 HTTP 状态码映射 |
+| [10-api-session.md](api/10-api-session.md) | `GET /api/session`、静态托管与 SPA fallback |
+| [20-api-beat.md](api/20-api-beat.md) | `POST /api/beat`（SSE）、`POST /api/reset` |
+| [30-api-author.md](api/30-api-author.md) | 作者投影三个端点、内容保存、prompt 缓冲 |
+
 ## 尚未创建
 
-- `design/test.md`：测试环境与流程说明，暂由 `build.md` 第 1 节承担
-- `api/`：暂不适用（首切片无对外接口，服务端落地后再建）
+- `design/test.md`：测试环境与流程说明，暂由 `build.md` 承担

@@ -1,0 +1,19 @@
+{
+  "name": "@ai-world/server",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ai-world/content": "workspace:*",
+    "@ai-world/core": "workspace:*",
+    "@ai-world/shared": "workspace:*",
+    "@hono/node-server": "^2.1.11",
+    "hono": "^4.13.20"
+  }
+}

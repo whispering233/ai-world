@@ -72,12 +72,15 @@
 **不显示**：`heat`、`rel` 数值、`drives`、`beliefs`、`core`、`claims`、`verdicts`、`no_rate`。
 v1 只读；打开抽屉不改变阅读位置。
 
-## 4. 等待与流式
+## 4. 等待与失败
 
-- 一拍约 50 秒；裁判完成前显示“世界在回应… 00:12”，**不显示“认知/裁判/渲染”**。
-- 旁白流式进入 draft；`beat_end` 才提交为正文。
-- 失败时丢弃 draft，显示“这一拍没有发生”，不把未提交文本伪装成已发生。
-- `停止` 触发 abort；客户端断连时服务端取消在途调用。
+- **发送即回显**：玩家那一句立刻进正文（引文块），不等服务端。
+- 一拍约 50 秒；结算期间显示“世界在回应… 00:12”，**不显示“认知/裁判/渲染”**，也不显示任何阶段名。
+- **旁白不流式**：一次成型后整段进入正文。`runBeat` 在调旁白之前就已落 journal，流出来的文本没有“草稿”身份；假 draft 比等待更糟。
+- 两种失败必须分开说：
+  - 裁判失败（`error` 帧）：世界没有变。显示“这一拍没有发生”，不留任何正文。
+  - 旁白失败（`fallback: true`）：世界**已经**变了。显示事实摘要兜底正文，并标一句“这一拍的叙述没有生成”。
+- `停止` = 断开连接；服务端中止在途调用，提交前的拍不落账。提交后断开时服务端仍把旁白写完，重连由 `GET /api/session` 补齐。
 - `prefers-reduced-motion` 时去掉光标闪烁与渐显。
 
 ## 5. 视觉方向
@@ -112,12 +115,60 @@ v1 只读；打开抽屉不改变阅读位置。
 
 ## 9. 明确不做
 
-- 三栏作者/调试模式（backlog）
 - 地图、人物立绘、语音、复杂动画
 - 存档槽 / 多世界切换
 - 聊天式气泡、角色头像、消息列表
 - 前端直连模型（key 不进浏览器）
+- 组件库 / 图标库 / 状态库 / 路由库（见 §13）
 
 ## 10. 开工前置
 
-阅读面落地前仍需：世界层三项缺陷修复、玩家可读名称、旁白失败 fallback、持久化/恢复决策。它们不是 UI 设计问题，是 UI 不骗人的前提。
+已满足：玩家可读名称（`ContentPack.names/items`）、旁白失败 fallback、持久化/恢复（journal 重放）。
+
+仍未满足：世界层三项缺陷（物质流薄 / 知识通胀 / 时间钉死）。它不阻塞阅读面，但会让前三拍读起来“什么也没发生”——那是世界层的问题，不要在 UI 里遮掩。
+
+## 11. 两种壳
+
+- 一个 SPA、一个进程。玩家壳（默认）与作者壳共用同一份阅读流与同一份状态。
+- 切换：TopBar `⋯` 菜单「作者视图」，或 `Ctrl/Cmd+Shift+D`；`mode` 与滚动位置记 localStorage。
+- 切换**不重置**任何东西：同一 `clock`、同一批 passages、同一滚动位置，只换外壳。
+- 作者数据只在切到作者壳时请求；玩家壳不请求 `/api/author/*`。
+- 隔离靠三层，不靠开关：玩家投影纯函数（`view.test.ts`）、玩家壳源码扫描（`discipline.test.ts`）、作者数据懒取。
+
+## 12. 作者模式（三栏）
+
+```text
+┌──────────┬───────────────────────────┬──────────────────┐
+│ 拍列表   │      同一份阅读流          │   本拍详情        │
+│ 240px    │      38–42em               │   420px          │
+│          │                           │                  │
+│ #7 夜    │  你：我把银元塞进安手里    │  claims          │
+│ #6 夜    │  安把银元按在掌心里…       │  verdicts        │
+│ #5 傍晚  │                           │  deltas          │
+│ …        │  ── 第 2 天 · 夜 ──        │  被拒理由        │
+│          │  …                        │  模型 / token    │
+└──────────┴───────────────────────────┴──────────────────┘
+```
+
+- 拍列表：只显示 `clockText` 与首句摘要；点击定位到该拍，不改阅读流内容。
+- 本拍详情：`claims` / `verdicts`（`ok`、`reason`、`deltas`、`duration`）/ `notes` / `telemetry`；再往下是 `Collapsible` 的「账本原始」与「prompt」。
+- 顶部条：内容状态（`activeHash === diskHash` 与否）、累计 cost、降级 notes 计数。
+- 「内容」面板：`core` / `voice` / `drives` / `beliefs` / `canon` 表单 + 只读 JSON 块（世界结构）；显式「保存」→ 三选一弹窗。
+- 三栏固定宽度，不做拖拽分隔条。
+
+## 13. tokens 与组件
+
+单一 tokens 文件 `packages/web/src/tokens.css`（Tailwind 4 `@theme`）。暗色靠 `<html data-theme="dark">` 覆盖同名变量，组件不写颜色字面量。
+
+| 层 | 内容 |
+| :--- | :--- |
+| 基础件（11） | `Button` `Field` `TextField` `NumberField` `Collapsible` `Dialog` `Banner` `KeyValueList` `EditableList` `DataTable` `ModeSwitch` |
+| 玩家壳（8） | `TopBar` `ReadingStream` `PlayerLine` `BeatDivider` `Composer` `StateDrawer` `EmptyState` `ErrorNotice` |
+| 作者壳（7） | `AuthorApp` `BeatList` `BeatDetail` `LedgerView` `HealthPanel` `ContentEditor` `SaveDialog` |
+
+- 不引组件库 / 图标库 / 状态库 / 路由库。折叠 `<details>`、模态 `<dialog showModal>`（外部 inert + top layer 嵌套）、表格 `<table>`、键值 `<dl>`、滑杆 `<input type=range>`。
+- 图标用文本字符（`×` `▸` `▾` `↻` `⋯`）。
+- 抽屉滚动锁定：`body:has(dialog[open]) { overflow: hidden }`。
+- `discipline.test.ts` 断言：玩家壳源码不出现 `claim`/`verdict`/`heat`/`rel`/`token`/`cost`/`no_rate`；玩家壳不 import 作者壳模块；颜色字面量只允许出现在 tokens 文件；字号只用四档。
+- `<dialog>` 上不许直接写 `flex`/`block`：Tailwind 的 `.flex` 会压过 UA 的 `dialog:not([open]){display:none}`，抽屉会常开、拦住后面的按钮，而且 `Esc` 后依然显示。用 `hidden` + `open:flex`（特异度 0,2,0 > 0,1,0）。
+- UI 改完必须跑一次**浏览器实测**：抽屉常开、`/` 返回 octet-stream、按钮被遮这三类缺陷，`pnpm test` 与 typecheck 全绿时都会漏过去。

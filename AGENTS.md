@@ -16,11 +16,14 @@
 
 ## 结构
 
-- `src/core/` 纯函数：账本、调度、场景、检索、裁判契约。全部可替换为确定性桩。
+- `packages/core/` 纯函数：账本、调度、场景、检索、裁判契约、LLM 适配、投影、体检。全部可替换为确定性桩。
 - 四个服务按**接口**寻址（`clock` / `ledger` / `referee` / `narrate`），不直接 import 具体实现。
 - `BeatInput.claimSource` 是唯一的世界事件注入点（只读账本、产出仍是 claim）；storylet 冻结中，目前只有 `scripts/` 与测试在用。
-- `content/` 只放世界内容（人物、地点、canon），不放规则。
-- `scripts/` 放可丢弃的驱动脚本：试玩器、测速。它们不进 `src/`。
+- `packages/content/` 只做内容加载与校验；世界内容本体是根 `content/<world>.json`（git 跟踪），不放规则。
+- 唯一能写文件的入口是 `POST /api/author/content`，且只写 `content/`；`data/` 只能由 store 追加。
+- 依赖方向单向：`shared ← core ← content ← server ← web`；`web` 只依赖 `shared`，由 pnpm 严格 node_modules 强制，不靠自觉。
+- 包入口是 `.ts` 源码（`exports` 指向 `src/index.ts`，无构建步骤）；发布时才逐包加 `build` 并把该包切到 `dist`。
+- `scripts/` 放可丢弃的驱动脚本：试玩器、测速。它们不进任何包。
 - 用 `.ts` 后缀导入；ESM；`strict` + `noUncheckedIndexedAccess`。
 
 ## 失败与降级
@@ -41,6 +44,9 @@
 讨论与返工风险 → 更新 `docs/` → 切 `docs/design/tasks.md` 任务卡 → 临时 worktree + 分支执行 → 独立验证 → 清卡 → 合并。
 
 一次只做一张卡；每张卡独立 commit，可单独回滚。测试前清掉 `PI_MODEL`，否则环境变量会覆盖 settings，config 用例会假红。
+
+- UI 卡改完必须跑一次**浏览器实测**：类型检查与单测全绿也会漏掉抽屉常开、`/` 返回 octet-stream、按钮被遮这类缺陷。
+- 并行卡都往 `packages/core/src/index.ts` 加导出时**按字母序插入**，否则合并必撞同一行。
 
 ## 别做的事
 

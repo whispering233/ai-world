@@ -1,0 +1,16 @@
+{
+  "name": "@ai-world/core",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ai-world/shared": "workspace:*",
+    "@earendil-works/pi-ai": "^1.5.2"
+  }
+}

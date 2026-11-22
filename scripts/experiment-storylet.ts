@@ -13,19 +13,22 @@ import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { runBeat, type BeatDeps } from '../src/core/beat.ts'
-import { fmt } from '../src/core/clock.ts'
-import { createCognition } from '../src/core/cognition.ts'
-import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '../src/core/config.ts'
-import { createLlm } from '../src/core/llm.ts'
-import { createNarrator } from '../src/core/narrate.ts'
-import { readonlyPiCredentials } from '../src/core/pi-credentials.ts'
-import { createLlmReferee, noRate } from '../src/core/referee.ts'
-import { openScene } from '../src/core/scene.ts'
-import { openStore, type JournalEntry } from '../src/core/store.ts'
-import { STARTER_TOWN } from '../content/starter-town.ts'
-import type { World } from '../src/core/world.ts'
+import { runBeat, type BeatDeps } from '@ai-world/core'
+import { fmt } from '@ai-world/core'
+import { createCognition } from '@ai-world/core'
+import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
+import { createLlm } from '@ai-world/core'
+import { createNarrator } from '@ai-world/core'
+import { readonlyPiCredentials } from '@ai-world/core'
+import { createLlmReferee, noRate } from '@ai-world/core'
+import { openScene } from '@ai-world/core'
+import { openStore, type JournalEntry } from '@ai-world/core'
+import { seedCharacters } from '@ai-world/core'
+import { loadContentPack, STARTER_TOWN_PATH } from '@ai-world/content'
+import type { World } from '@ai-world/core'
 import { createStoryletSource, type DrawStats } from './storylet-pool.ts'
+
+const { pack } = loadContentPack(STARTER_TOWN_PATH)
 
 const argOf = (name: string): string | undefined => {
   const i = process.argv.indexOf(name)
@@ -54,13 +57,13 @@ const LINES = [
 ]
 
 function sceneText(world: World): string {
-  const actors = new Set([STARTER_TOWN.player, ...STARTER_TOWN.characters.map((c) => c.id)])
-  const here = world.ledger.at[STARTER_TOWN.player] ?? 'saloon'
+  const actors = new Set([pack.player, ...pack.characters.map((c) => c.id)])
+  const here = world.ledger.at[pack.player] ?? 'saloon'
   const present = Object.entries(world.ledger.at)
     .filter(([ent, place]) => actors.has(ent) && place === here)
     .map(([ent]) => ent)
   const lit = world.ledger.phys['lamp']?.['lit'] === true ? '灯还亮着' : '灯已经灭了'
-  return `酒馆里：${present.map((ent) => STARTER_TOWN.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
+  return `酒馆里：${present.map((ent) => pack.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
 }
 
 interface RunMetrics {
@@ -98,7 +101,7 @@ function summarize(dir: string, run: number): RunMetrics {
   for (const op of ops) opCounts[op.op] = (opCounts[op.op] ?? 0) + 1
   const empty = verdicts.filter((v) => v.ok && v.deltas.length === 0)
   const worldClaims = verdicts.filter((v) => v.claimId.startsWith('w'))
-  const playerNo = verdicts.filter((v) => v.actor === STARTER_TOWN.player && !v.ok)
+  const playerNo = verdicts.filter((v) => v.actor === pack.player && !v.ok)
   return {
     run,
     beats: beats.length,
@@ -211,10 +214,10 @@ async function runOne(): Promise<void> {
     narrator: createNarrator(llm),
     store,
   }
-  const player = STARTER_TOWN.player
-  const participants = [player, ...STARTER_TOWN.characters.map((c) => c.id)]
-  let world: World = structuredClone(STARTER_TOWN.world)
-  const characters = new Map(STARTER_TOWN.characters.map((c) => [c.id, structuredClone(c)]))
+  const player = pack.player
+  const participants = [player, ...pack.characters.map((c) => c.id)]
+  let world: World = structuredClone(pack.world)
+  const characters = new Map(seedCharacters(pack).map((c) => [c.id, c]))
   let scene = openScene({ id: 's1', place: world.ledger.at[player] ?? 'saloon', clock: 0, participants })
   const stats: DrawStats = { attempts: 0, picked: 0, pickedIds: [] }
   const claimSource = ARM === 'storylet' ? createStoryletSource(stats) : undefined
@@ -229,10 +232,10 @@ async function runOne(): Promise<void> {
       characters,
       player,
       sceneText: sceneText(world),
-      canon: STARTER_TOWN.canon,
-      names: STARTER_TOWN.names,
-      items: STARTER_TOWN.items,
-      aliases: STARTER_TOWN.aliases,
+      canon: pack.canon,
+      names: pack.names,
+      items: pack.items,
+      aliases: pack.aliases,
       playerClaim: line,
       ...(claimSource ? { claimSource } : {}),
       deps,

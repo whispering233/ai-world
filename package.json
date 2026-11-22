@@ -4,22 +4,27 @@
   "private": true,
   "license": "MIT",
   "type": "module",
+  "packageManager": "pnpm@12.4.2",
   "engines": {
     "node": ">=22.6"
   },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -r --if-present typecheck",
     "play": "node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types scripts/play.ts",
-    "experiment:multi-round": "node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types scripts/experiment-multi-round.ts"
+    "dev:server": "node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types packages/server/src/index.ts",
+    "serve": "node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types packages/server/src/index.ts",
+    "experiment:multi-round": "node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types scripts/experiment-multi-round.ts",
+    "dev:web": "pnpm --filter @ai-world/web dev",
+    "build": "pnpm --filter @ai-world/web build"
   },
   "devDependencies": {
+    "@ai-world/content": "workspace:*",
+    "@ai-world/core": "workspace:*",
+    "@earendil-works/pi-ai": "^1.5.2",
     "@types/node": "^22.20.5",
     "typescript": "^5.9.3",
     "vitest": "^5.1.1"
-  },
-  "dependencies": {
-    "@earendil-works/pi-ai": "^1.5.2"
   }
 }
