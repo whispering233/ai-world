@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@ai-world/shared": "workspace:*",
     "@earendil-works/pi-ai": "^1.5.2"
   }
 }
