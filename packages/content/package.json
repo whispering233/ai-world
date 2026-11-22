@@ -4,8 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./starter-town.ts": "./src/starter-town.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"

@@ -1,1 +1,1 @@
-export * from './starter-town.ts'
+export * from './load.ts'

@@ -38,8 +38,11 @@ import {
 import { appendBeat, contextOf, fold, foldReason, openScene, type FoldMaterial, type Scene } from '@ai-world/core'
 import { openStore, type Store } from '@ai-world/core'
 import { describeFacts, type LedgerView } from '@ai-world/core'
-import { STARTER_TOWN } from '@ai-world/content/starter-town.ts'
+import { seedCharacters } from '@ai-world/core'
+import { loadContentPack, STARTER_TOWN_PATH } from '@ai-world/content'
 import type { EntId, World } from '@ai-world/core'
+
+const { pack } = loadContentPack(STARTER_TOWN_PATH)
 
 type Arm = 'baseline' | 'self-retry' | 'cross-talk'
 
@@ -161,13 +164,13 @@ function usageOf(samples: readonly UsageSample[]): Record<ModelRole, UsageTotals
 }
 
 function describeScene(world: World): string {
-  const actors = new Set([STARTER_TOWN.player, ...STARTER_TOWN.characters.map((c) => c.id)])
-  const here = world.ledger.at[STARTER_TOWN.player] ?? 'saloon'
+  const actors = new Set([pack.player, ...pack.characters.map((c) => c.id)])
+  const here = world.ledger.at[pack.player] ?? 'saloon'
   const present = Object.entries(world.ledger.at)
     .filter(([ent, place]) => actors.has(ent) && place === here)
     .map(([ent]) => ent)
   const lit = world.ledger.phys['lamp']?.['lit'] === true ? '灯还亮着' : '灯已经灭了'
-  return `酒馆里：${present.map((ent) => STARTER_TOWN.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
+  return `酒馆里：${present.map((ent) => pack.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
 }
 
 /** 与 packages/core/src/beat.ts 的 describeLedger 保持同形状（选项对象）；实验脚本不把它抽成公共层。 */
@@ -755,10 +758,10 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
     store,
   }
 
-  let world: World = structuredClone(STARTER_TOWN.world)
-  let characters = new Map(STARTER_TOWN.characters.map((c) => [c.id, c as Character]))
-  const player = STARTER_TOWN.player
-  const participants = [player, ...STARTER_TOWN.characters.map((c) => c.id)]
+  let world: World = structuredClone(pack.world)
+  let characters = new Map(seedCharacters(pack).map((c) => [c.id, c]))
+  const player = pack.player
+  const participants = [player, ...pack.characters.map((c) => c.id)]
   let scene: Scene = openScene({ id: 's1', place: world.ledger.at[player] ?? 'saloon', clock: 0, participants })
 
   const metrics: BeatMetrics[] = []
@@ -778,10 +781,10 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         characters,
         player,
         sceneText: describeScene(world),
-        canon: STARTER_TOWN.canon,
-        names: STARTER_TOWN.names,
-        items: STARTER_TOWN.items,
-        aliases: STARTER_TOWN.aliases,
+        canon: pack.canon,
+        names: pack.names,
+        items: pack.items,
+        aliases: pack.aliases,
         playerClaim,
         deps,
       })
@@ -808,10 +811,10 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         characters,
         player,
         sceneText: describeScene(world),
-        canon: STARTER_TOWN.canon,
-        names: STARTER_TOWN.names,
-        items: STARTER_TOWN.items,
-        aliases: STARTER_TOWN.aliases,
+        canon: pack.canon,
+        names: pack.names,
+        items: pack.items,
+        aliases: pack.aliases,
         playerClaim,
         seeOthers: arm === 'cross-talk',
         deps,

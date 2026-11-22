@@ -95,6 +95,8 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 
 | 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
 | :--- | :--- | :--- | :--- | :--- |
+| title | 是 | string | 非空 | 世界标题；玩家壳顶栏用它 |
+| characters | 是 | CharacterSeed[] | 每人 core 200–400 字、voice 非空、drive heat 0..1 | 只存作者字段 `id`/`core`/`voice`/`drives`/`beliefs`；运行时字段 `experience`、`busyUntil` 由 `seedCharacters()` 补空，不写进文件 |
 | names | 是 | Record<EntId, string> | | 人物/实体显示名：id → 人读的名字；覆盖 `ledger.at` 的全部实体 |
 | items | 是 | Record<ItemId, string> | | 物品显示名：id → 人读的名字；覆盖 `ledger.holds` 里出现的物品 |
 | aliases | 否 | Record<EntId, string[]> | | 额外检索词：只用于事实切片匹配“这句话提到谁”，不改显示名 |

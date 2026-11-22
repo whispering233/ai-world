@@ -23,8 +23,11 @@ import { createNarrator } from '@ai-world/core'
 import { createLlmReferee, noRate } from '@ai-world/core'
 import { openScene, type Scene } from '@ai-world/core'
 import { openStore, replay, replayCharacters } from '@ai-world/core'
-import { STARTER_TOWN } from '@ai-world/content/starter-town.ts'
+import { seedCharacters } from '@ai-world/core'
+import { loadContentPack, STARTER_TOWN_PATH } from '@ai-world/content'
 import type { Op, World } from '@ai-world/core'
+
+const { pack } = loadContentPack(STARTER_TOWN_PATH)
 
 const args = new Set(process.argv.slice(2))
 const beatsArg = process.argv.indexOf('--beats')
@@ -94,15 +97,15 @@ async function main(): Promise<void> {
     store: openStore(DIR),
   }
 
-  const player = STARTER_TOWN.player
-  const participants = [player, ...STARTER_TOWN.characters.map((c) => c.id)]
+  const player = pack.player
+  const participants = [player, ...pack.characters.map((c) => c.id)]
   const freshCharacters = (): Map<string, Character> =>
-    new Map(STARTER_TOWN.characters.map((c) => [c.id, structuredClone(c) as Character]))
+    new Map(seedCharacters(pack).map((c) => [c.id, c]))
 
   // 有 journal 就续跑：世界由 replay 复原，人物记忆由 replayCharacters 复原。
   const prior = deps.store.readJournal()
   const priorBeats = prior.filter((e) => e.type === 'beat').length
-  let world: World = prior.length > 0 ? replay(prior, structuredClone(STARTER_TOWN.world)) : structuredClone(STARTER_TOWN.world)
+  let world: World = prior.length > 0 ? replay(prior, structuredClone(pack.world)) : structuredClone(pack.world)
   let characters = prior.length > 0 ? replayCharacters(prior, freshCharacters()) : freshCharacters()
   // 场景上下文不落 journal，续跑从新场景开始；人物记忆已经由 experience 复原。
   let scene: Scene = openScene({ id: `s${priorBeats + 1}`, place: world.ledger.at[player] ?? 'saloon', clock: world.ledger.clock, participants })
@@ -110,7 +113,7 @@ async function main(): Promise<void> {
   if (priorBeats > 0) {
     stdout.write(`续跑：已完成 ${priorBeats} 拍，世界时刻 ${fmt(world.ledger.clock)}，人物 ${characters.size} 位\n`)
   } else {
-    stdout.write(`世界初始化：${participants.length} 个参与者，${STARTER_TOWN.canon.length} 条 canon\n`)
+    stdout.write(`世界初始化：${participants.length} 个参与者，${pack.canon.length} 条 canon\n`)
   }
   stdout.write(`模型：cognition=${cfg.models.cognition} referee=${cfg.models.referee} narration=${cfg.models.narration}\n\n`)
   if (!AUTO) stdout.write('你说一句话或做一件事，一行就是一拍；输入 /quit 结束并出体检表。\n\n')
@@ -137,10 +140,10 @@ async function main(): Promise<void> {
       characters,
       player,
       sceneText: describeScene(world),
-      canon: STARTER_TOWN.canon,
-      names: STARTER_TOWN.names,
-      items: STARTER_TOWN.items,
-      aliases: STARTER_TOWN.aliases,
+      canon: pack.canon,
+      names: pack.names,
+      items: pack.items,
+      aliases: pack.aliases,
       playerClaim: line,
       deps,
     })
@@ -204,7 +207,7 @@ async function main(): Promise<void> {
   const playerMaterial = material.filter((actor) => actor === player).length
   const materialNotes = beatNotes.filter((n) => !n.startsWith('叙述里') && !n.startsWith('折场'))
   const itemErrors = materialNotes.filter((n) => n.includes('身上没有这么多')).length
-  const netHolds = describeHoldChanges(initialHolds, world.ledger.holds, STARTER_TOWN.names, STARTER_TOWN.items)
+  const netHolds = describeHoldChanges(initialHolds, world.ledger.holds, pack.names, pack.items)
 
   stdout.write('\n================ 体检表 ================\n')
   stdout.write(`拍数            ${beats.length}\n`)
@@ -243,13 +246,13 @@ async function main(): Promise<void> {
 }
 
 function describeScene(world: World): string {
-  const actors = new Set([STARTER_TOWN.player, ...STARTER_TOWN.characters.map((c) => c.id)])
-  const here = world.ledger.at[STARTER_TOWN.player] ?? 'saloon'
+  const actors = new Set([pack.player, ...pack.characters.map((c) => c.id)])
+  const here = world.ledger.at[pack.player] ?? 'saloon'
   const present = Object.entries(world.ledger.at)
     .filter(([ent, place]) => actors.has(ent) && place === here)
     .map(([ent]) => ent)
   const lit = world.ledger.phys['lamp']?.['lit'] === true ? '灯还亮着' : '灯已经灭了'
-  return `酒馆里：${present.map((ent) => STARTER_TOWN.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
+  return `酒馆里：${present.map((ent) => pack.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
 }
 
 function describeHoldChanges(
