@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -6,6 +6,10 @@ import { openStore, type ChatRequest, type ChatResult, type ContentPack, type Ll
 import { createSession, type Session } from './session.ts'
 
 /* ── fixture：一个热人物 + 一个玩家；NPC 热到 0.8 才会被叫到 ── */
+
+/** core 有 200–400 字的下限：fixture 必须真的合法，保存用例才走得通。 */
+const CORE =
+  '老板娘安守着这间酒馆十一年，见多了进进出出的客人，也听多了没头没尾的醉话。她记性好得很，谁欠过账、谁撒过谎，心里都有一本。雨夜里她话少，手上却不停：擦杯子、续酒、把跑偏的话题拨回正事。她待人不冷，只是从不许诺，凡是答应的都用一句短话钉死。后半夜她算账，笔尖在账本上压得很重，谁在她这间屋里多坐一刻、多喝一杯，她都知道。她也知道街面上谁刚得了钱、谁又要躲债，只是不说。她把银元收进围裙口袋时，会先括一下，再抬眼看看给钱的人。'
 
 function pack(): ContentPack {
   return {
@@ -16,7 +20,7 @@ function pack(): ContentPack {
       places: { saloon: '酒馆' },
     },
     characters: [
-      { id: 'ann', core: '老板娘', voice: '短句', drives: [{ id: 'd1', text: '想把最后一杯酒卖出去', heat: 0.8 }], beliefs: {} },
+      { id: 'ann', core: CORE, voice: '短句', drives: [{ id: 'd1', text: '想把最后一杯酒卖出去', heat: 0.8 }], beliefs: {} },
     ],
     canon: ['外面的雨没停。'],
     player: 'player',
@@ -60,8 +64,15 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
-function makeSession(dir: string, llm: Llm): Session {
-  return createSession({ dir, pack: pack(), llm, title: '测试酒馆' })
+function makeSession(dir: string, llm: Llm, contentPath = writePack(dir)): Session {
+  return createSession({ dir, contentPath, pack: pack(), llm, title: '测试酒馆' })
+}
+
+/** 每个用例一份临时内容包：保存用例绝不碰仓库里的 `content/`。 */
+function writePack(dir: string, value: ContentPack = pack()): string {
+  const path = join(dir, 'pack.json')
+  writeFileSync(path, JSON.stringify(value, null, 2))
+  return path
 }
 
 const noProgress = (): void => {}
@@ -190,5 +201,116 @@ describe('createSession', () => {
     expect(detail?.prompts).toHaveLength(3)
     expect(detail?.notes).toEqual([])
     expect(session.authorBeat(99)).toBeUndefined()
+  })
+})
+
+describe('内容保存', () => {
+  it('保存合法内容：diskHash 变、activeHash 不变、changed 为 true、磁盘就是写入的文本', () => {
+    const dir = tmpDir()
+    const session = makeSession(dir, stubLlm())
+    const before = session.content()
+    const text = JSON.stringify({ ...pack(), canon: ['外面的雨没停。', '灯还亮着。'] }, null, 2)
+
+    const saved = session.saveContent(text)
+    const after = session.content()
+
+    expect(saved.activeHash).toBe(before.activeHash)
+    expect(saved.diskHash).not.toBe(before.diskHash)
+    expect(after.activeHash).toBe(before.activeHash)
+    expect(after.diskHash).toBe(saved.diskHash)
+    expect(after.changed).toBe(true)
+    expect(readFileSync(session.contentPath(), 'utf8')).toBe(text)
+  })
+
+  it('保存非法内容：抛 E_INVALID_CONTENT + errors，磁盘字节逐个不变', () => {
+    const dir = tmpDir()
+    const session = makeSession(dir, stubLlm())
+    const path = session.contentPath()
+    const before = readFileSync(path)
+    const broken = JSON.stringify({ ...pack(), characters: [{ ...pack().characters[0], core: '老板娘' }] })
+    let thrown: unknown
+    try {
+      session.saveContent(broken)
+    } catch (error) {
+      thrown = error
+    }
+
+    expect(thrown).toMatchObject({ code: 'E_INVALID_CONTENT' })
+    const errors = (thrown as { errors?: string[] }).errors ?? []
+    expect(errors.length).toBeGreaterThan(0)
+    expect(errors.join('')).toContain('core')
+    expect(readFileSync(path).equals(before)).toBe(true)
+    expect(session.content().changed).toBe(false)
+  })
+
+  it('保存后 reset()：activeHash 与 diskHash 对齐，新 core 真的进了人物', async () => {
+    const systems: string[] = []
+    const dir = tmpDir()
+    const contentPath = writePack(dir)
+    const scoped = createSession({
+      dir,
+      contentPath,
+      pack: pack(),
+      title: '测试酒馆',
+      llm: stubLlm({
+        cognition: async (req) => {
+          systems.push(req.system ?? '')
+          return {
+            text: JSON.stringify({ inner: '', outward: '安看了你一眼。' }),
+            toolCalls: [],
+            inputTokens: 0,
+            outputTokens: 0,
+            model: 'stub/cognition',
+          }
+        },
+      }),
+    })
+    const next = pack()
+    const ann = next.characters[0]
+    if (ann === undefined) throw new Error('fixture 里没有 ann')
+    next.characters = [{ ...ann, core: `${CORE.slice(0, -1)}这句是新补的。` }]
+
+    scoped.saveContent(JSON.stringify(next, null, 2))
+    expect(scoped.content().changed).toBe(true)
+
+    scoped.reset()
+
+    const status = scoped.content()
+    expect(status.activeHash).toBe(status.diskHash)
+    expect(status.changed).toBe(false)
+    systems.length = 0
+    await scoped.beat('我推门进去。', new AbortController().signal, noProgress)
+    expect(systems.join('\n')).toContain('这句是新补的。')
+  })
+
+  it('结算中保存：抛 E_BEAT_IN_FLIGHT，磁盘不动', async () => {
+    const held = gate()
+    const dir = tmpDir()
+    const contentPath = writePack(dir)
+    const session = createSession({
+      dir,
+      contentPath,
+      pack: pack(),
+      title: '测试酒馆',
+      llm: stubLlm({
+        referee: async () => {
+          await held.wait
+          return { text: verdictFor('p0'), toolCalls: [], inputTokens: 0, outputTokens: 0, model: 'stub/referee' }
+        },
+      }),
+    })
+    const before = readFileSync(contentPath)
+    const pending = session.beat('我推门进去。', new AbortController().signal, noProgress)
+    let code = ''
+    try {
+      session.saveContent(JSON.stringify(pack()))
+    } catch (error) {
+      code = (error as { code?: string }).code ?? ''
+    }
+    expect(code).toBe('E_BEAT_IN_FLIGHT')
+    expect(readFileSync(contentPath).equals(before)).toBe(true)
+
+    held.open()
+    await expect(pending).resolves.toMatchObject({ seq: 1 })
   })
 })

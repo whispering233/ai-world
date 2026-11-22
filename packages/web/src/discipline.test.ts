@@ -11,6 +11,17 @@ import { describe, expect, it } from 'vitest'
 
 const SOURCE_DIR = dirname(fileURLToPath(import.meta.url))
 
+/**
+ * 规则 1–4 只管玩家壳。作者壳在 `author/`，里面必然出现 verdict / heat / core 这些词，
+ * 而且 `App.tsx` 要 import `AuthorApp`——这两件事都不该让它假红。
+ */
+const PLAYER_SCOPE = ['shell/', 'ui/', 'api.ts', 'main.tsx']
+
+/** 只有 `App.tsx` 可以 import `author/`：两个壳的接线只能有一处。 */
+const AUTHOR_IMPORTERS = ['App.tsx']
+
+const AUTHOR_IMPORT = /from\s+'(?:\.\/|\.\.\/)author\//
+
 interface SourceFile {
   name: string
   lines: string[]
@@ -64,12 +75,45 @@ function isComment(line: string): boolean {
 
 const FILES = sourceFiles()
 
+function inPlayerScope(name: string): boolean {
+  return PLAYER_SCOPE.some((prefix) => name === prefix || name.startsWith(prefix))
+}
+
+const PLAYER_FILES = FILES.filter((file) => inPlayerScope(file.name))
+
+function linesMatching(files: SourceFile[], pattern: RegExp): string[] {
+  return files.flatMap((file) =>
+    file.lines.flatMap((line, index) =>
+      isComment(line) || !pattern.test(line) ? [] : [`${file.name}:${index + 1}: ${line.trim()}`],
+    ),
+  )
+}
+
 describe('玩家壳纪律', () => {
   describe('扫描范围', () => {
     it('扫到了源码，且只扫非测试的 .ts/.tsx', () => {
       expect(FILES.length).toBeGreaterThan(10)
       expect(FILES.some((file) => file.name.endsWith('.test.ts'))).toBe(false)
       expect(FILES.some((file) => file.name === 'App.tsx')).toBe(true)
+    })
+
+    it('玩家壳范围在扫描结果里真的存在，且不含 author/', () => {
+      expect(PLAYER_FILES.length).toBeGreaterThan(5)
+      expect(PLAYER_FILES.some((file) => file.name === 'api.ts')).toBe(true)
+      expect(PLAYER_SCOPE.some((prefix) => prefix.startsWith('author/'))).toBe(false)
+      expect(PLAYER_FILES.some((file) => file.name.startsWith('author/'))).toBe(false)
+    })
+
+    it('src/ 下只有 App.tsx 允许 import author/', () => {
+      const importers = FILES.filter((file) => linesMatching([file], AUTHOR_IMPORT).length > 0).map((file) => file.name)
+      expect(importers.sort()).toEqual(AUTHOR_IMPORTERS)
+      expect(PLAYER_FILES.some((file) => linesMatching([file], AUTHOR_IMPORT).length > 0)).toBe(false)
+    })
+
+    it('自检：import author/ 的两种写法都认', () => {
+      expect(AUTHOR_IMPORT.test("import { AuthorApp } from './author/AuthorApp.tsx'")).toBe(true)
+      expect(AUTHOR_IMPORT.test("import { AuthorApp } from '../author/AuthorApp.tsx'")).toBe(true)
+      expect(AUTHOR_IMPORT.test("import { TopBar } from './shell/TopBar.tsx'")).toBe(false)
     })
 
     it('tokens.css 是颜色的家', () => {
@@ -94,12 +138,7 @@ describe('玩家壳纪律', () => {
       })
 
       it('源码里没有违规行', () => {
-        const hits = FILES.flatMap((file) =>
-          file.lines.flatMap((line, index) =>
-            isComment(line) || !rule.pattern.test(line) ? [] : [`${file.name}:${index + 1}: ${line.trim()}`],
-          ),
-        )
-        expect(hits).toEqual([])
+        expect(linesMatching(PLAYER_FILES, rule.pattern)).toEqual([])
       })
     })
   }
