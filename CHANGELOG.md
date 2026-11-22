@@ -25,6 +25,7 @@
 - `docs/research/multi-round-experiment.md`：pilot 6 拍三臂结果（回声率、no_rate、成本、硬冲突）与结论。
 
 ### Changed
+- `docs/db/schema.md` §9：`phys` 键登记表（键 / 语义 / 值域 / 挂载 / **解除方式**）与命名原则；`phys` 键保持开放、不冻结，但每个键必须能写出解除方式。
 - 裁判规则 9b：`ok` + 空 `deltas` 只表示“发生了”，不得作为否决依据；需要持续的事必须落 `phys` 键。
 - `scripts/experiment-storylet.ts` 支持 `--run N` 与 `--report`：按同条件重复出分布（各 run 值 + 中位 + 范围），不再看单点；避让已回退（`avoidKeys` 删除）。
 - `describeLedger` 导出，供探针拼出与 `runBeat` 同构的裁判上下文；行为不变。
