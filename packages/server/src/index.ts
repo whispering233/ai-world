@@ -9,7 +9,7 @@
 import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join, resolve, sep } from 'node:path'
+import { join, resolve, sep, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { serve } from '@hono/node-server'
 import { Hono, type Context } from 'hono'
@@ -72,11 +72,14 @@ async function serveWeb(c: Context): Promise<Response> {
   const pathname = decodeURIComponent(new URL(c.req.url).pathname)
   const file = resolve(DIST, `.${pathname}`)
   if (file !== DIST && !file.startsWith(DIST + sep)) return notBuilt(c)
-  const found = (await tryRead(file)) ?? (await tryRead(join(DIST, 'index.html')))
-  if (found === undefined) return notBuilt(c)
-  const dot = file.lastIndexOf('.')
-  return new Response(new Uint8Array(found), {
-    headers: { 'content-type': TYPES[dot === -1 ? '' : file.slice(dot)] ?? 'application/octet-stream' },
+  const fallback = join(DIST, 'index.html')
+  const direct = await tryRead(file)
+  const served = direct ?? (await tryRead(fallback))
+  if (served === undefined) return notBuilt(c)
+  // 类型看**实际发出的那个文件**：SPA fallback 的请求路径常常没有扩展名（/、/author）
+  const servedPath = direct === undefined ? fallback : file
+  return new Response(new Uint8Array(served), {
+    headers: { 'content-type': TYPES[extname(servedPath)] ?? 'application/octet-stream' },
   })
 }
 

@@ -16,7 +16,7 @@ export function StateDrawer({ open, onClose, state }: StateDrawerProps) {
       open={open}
       onClose={onClose}
       title="此刻"
-      panelClassName="ml-auto mr-0 flex h-dvh max-h-none w-full max-w-none flex-col rounded-none border-y-0 border-r-0 border-l-rule p-0 sm:w-[360px]"
+      panelClassName="ml-auto mr-0 h-dvh max-h-none w-full max-w-none flex-col rounded-none border-y-0 border-r-0 border-l-rule p-0 sm:w-[360px]"
     >
       <div className="flex-1 overflow-y-auto p-6">
         {state === null ? (

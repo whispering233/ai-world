@@ -145,6 +145,7 @@ const CONTENT: ContentStatusView = { path: 'content/starter-town.json', activeHa
 const PLAYER_INPUT: PlayerViewInput = {
   title: '雨夜酒馆',
   player: 'guest',
+  people: new Set(['ann', 'doc']),
   world: WORLD,
   names: NAMES,
   items: ITEMS,

@@ -26,10 +26,7 @@ export function Dialog({ open, onClose, title, children, panelClassName = '' }: 
     <dialog
       ref={ref}
       onClose={onClose}
-      onClick={(event) => {
-        if (event.target === ref.current) onClose()
-      }}
-      className={`m-auto rounded-sm border border-rule bg-paper p-0 text-ink backdrop:bg-ink/25 ${panelClassName}`}
+      className={`m-auto hidden flex-col rounded-sm border border-rule bg-paper p-0 text-ink open:flex backdrop:bg-ink/25 ${panelClassName}`}
     >
       <header className="flex items-center justify-between border-b border-rule px-4 py-2">
         <h2 className="font-serif text-title">{title}</h2>

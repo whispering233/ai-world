@@ -28,6 +28,11 @@ export interface PlayerViewInput {
   title: string
   /** 玩家是谁：place / here / holds / knows 与 beat 里的玩家原话都按它取 */
   player: EntId
+  /**
+   * 人物白名单：`here` 只列这些人。
+   * `ledger.at` 里还有灯、门、地窖门这类实体（它们的 `phys` 键要用），它们不是“在场的人”。
+   */
+  people: ReadonlySet<EntId>
   world: World
   names: Record<EntId, string>
   items: Record<string, string>
@@ -42,7 +47,7 @@ export function playerView(input: PlayerViewInput): SessionView {
     title: input.title,
     clock,
     clockText: fmt(clock),
-    state: playerState(input.world, input.names, input.items, input.player),
+    state: playerState(input.world, input.names, input.items, input.player, input.people),
     beats: beatViews({ journal: input.journal, passages: input.passages, player: input.player }),
     inFlight: input.inFlight,
   }
@@ -53,6 +58,7 @@ function playerState(
   names: Record<EntId, string>,
   items: Record<string, string>,
   player: EntId,
+  people: ReadonlySet<EntId>,
 ): PlayerStateView {
   const atPlace = world.ledger.at[player]
   // 玩家不在任何地点是数据错，但投影崩掉比显示空更糟
@@ -61,7 +67,7 @@ function playerState(
     atPlace === undefined
       ? []
       : Object.entries(world.ledger.at)
-          .filter(([ent, p]) => p === atPlace && ent !== player)
+          .filter(([ent, p]) => p === atPlace && ent !== player && people.has(ent))
           .map(([ent]) => names[ent] ?? ent)
   const holds = Object.entries(world.ledger.holds[player] ?? {})
     .filter(([, n]) => n > 0)

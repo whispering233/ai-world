@@ -128,6 +128,8 @@ export function createSession(opts: SessionOptions): Session {
     return playerView({
       title: opts.title,
       player,
+      // 只有内容包里的人物算“人”：账本里还有灯、门、地窖门这类实体
+      people: new Set(pack.characters.map((seed) => seed.id)),
       world: state.world,
       names: pack.names,
       items: pack.items,
