@@ -20,7 +20,8 @@ import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/c
 import { readonlyPiCredentials } from '@ai-world/core'
 import { createLlm } from '@ai-world/core'
 import { createNarrator } from '@ai-world/core'
-import { createLlmReferee, noRate } from '@ai-world/core'
+import { createLlmReferee } from '@ai-world/core'
+import { healthView } from '@ai-world/core'
 import { openScene, type Scene } from '@ai-world/core'
 import { openStore, replay, replayCharacters } from '@ai-world/core'
 import { STARTER_TOWN } from '@ai-world/content/starter-town.ts'
@@ -56,6 +57,13 @@ const AUTO_LINES = [
 const LONG_PROBE = '我趴在靠墙的桌上睡了一整夜，天亮才醒。'
 const LONG_BEAT = 5
 const FINAL_MOVE_PROBE = '我拉开门闩，推门走到街上。'
+// HealthView 的桶键是 ASCII，体检表沿用 en dash 标签。
+const DURATIONS = [
+  ['0-3', '0–3'],
+  ['4-30', '4–30'],
+  ['31-239', '31–239'],
+  ['240+', '≥240'],
+] as const
 
 async function main(): Promise<void> {
   const usage = {
@@ -162,10 +170,8 @@ async function main(): Promise<void> {
   rl?.close()
 
   const journal = deps.store.readJournal()
-  const beats = journal.filter((e) => e.type === 'beat')
+  const health = healthView({ journal, committed: committedClaims, degraded: beatNotes.length })
   const verdicts = journal.flatMap((e) => e.verdicts)
-  const claims = journal.flatMap((e) => e.claims)
-  // claim id 只含拍前 clock；duration=0 时可能跨拍重名，用 journal seq 一起做键。
   const committedVerdicts = journal.flatMap((e) => e.verdicts.filter((v) => committedClaims.has(`${e.seq}:${v.claimId}`)))
   const ops = committedVerdicts.flatMap((v) => v.deltas)
   const knowOps = ops.filter((d): d is Extract<Op, { op: 'know' }> => d.op === 'know')
@@ -176,26 +182,10 @@ async function main(): Promise<void> {
   const knowListeners = knowOps.reduce((n, d) => n + d.who.length, 0)
   const knowAvgListeners = knowOps.length === 0 ? 0 : knowListeners / knowOps.length
   const factPerClaim = committedVerdicts.length === 0 ? 0 : factOps.length / committedVerdicts.length
-  const opCounts: Record<string, number> = {}
-  for (const op of ops) opCounts[op.op] = (opCounts[op.op] ?? 0) + 1
   const opNames = ['move', 'transfer', 'consume', 'phys', 'rel', 'fact', 'know']
-  const writeOps = ops.length
-  const knowRate = writeOps === 0 ? 0 : (opCounts.know ?? 0) / writeOps
-  const durationBuckets = { '0–3': 0, '4–30': 0, '31–239': 0, '≥240': 0 }
-  for (const v of verdicts) {
-    if (!v.ok) continue
-    if (v.duration <= 3) durationBuckets['0–3'] += 1
-    else if (v.duration <= 30) durationBuckets['4–30'] += 1
-    else if (v.duration < 240) durationBuckets['31–239'] += 1
-    else durationBuckets['≥240'] += 1
-  }
   const longActions = verdicts.filter((v) => v.ok && v.duration >= 240)
   const longEmpty = longActions.filter((v) => v.deltas.length === 0)
   const empty = verdicts.filter((v) => v.ok && v.deltas.length === 0)
-  // fact 收窄后，纯对话的 claim 天然没有 delta；真正要看的是“整拍账本没动”。
-  const silentBeats = beats.filter((e) => !e.verdicts.some((v) => v.deltas.length > 0)).length
-  const claimKinds = { say: 0, act: 0 }
-  for (const c of claims) claimKinds[c.kind] += 1
   const nameLeaks = deps.store.readPassage().reduce((n, p) => n + (p.text.match(/\b(player|ann|doc|cody|granny)\b/g)?.length ?? 0), 0)
   const wallMs = Math.round(performance.now() - startedAt)
   const material = committedVerdicts.flatMap((v) =>
@@ -207,29 +197,29 @@ async function main(): Promise<void> {
   const netHolds = describeHoldChanges(initialHolds, world.ledger.holds, STARTER_TOWN.names, STARTER_TOWN.items)
 
   stdout.write('\n================ 体检表 ================\n')
-  stdout.write(`拍数            ${beats.length}\n`)
-  stdout.write(`折场次数        ${journal.filter((e) => e.type === 'scene/fold').length}\n`)
+  stdout.write(`拍数            ${health.beats}\n`)
+  stdout.write(`折场次数        ${health.folds}\n`)
   stdout.write(`裁决总数        ${verdicts.length}\n`)
-  stdout.write(`主张            act ${claimKinds.act} / say ${claimKinds.say}\n`)
-  stdout.write(`no_rate        ${(noRate(verdicts) * 100).toFixed(1)}%   （期望 15–40%）\n`)
+  stdout.write(`主张            act ${health.claims.act} / say ${health.claims.say}\n`)
+  stdout.write(`no_rate        ${(health.noRate * 100).toFixed(1)}%   （期望 15–40%）\n`)
   stdout.write(`空结果占比      ${pct(empty.length, verdicts.length)}   （对话正常为空，不再当异常）\n`)
-  stdout.write(`无变化拍        ${silentBeats} / ${beats.length}   （整拍账本没动）\n`)
+  stdout.write(`无变化拍        ${health.silentBeats} / ${health.beats}   （整拍账本没动）\n`)
   stdout.write(`长动作占比      ${pct(longActions.length, verdicts.length)}   （≥240min，全部 ok）\n`)
   stdout.write(`长且空占比      ${pct(longEmpty.length, verdicts.length)}\n`)
   stdout.write(`提交 claim      ${committedVerdicts.length} / ${verdicts.length}\n`)
-  stdout.write(`写操作（已提交） ${writeOps}   ${opNames.map((n) => `${n} ${opCounts[n] ?? 0}`).join(' / ')}\n`)
+  stdout.write(`写操作（已提交） ${ops.length}   ${opNames.map((n) => `${n} ${health.writeOps[n] ?? 0}`).join(' / ')}\n`)
   stdout.write(`物质 op 按 actor  player ${playerMaterial} / NPC ${material.length - playerMaterial}\n`)
   stdout.write(`净持有变化      ${netHolds}\n`)
-  stdout.write(`know_rate      ${(knowRate * 100).toFixed(1)}%   （know / 已提交写操作）\n`)
+  stdout.write(`know_rate      ${(health.knowRate * 100).toFixed(1)}%   （know / 已提交写操作）\n`)
   stdout.write(`know/claim     ${knowPerClaim.toFixed(2)}   平均听众 ${knowAvgListeners.toFixed(2)}\n`)
   stdout.write(`fact/claim     ${factPerClaim.toFixed(2)}\n`)
-  stdout.write(`facts/beat     ${(factOps.length / Math.max(1, beats.length)).toFixed(2)}   （≤1.0 = 12 条覆盖一整场）\n`)
+  stdout.write(`facts/beat     ${health.factsPerBeat.toFixed(2)}   （≤1.0 = 12 条覆盖一整场）\n`)
   stdout.write(`fact 结构化    actor ${actorFacts}/${factOps.length} · kind ${kindFacts}/${factOps.length}\n`)
-  stdout.write(`duration 分桶   ${Object.entries(durationBuckets).map(([k, n]) => `${k}: ${n}`).join(' | ')}\n`)
+  stdout.write(`duration 分桶   ${DURATIONS.map(([k, label]) => `${label}: ${health.durationBuckets[k]}`).join(' | ')}\n`)
   stdout.write(`名字泄漏        ${nameLeaks}   （期望 0）\n`)
   stdout.write(`item/持有错误   ${itemErrors}   （含“身上没有这么多”）\n`)
   if (materialNotes.length) stdout.write(`回滚/降级 notes  ${materialNotes.slice(0, 8).join(' | ')}\n`)
-  stdout.write(`每拍墙钟        ${beats.length === 0 ? 0 : Math.round(wallMs / beats.length)}ms（总 ${wallMs}ms）\n`)
+  stdout.write(`每拍墙钟        ${health.beats === 0 ? 0 : Math.round(wallMs / health.beats)}ms（总 ${wallMs}ms）\n`)
   stdout.write(`结束时刻        ${fmt(world.ledger.clock)}\n`)
   for (const role of ['cognition', 'referee', 'narration'] as const) {
     const u = usage[role]
