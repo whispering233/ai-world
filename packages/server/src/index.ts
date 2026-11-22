@@ -48,7 +48,7 @@ const llm = createLlm({
 })
 
 const { pack } = loadContentPack(STARTER_TOWN_PATH)
-const session = createSession({ dir: DATA_DIR, contentPath: STARTER_TOWN_PATH, pack, llm, title: pack.title })
+const session = createSession({ dir: DATA_DIR, contentPath: STARTER_TOWN_PATH, pack, llm })
 
 const api = new Hono()
 api.route('/', readRoutes(session))
