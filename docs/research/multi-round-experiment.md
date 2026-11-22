@@ -17,7 +17,7 @@
 - 只共享 `outward`；`inner` 永不跨人。
 - 第二轮后，每人仍只提交**一条** claim；裁判仍是唯一写入口。
 - 玩法输入固定为 10 条循环（见脚本 `AUTO_LINES`），每臂独立跑，轨迹会因 LLM 非确定而分叉。
-- 运行：`npm run experiment:multi-round -- --beats 6 --mode all --tag pilot-3`
+- 运行：`pnpm experiment:multi-round -- --beats 6 --mode all --tag pilot-3`
 - 脚本：[`scripts/experiment-multi-round.ts`](../../scripts/experiment-multi-round.ts)
 - 产物：`data/experiment/pilot-3/<arm>/{journal.jsonl,passage.jsonl,metrics.jsonl,metrics.json,report.md}`
 

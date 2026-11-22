@@ -26,7 +26,7 @@ openScene（新场景，participants = 内容包全部人物 + 玩家）
 启动日志一行：监听地址、世界标题、拍数、三个角色的模型串
 ```
 
-场景上下文**不落盘**，续跑从新场景开始；人物记忆由 `journal.experience` 复原。这条与 `play.ts` 一致，两者共用 `packages/server/src/session.ts` 的 boot 逻辑（`play.ts` 保留自己的 CLI 循环，但 boot 走同一函数）。
+场景上下文**不落盘**，续跑从新场景开始；人物记忆由 `journal.experience` 复原。`play.ts` 按同样顺序 boot（`loadContentPack` → `replay` / `replayCharacters` → `openScene`），但 boot 与 CLI 循环各自持有，不共用 `session.ts`。
 
 **启动必须打印实际模型串**：调错模型要当场可见，不能等到第一拍失败。
 

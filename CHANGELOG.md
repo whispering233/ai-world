@@ -3,6 +3,11 @@
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+
+## [v0.0.2] - 2026-11-22
+### Note
+第二个切片：一拍世界搬进浏览器——单进程服务端 + 玩家阅读面 + 作者壳；世界层补上 `claim` 第三来源、裁判规则 9b 与 `phys` 键登记。世界内核仍是 `.ts` 源码直跑，只有前端需要构建。
+
 ### Added
 - `JournalEntry.committed`（可选）：本拍真正落账的 claim id。`verdicts` 是裁判原话，可能含 `ok` 但整条回滚的条目；这个字段才是“账本真的变了”的名单。
 - `packages/web`：玩家阅读面（Vite + React 19 + Tailwind 4，**零组件库/图标库/状态库/路由库**）——`tokens.css` 单一改色入口（七色 + 四档字号 + 两个系统字体栈，暗色靠 `data-theme` 覆盖同名变量）、11 个手写基础件、8 个玩家组件、`api.ts`（SSE 分帧解析 + `fetch` + `AbortSignal`，不用 `EventSource`）。
@@ -37,6 +42,7 @@
 - `docs/research/multi-round-experiment.md`：pilot 6 拍三臂结果（回声率、no_rate、成本、硬冲突）与结论。
 
 ### Changed
+- 版本号抬到 `0.0.2`：tag、根 `package.json`、本文件的版本段三处一致由 Release 工作流校验，子包 `version` 不参与发布。
 - 玩家壳与作者壳同在一个 SPA，纯前端开关切换；两套只读投影（玩家 / 作者）分成两个端点，隔离靠投影纯函数 + 源码扫描，不靠服务端开关。
 - 世界内容改为根 `content/<world>.json`（git 跟踪）；作者视图可编辑 `core` / `voice` / `drives` / `beliefs` / `canon`，保存只写盘，新局才生效。
 - 生产态改为单进程：`pnpm serve` 同时给 API 与 `packages/web/dist`；开发态拆成 `dev:server` + `dev:web`（Vite 热更新，`/api` 反代）。
@@ -68,6 +74,7 @@
 - 架构决策：裁判仍是唯一写入口；per-character agent 与 Super-agent 式中央代理不直接写世界状态，最多作为 claim 来源/导演层。
 
 ### Fixed
+- 文档校正：`60-server.md` 说 `play.ts` 与 `session.ts` 共用 boot 逻辑（实际是各自持有同一套纯函数）；研究文档里的运行命令统一到 `pnpm`；`docs-map` 与 backlog 的 storylet 结论补到 §18 §19（R1 后重测仍无收益）。
 - `/` 与 SPA fallback 返回 `application/octet-stream`，浏览器直接下载而不是渲染：content-type 改为按**实际发出的文件**判定。
 - 「此刻」抽屉首屏就常开、`Esc` 关不掉、遮住「停止」与「此刻」按钮：`<dialog>` 不再直接写 `display`，改用 `hidden` + `open:flex`。
 - 玩家视图的「谁在这里」把灯、门、地窖门列成人：投影改用人物白名单。

@@ -131,7 +131,7 @@ pnpm experiment:multi-round -- --beats 6 --mode all --tag pilot-1
 
 ## 8. 分发
 
-首切片不分发。运行依赖本机的 pi 凭据与 `src/`、`content/`、`config/` 三处源码目录，拷走即可运行。
+不分发。运行依赖本机的 pi 凭据与 `packages/`、`content/`、`config/` 三处源码目录，拷走即可运行（前端需先 `pnpm build`）。
 
 ## 9. CI
 

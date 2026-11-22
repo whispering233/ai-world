@@ -1,7 +1,7 @@
 # 前缀顺序与缓存计量（2026-11-21）
 
 - 模型：`opencode-go/deepseek-v4.1-flash`（三角色同模型）
-- 命令：`rm -rf data && npm run play -- --beats 6 --auto`
+- 命令：`rm -rf data && pnpm play -- --beats 6 --auto`
 - 目的：W5 只验证两件事——`cognition` 的 system 前缀顺序是否按设计排好；provider 是否会上报 `cacheRead` / `cacheWrite`。**这不是缓存收益的 A/B 基准。**
 
 ## 实测

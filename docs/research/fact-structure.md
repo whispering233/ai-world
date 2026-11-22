@@ -1,7 +1,7 @@
 # fact 结构化：6 拍 smoke（2026-11-21）
 
 - 模型：`opencode-go/deepseek-v4.1-flash`
-- 命令：`rm -rf data && npm run play -- --beats 6 --auto`
+- 命令：`rm -rf data && pnpm play -- --beats 6 --auto`
 - 目的：确认 `actor` / `kind` 能被裁判填出、能落账本、能被体检表统计；**不是 20 拍密度回归**。
 
 ## 实测

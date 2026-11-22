@@ -163,7 +163,7 @@ referee 本身是 LLM，输出不确定；但 `commit()` 是纯函数，裁决�
 ### 6.1 运行方式
 
 ```sh
-npm run experiment:multi-round -- --beats 6 --mode all --tag pilot-1
+pnpm experiment:multi-round -- --beats 6 --mode all --tag pilot-1
 ```
 
 - `--mode baseline|self-retry|cross-talk|both|all`：只跑一臂或组合；默认 `all`（三臂）；

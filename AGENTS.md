@@ -39,6 +39,12 @@
 - `sessionId` 是 provider 的路由/缓存亲和头，不是消息线程；一次世界运行只用一个，不按角色拆。
 - 启动时打印实际使用的模型串；调错模型必须当场可见。
 
+## 发布
+
+- 版本号三处一致才能发：tag `vX.Y.Z`、根 `package.json` 的 `version`、`CHANGELOG.md` 的 `## [vX.Y.Z] - 日期`。Release 工作流先校验，不一致直接红。
+- 只改根 `package.json`；子包 `version` 不参与发布。
+- tag 只从已通过 CI 的 `main` 打；发完补回新的 `## [Unreleased]`。
+
 ## 开发顺序
 
 讨论与返工风险 → 更新 `docs/` → 切 `docs/design/tasks.md` 任务卡 → 临时 worktree + 分支执行 → 独立验证 → 清卡 → 合并。

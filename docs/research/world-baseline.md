@@ -2,7 +2,7 @@
 
 - 模型：`opencode-go/deepseek-v4.1-flash`（cognition / referee / narration 同模型）
 - 世界：`starter-town`，`rm -rf data` 后从零开始
-- 命令：`npm run play -- --beats 20 --auto`
+- 命令：`pnpm play -- --beats 20 --auto`
 - op 名：`transfer`（任何持有变化）/ `consume`（物品离开世界）；旧 journal 的 `give`/`take` 仅作 replay 别名
 - 探针：9 条循环（短对话 / 等待 10–30 分钟 / 物理 / 耳语谎言 / 喝掉）+ 3 个守卫探针；长动作只跑一次（第 5 拍），守卫在第 3、16、18 拍插入承诺 / 威胁 / 公开宣告，最后一拍单独测移动
 
