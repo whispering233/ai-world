@@ -45,7 +45,7 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 - 有 `data/` 时自动**续跑**：世界由 journal 重放复原，人物记忆由 `experience` 复原；续跑从新场景开始（场景上下文不落盘）
 - `--fresh` 显式重开一局（清掉 journal/passage，替代手动 `rm -rf data`）
 - 加 `--auto` 则不需要人输入，按内置脚本跑（用于回归跑分）
-- `--network-family-autoselection-attempt-timeout=2000` **不是可选项**：到供应商的 TCP 握手常在 250ms 以上，Node 默认的 250ms 选路尝试上限会把每次连接提前掐断（报 `AggregateError (ETIMEDOUT)`）。手敲命令容易漏，漏了就连不上；`npm run play` 已带好
+- `--network-family-autoselection-attempt-timeout=2000` **不是可选项**：到供应商的 TCP 握手常在 250ms 以上，Node 默认的 250ms 选路尝试上限会把每次连接提前掐断（报 `AggregateError (ETIMEDOUT)`）。手敲命令容易漏，漏了就连不上；`pnpm play` 已带好
 
 试玩重点看三件事：它有没有记住你上一句、有没有人做你没要求的事、拒绝写得对不对。
 
@@ -112,7 +112,7 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 ### 6.1 多轮交叉对话实验（可选，一次性）
 
 ```sh
-npm run experiment:multi-round -- --beats 6 --mode all --tag pilot-1
+pnpm experiment:multi-round -- --beats 6 --mode all --tag pilot-1
 ```
 
 三臂：`baseline`（当前单次认知）、`self-retry`（控制臂：同样两轮，但第二轮只看自己的草稿）、`cross-talk`（第二轮看其他人的公开输出）。只共享 `outward`，`inner` 永不跨人；裁判仍是唯一写入口。产物在 `data/experiment/<tag>/<arm>/`，`report.md` 是汇总与样本。设计与指标见 [../research/multi-agent-architectures.md](../research/multi-agent-architectures.md) §6。
@@ -124,7 +124,7 @@ npm run experiment:multi-round -- --beats 6 --mode all --tag pilot-1
 | `裁决失败（本拍无进展）` | 裁判三次尝试全失败 | 该拍空转、账本不动，继续输入即可 |
 | `认知失败（本拍沉默）：<人>` | 某个人物调用失败 | 它这拍没开口，其余人照常结算 |
 | `Provider is not configured` | 模型串的 provider 与凭据不匹配 | 检查 `settings.json` 的 `defaultProvider` 与 `auth.json` |
-| 所有调用立刻报 `AggregateError (ETIMEDOUT)` | 启动命令漏了 `--network-family-autoselection-attempt-timeout=2000`，Node 250ms 选路上限掐断了慢链路连接 | 用 `npm run play`，或手敲命令时补上该 flag |
+| 所有调用立刻报 `AggregateError (ETIMEDOUT)` | 启动命令漏了 `--network-family-autoselection-attempt-timeout=2000`，Node 250ms 选路上限掐断了慢链路连接 | 用 `pnpm play`，或手敲命令时补上该 flag |
 | 重试次数持续上涨 | 供应商抖动 | 属预期，重试只覆盖可重试错误；配额类错误立即失败 |
 
 ## 8. 分发
@@ -136,14 +136,14 @@ npm run experiment:multi-round -- --beats 6 --mode all --tag pilot-1
 `.github/workflows/ci.yml` 在 push 到 `main`、PR 和手动触发时跑：
 
 ```sh
-npm ci
-npm run typecheck
-npm test
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm test
 ```
 
-**不跑 `npm run play`**：它需要模型凭据与网络，结果不可重复。模型调用的回归靠 `scripts/play.ts --auto` 在本机跑，不进 CI。
+**不跑 `pnpm play`**：它需要模型凭据与网络，结果不可重复。模型调用的回归靠 `scripts/play.ts --auto` 在本机跑，不进 CI。
 
-CI 使用 Node 22 与 npm 缓存；本地等价命令就是上面三条。`package-lock.json` 必须提交，CI 用 `npm ci` 而不是 `npm install`。
+CI 用 Node 22 与 pnpm 缓存（`pnpm/action-setup` 的版本取自根 `package.json` 的 `packageManager` 字段）；本地等价命令就是上面三条。`pnpm-lock.yaml` 必须提交，CI 用 `--frozen-lockfile` 而不是 `pnpm install`。
 
 ## 10. Release
 
@@ -153,8 +153,7 @@ CI 使用 Node 22 与 npm 缓存；本地等价命令就是上面三条。`packa
 
 ```sh
 # 1. 把 Unreleased 段改成 ## [vX.Y.Z] - 日期，并在顶部补新的 ## [Unreleased]
-# 2. 抬版本（同时更新 package.json 与 package-lock.json）
-npm version 0.0.2 --no-git-tag-version
+# 2. 抬版本（手工改根 package.json 的 version；子包 version 不参与发布）
 # 3. 提交、打 tag、推送
 git commit -am "release: v0.0.2"
 git tag v0.0.2

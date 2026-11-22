@@ -25,6 +25,9 @@
 - `docs/research/multi-round-experiment.md`：pilot 6 拍三臂结果（回声率、no_rate、成本、硬冲突）与结论。
 
 ### Changed
+- 仓库改为 pnpm workspace：`packages/{shared,core,content}`，包入口是 `.ts` 源码（`exports` 指向 `src/index.ts`，无构建步骤）；`npm install` / `npm test` 等命令换成 `pnpm`，锁文件由 `package-lock.json` 换成 `pnpm-lock.yaml`。
+- `AGENTS.md` 结构一节改为按包描述依赖方向（`shared ← core ← content ← server ← web`），并写明包入口策略。
+- `docs/design/build.md`：CI 改为 `pnpm install --frozen-lockfile`；抬版本改为只改根 `package.json`。
 - `AGENTS.md`：第 4 条补“空 `deltas` 不是状态”，新增第 9 条“`phys` 键要能写出解除者”；结构一节注明 `claimSource` 是唯一世界事件注入点。
 - `README.md`：用例数与每拍/20 拍时间口径按实测更新，补实验脚本入口。
 - `docs/design/backlog.md` §4：标注 20 拍基线在 R1 之后已过期，重跑前不作判据。
