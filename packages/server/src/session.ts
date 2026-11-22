@@ -50,7 +50,6 @@ export interface SessionOptions {
   contentPath: string
   pack: ContentPack
   llm: Llm
-  title: string
 }
 
 export interface BeatOutcome {
@@ -142,7 +141,7 @@ export function createSession(opts: SessionOptions): Session {
 
   function view(): SessionView {
     return playerView({
-      title: opts.title,
+      title: pack.title,
       player: pack.player,
       // 只有内容包里的人物算“人”：账本里还有灯、门、地窖门这类实体
       people: new Set(pack.characters.map((seed) => seed.id)),
@@ -196,7 +195,7 @@ export function createSession(opts: SessionOptions): Session {
   function sessionAuthorView(): AuthorSessionView {
     const degraded = [...notes.values()].reduce((n, list) => n + list.length, 0)
     return authorView({
-      title: opts.title,
+      title: pack.title,
       world: state.world,
       characters: state.characters,
       names: pack.names,

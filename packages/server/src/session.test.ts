@@ -65,7 +65,7 @@ afterEach(() => {
 })
 
 function makeSession(dir: string, llm: Llm, contentPath = writePack(dir)): Session {
-  return createSession({ dir, contentPath, pack: pack(), llm, title: '测试酒馆' })
+  return createSession({ dir, contentPath, pack: pack(), llm })
 }
 
 /** 每个用例一份临时内容包：保存用例绝不碰仓库里的 `content/`。 */
@@ -251,7 +251,6 @@ describe('内容保存', () => {
       dir,
       contentPath,
       pack: pack(),
-      title: '测试酒馆',
       llm: stubLlm({
         cognition: async (req) => {
           systems.push(req.system ?? '')
@@ -291,7 +290,6 @@ describe('内容保存', () => {
       dir,
       contentPath,
       pack: pack(),
-      title: '测试酒馆',
       llm: stubLlm({
         referee: async () => {
           await held.wait
