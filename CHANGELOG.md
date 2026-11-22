@@ -5,9 +5,6 @@
 ## [Unreleased]
 
 ## [v0.0.2] - 2026-11-22
-### Note
-第二个切片：一拍世界搬进浏览器——单进程服务端 + 玩家阅读面 + 作者壳；世界层补上 `claim` 第三来源、裁判规则 9b 与 `phys` 键登记。世界内核仍是 `.ts` 源码直跑，只有前端需要构建。
-
 ### Added
 - `JournalEntry.committed`（可选）：本拍真正落账的 claim id。`verdicts` 是裁判原话，可能含 `ok` 但整条回滚的条目；这个字段才是“账本真的变了”的名单。
 - `packages/web`：玩家阅读面（Vite + React 19 + Tailwind 4，**零组件库/图标库/状态库/路由库**）——`tokens.css` 单一改色入口（七色 + 四档字号 + 两个系统字体栈，暗色靠 `data-theme` 覆盖同名变量）、11 个手写基础件、8 个玩家组件、`api.ts`（SSE 分帧解析 + `fetch` + `AbortSignal`，不用 `EventSource`）。
@@ -95,9 +92,6 @@
 - `packages/content/src/starter-town.ts`：世界内容不再以 TS 代码形式存在，改为根 `content/starter-town.json`；运行时字段（`experience` / `busyUntil`）由 `seedCharacters()` 补空。
 
 ## [v0.0.1] - 2026-11-21
-### Note
-首个可玩切片：无界面的文字世界，可连续推进 20 拍并输出体检指标；同时落地 CI、Release 与 MIT License。
-
 ### Added
 - GitHub Actions CI：push / PR 跑 `npm ci`、`npm run typecheck`、`npm test`。
 - GitHub Actions Release：push `vX.Y.Z` tag 时从本文件的对应版本段创建 GitHub Release。
