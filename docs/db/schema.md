@@ -36,6 +36,16 @@
 | driveHits | 否 | DriveHit[] | | 驱动热度增减 |
 | observations | 否 | Record<EntId, string> | | 可见性分发结果 |
 | experience | 否 | Record<EntId, Experience[]> | | 本拍每人新增的记忆条目（不是快照）；旧 journal 缺失时重放停在初始人物 |
+| telemetry | 否 | BeatTelemetry | | 本拍运行观测（模型串与用量），由服务端注入，`src/core` 只透传；旧 journal 缺失时作者视图显示“未记录” |
+
+`BeatTelemetry`：
+
+| 字段 | 是否必选 | 数据类型 | 备注 |
+| :--- | :--- | :--- | :--- |
+| models | 是 | `Record<ModelRole,string>` | 本拍三个角色实际使用的模型串 |
+| usage | 是 | `Record<ModelRole,{input,output,cacheRead,cacheWrite,cost,ms,retries,calls}>` | 本拍各角色的累计用量；`cost` 缺失时按 0 显示，不推断 |
+
+telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它不影响账本。
 
 ## 4. `passage`（呈现文本）
 
@@ -45,6 +55,7 @@
 | clock | 是 | number | | |
 | text | 是 | string | | 只增不改 |
 | source | 是 | enum | `narrator` \| `player` \| `npc` \| `fallback` | `fallback` = 旁白失败后用事实摘要兜底 |
+| beatSeq | 否 | number | ≥1 | 对应 journal 的 seq，连接玩家原话与旁白的稳定键；旧日志缺失时按 `clock` 顺序回退匹配 |
 
 ## 5. `character`（人物）
 

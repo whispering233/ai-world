@@ -63,6 +63,14 @@
 | 30 | **玩家 UI = 单栏阅读面 + 顶部细栏 + 底部输入 + 按需右抽屉**；三栏仅作者/调试模式（backlog） | ui/DESIGN |
 | 31 | **storylet 只作 claim 第三来源**：作者写骨架 + 只读条件（前因只从 `facts` 读，无因不抽），抽卡产出世界事件，模型只填文本；不写账本、不做多拍进度 | 20 / backlog |
 | 32 | **`phys` 键保持开放**：不加白名单、不冻结键名；只登记到 `db/schema.md` §9，并逼每个键回答“谁解除” | db/schema |
+| 33 | **服务端 = 单进程 Hono**：持有内存世界态，SSE 推一拍，静态托管 SPA；无数据库、无队列、无多进程 | 60 |
+| 34 | **旁白不流式**：一次成型。`runBeat` 在调旁白前已落 journal，流出来的文本没有“草稿”身份 | 60 / ui |
+| 35 | **两种壳、一个进程**：玩家单栏 / 作者三栏，纯前端开关；隔离靠投影纯函数 + 源码扫描，不靠服务端开关 | 60 / api |
+| 36 | **内容为 JSON 数据**（`content/<world>.json`，git 跟踪）：只存作者字段，运行时字段由 `seedCharacters()` 补空 | 60 / db |
+| 37 | **内容只在新局生效**：保存 = 写盘，本局不变；不做热生效（会静默清掉 `heat`/`beliefs`） | 60 |
+| 38 | **`packages/*` + pnpm**：`exports` 指向 `.ts` 源码（无构建步骤），发布时才逐包切 `dist` | 60 |
+| 39 | **不引组件库**：11 个手写基础件 + 原生 `<details>`/`<dialog>`/`<table>`/`<dl>` | 60 / ui |
+| 40 | **一拍单飞**：并发 `/api/beat` 返回 409，不排队 | api |
 
 ## 6. 待定
 
@@ -71,7 +79,7 @@
 | 编号 | 问题 | 结论 |
 | :--- | :--- | :--- |
 | A1 | 角色输出切分 | 两字段 `inner` + `outward`（30 §3） |
-| A2 | 技术栈与存储 | TS + Node 22 + ESM + vitest；`journal.jsonl` + `passage.jsonl`（无 `state.json` 快照）；Vite + React + Tailwind |
+| A2 | 技术栈与存储 | TS + Node 22 + ESM + vitest；pnpm workspace（`packages/*`）；`journal.jsonl` + `passage.jsonl`（无 `state.json` 快照）；Hono + Vite + React + Tailwind |
 | A3 | 裁判结构化输出 | tool calling（`submit_verdict`），pi-ai 已备校验与修复 |
 | B5 | “有魂”验收判据 | 三条，见试玩结束三问；不绑定临时任务卡编号 |
 
