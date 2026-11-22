@@ -1,3 +1,4 @@
+# minimumReleaseAgeExclude：pnpm 12 的发布冷却会挡住刚发布的版本；这里只放行 hono 当前版本
 packages: ["packages/*"]
 allowBuilds:
   '@google/genai': false

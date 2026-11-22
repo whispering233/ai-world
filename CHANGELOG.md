@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 ### Added
+- `packages/server`：单进程 Hono 服务端——`GET /api/session`、`POST /api/beat`（SSE：`progress`/`passage`/`state`/`done`/`error`）、`POST /api/reset`、`GET /api/author/{session,beat/:seq}`，静态托管与 SPA fallback；一拍单飞（并发 409），断连三路都接 `AbortController`。
+- `packages/server/src/session.ts`：`createSession` 把 boot / 单拍互斥 / abort / usage 累计 / prompt 环形缓冲收在一个不依赖 HTTP 的内核里，路由只是薄适配。
+- `JournalEntry.telemetry`（可选）：每拍的模型串与用量，由服务端注入；`replay` 不读它。
+- `PassageEntry.beatSeq`（可选）：连接玩家原话与旁白的稳定键；旧日志按 `clock` 回退。
+- `ChatResult.cost` / `ChatResult.retries`：把 pi-ai 报回的金额与重试次数透出来，作者模式要显示。
 - `content/starter-town.json`：世界内容从 TS 代码变成 git 跟踪的 JSON 数据包（含新增 `title`）；`packages/content` 提供 `loadContentPack` / `contentHash` / `STARTER_TOWN_PATH`，运行时字段由 `seedCharacters()` 补空。
 - `packages/core/src/view.ts`：`playerView` / `authorView` / `beatViews` 三个只读投影，玩家侧输出显示名与可验证状态，作者侧保留原值与全量 journal。
 - `packages/core/src/health.ts`：`healthView` 把体检口径抽成纯函数，作者投影与 CLI 试玩器共用。
