@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 ### Added
+- `content/starter-town.json`：世界内容从 TS 代码变成 git 跟踪的 JSON 数据包（含新增 `title`）；`packages/content` 提供 `loadContentPack` / `contentHash` / `STARTER_TOWN_PATH`，运行时字段由 `seedCharacters()` 补空。
+- `packages/core/src/view.ts`：`playerView` / `authorView` / `beatViews` 三个只读投影，玩家侧输出显示名与可验证状态，作者侧保留原值与全量 journal。
+- `packages/core/src/health.ts`：`healthView` 把体检口径抽成纯函数，作者投影与 CLI 试玩器共用。
+- `packages/shared/src/dto.ts`：玩家/作者投影与 SSE 帧的线上类型（零 import，浏览器安全）。
 - `World.ambient`（可选）：世界常态声明，只读根常量、与 `places` 同性质，不属于事实流；环境类故事事件的前因读它，缺键即不满足。
 - `docs/research/storylet-probe.md` §12 §13：v3 10 拍 A/B（两级前因）——世界事件落账 3/3、首条发生在第 1 拍，**净效果 1 个死拍**；同拍与玩家“推门”竞争时裁判判“风胜”，玩家动作被顶掉。
 - `tests/storylet-pool.test.ts`：锁住“ambient 与 facts 不许互借”与冷却规则。

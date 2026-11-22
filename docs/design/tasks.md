@@ -8,20 +8,14 @@
 
 | 卡 | 内容 | 依赖 | 验收 |
 | :--- | :--- | :--- | :--- |
-| **W6-0b** 内容 JSON 化 | `content/starter-town.json`；`CharacterSeed`（剥 `experience`/`busyUntil`）；`ContentPack.characters: CharacterSeed[]` + `seedCharacters()`；`load.ts`（读 + `validatePack` + 内容哈希）；新增 `title`；`play.ts` 改用加载器 | — | `load.test.ts` 覆盖：合法包 / core 超长 / canon 超长 / 缺显示名 / 未知地点；`play.ts` 跑 1 拍正文与改动前逐字一致 |
 | **W6-1** 服务端 | `packages/server/src/{index,session,llm}.ts` + `routes/{session,beat,reset}.ts`；core 三处可选字段（`BeatInput.telemetry`、`JournalEntry.telemetry`、`PassageEntry.beatSeq`）；SSE 帧 `progress/passage/state/done/error`；单拍互斥；`AbortController` + `Llm` 包装；prompt 环形缓冲（3 拍） | — | `session.test.ts` 用桩覆盖：并发第二请求 409、abort 不落 journal、reset 后 clock 归零、passage 缺失时 `BeatView.passage` 缺省；`curl /api/session` 返回玩家投影 |
-| **W6-2** 两个投影 + 纪律断言 | `packages/shared/src/dto.ts`（纯类型、零 import）；`packages/core/src/view.ts` 的 `playerView` / `authorView`；`view.test.ts` | — | 玩家投影递归键集合断言：无 id、无 `claim/verdict/delta/heat/rel/drives/beliefs/core/token/cost/no_rate/notes`；作者投影含 journal 全量 |
-| **W6-5** 体检表提取 | `packages/core/src/health.ts`（从 `play.ts` 抽出）；`play.ts` 改调用；`health.test.ts` | — | 用固定 journal fixture 断言 `health.ts` 的每项指标与旧 `play.ts` 口径逐项相等 |
-| **W6-3** 玩家壳 | `packages/web/`（`package.json`/`tsconfig.json`/`index.html`/`vite.config.ts`/`main.tsx`/`App.tsx`/`tokens.css`）；11 个基础件；8 个玩家组件；`api.ts` + `api.test.ts`；`discipline.test.ts` | W6-1、W6-2 | `api.test.ts` 覆盖 SSE 分帧 / 半帧 / 多帧粘包 / `[DONE]` 缺失；`discipline.test.ts` 三条断言全绿；`ui-verifier` 跑 6 条路径（空世界 / 发送 / 等待 / 失败 / 抽屉 / 切到作者壳），截图 ≤8 张 |
-| **W6-4** 作者壳 | `packages/web/src/author/*`（`AuthorApp`/`BeatList`/`BeatDetail`/`LedgerView`/`HealthPanel`/`ContentEditor`/`SaveDialog`）；`packages/server/src/routes/author.ts`；`POST /api/author/content` | W6-1、W6-2、W6-0b | 改 `core` 保存 → 横幅出现 → 开新局 → 桩模型收到的 prompt 里是新 `core`；保存非法内容返回 `E_INVALID_CONTENT` 且文件字节未变；作者端点无任何写 `data/` 的路径 |
+| **W6-3** 玩家壳 | `packages/web/`（`package.json`/`tsconfig.json`/`index.html`/`vite.config.ts`/`main.tsx`/`App.tsx`/`tokens.css`）；11 个基础件；8 个玩家组件；`api.ts` + `api.test.ts`；`discipline.test.ts` | W6-1 | `api.test.ts` 覆盖 SSE 分帧 / 半帧 / 多帧粘包 / `[DONE]` 缺失；`discipline.test.ts` 三条断言全绿；`ui-verifier` 跑 6 条路径（空世界 / 发送 / 等待 / 失败 / 抽屉 / 切到作者壳），截图 ≤8 张 |
+| **W6-4** 作者壳 | `packages/web/src/author/*`（`AuthorApp`/`BeatList`/`BeatDetail`/`LedgerView`/`HealthPanel`/`ContentEditor`/`SaveDialog`）；`packages/server/src/routes/author.ts`；`POST /api/author/content` | W6-1、W6-3 | 改 `core` 保存 → 横幅出现 → 开新局 → 桩模型收到的 prompt 里是新 `core`；保存非法内容返回 `E_INVALID_CONTENT` 且文件字节未变；作者端点无任何写 `data/` 的路径 |
 
 ## 2. 并行分层
 
 ```text
-W6-0b ─┐
-W6-1  ─┼─ W6-3
-W6-2  ─┘  W6-4
-W6-5
+W6-1 → W6-3 → W6-4
 ```
 
 - 一层内的卡互不重叠，可在各自的临时 worktree 里并行。
@@ -67,6 +61,11 @@ W6-5
 - **`PassageEntry.beatSeq` 是玩家原话与旁白的连接键**；旧日志按 `clock` 顺序回退匹配。
 - **包入口指 `.ts` 源码**（无构建步骤）；发布时才逐包加 `build` 并把该包 `exports` 切到 `dist`。
 - **不引组件库**：原生 `<details>`/`<dialog>`/`<table>`/`<dl>`；图标用文本字符。
+- 玩家投影的输入必须显式带 `player`：`at`/`holds`/`knows` 都按它取，不从内容包推；`at[player]` 缺失时退化成空 `place`/空 `here`，不抛错。
+- `healthView` 不传 `committed` 时退化为“所有 `ok` 的 verdict”，会把回滚的条目算进写操作；服务端与 `play.ts` 都必须传。
+- 世界内容是根 `content/<world>.json`（git 跟踪）；`experience`/`busyUntil` 由 `seedCharacters()` 补空，内容文件里不允许出现。
+- 玩家投影的“无 id”由 `view.test.ts` 两条断言守住：递归键集合无引擎词、序列化后不出现任何实体/物品 id。
+- 并行卡都往 `packages/core/src/index.ts` 加导出时，**按字母序插入**，否则合并必撞同一行。
 
 ## 5. 执行与验证约定
 
