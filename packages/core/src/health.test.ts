@@ -11,8 +11,25 @@ function verdict(claimId: string, ok: boolean, duration: number, deltas: Verdict
   return { claimId, actor: 'ann', ok, deltas, duration }
 }
 
-function entry(seq: number, type: JournalEntry['type'], claims: Claim[], verdicts: Verdict[]): JournalEntry {
-  return { seq, type, scene: 's1', clock: seq * 10, claims, order: ['ann'], verdicts, observations: {}, driveHits: [] }
+function entry(
+  seq: number,
+  type: JournalEntry['type'],
+  claims: Claim[],
+  verdicts: Verdict[],
+  committed?: string[],
+): JournalEntry {
+  return {
+    seq,
+    type,
+    scene: 's1',
+    clock: seq * 10,
+    claims,
+    order: ['ann'],
+    verdicts,
+    observations: {},
+    driveHits: [],
+    ...(committed === undefined ? {} : { committed }),
+  }
 }
 
 // 4 拍 + 1 次折场：含被拒 verdict、空 deltas verdict、duration ≥ 240、以及一条 ok 但 op 回滚的 verdict。
@@ -25,9 +42,10 @@ const journal: JournalEntry[] = [
       verdict('c1', true, 1),
       verdict('c2', true, 3, [{ op: 'transfer', from: 'ann', to: 'doc', item: 'coin', n: 2 }]),
     ],
+    ['c2'],
   ),
   entry(2, 'scene/fold', [], []),
-  entry(3, 'beat', [claim('c3', 'say')], [verdict('c3', false, 0)]),
+  entry(3, 'beat', [claim('c3', 'say')], [verdict('c3', false, 0)], []),
   entry(
     4,
     'beat',
@@ -40,6 +58,7 @@ const journal: JournalEntry[] = [
         { op: 'move', who: 'ann', to: 'street' },
       ]),
     ],
+    ['c4', 'c5', 'c6'],
   ),
   // c8 的 op 整条回滚：ok 为真但不在 committed 里。
   entry(
@@ -50,12 +69,13 @@ const journal: JournalEntry[] = [
       verdict('c7', true, 31, [{ op: 'know', who: ['ann'], fact: 'f2' }]),
       verdict('c8', true, 2, [{ op: 'transfer', from: 'ann', to: 'doc', item: 'coin', n: 5 }]),
     ],
+    ['c7'],
   ),
 ]
 
 describe('healthView：与 play.ts 体检表逐项同口径', () => {
-  it('按 committed 集合统计已提交写操作', () => {
-    const view = healthView({ journal, committed: new Set(['1:c2', '4:c4', '4:c5', '4:c6', '5:c7']), degraded: 3 })
+  it('按 journal 的 committed 字段统计已提交写操作', () => {
+    const view = healthView({ journal, degraded: 3 })
     expect(view.beats).toBe(4)
     expect(view.folds).toBe(1)
     expect(view.claims).toEqual({ say: 4, act: 4 })
@@ -68,8 +88,12 @@ describe('healthView：与 play.ts 体检表逐项同口径', () => {
     expect(view.degraded).toBe(3)
   })
 
-  it('不传 committed 时退化为所有 ok verdict', () => {
-    const view = healthView({ journal })
+  it('旧 journal 没有 committed 时退化为「ok 且有 deltas」', () => {
+    const legacy = journal.map((item) => {
+      const { committed: _drop, ...rest } = item
+      return rest
+    })
+    const view = healthView({ journal: legacy })
     expect(view.beats).toBe(4)
     expect(view.folds).toBe(1)
     expect(view.claims).toEqual({ say: 4, act: 4 })

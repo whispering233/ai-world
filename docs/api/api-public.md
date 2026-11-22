@@ -58,3 +58,5 @@ data: <单行 JSON>
 | `POST /api/beat` | 否 | **单飞**：已有拍在结算时返回 `E_BEAT_IN_FLIGHT` |
 | `POST /api/reset` | 否 | 与 `/beat` 互斥 |
 | `POST /api/author/content` | 否 | 与 `/beat` 互斥 |
+
+`GET /api/author/content` 是只读的（幂等、可并发），与下面的保存端点区分。

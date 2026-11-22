@@ -2,24 +2,13 @@
 
 > 只放**未完成**的卡片。完成的卡片直接删除，不留历史——历史在 `CHANGELOG.md` 与 git 记录里。
 
-## 1. 当前批次：W6 服务端 + 阅读面
+## 1. 当前批次
 
-设计与接口已定稿：[60-server.md](60-server.md)、[api/](../api/00-api-index.md)、[ui/DESIGN.md](../ui/DESIGN.md)。
+没有卡片。W6 服务端 + 阅读面全部落地并合并（[60-server.md](60-server.md)、[api/](../api/00-api-index.md)、[ui/DESIGN.md](../ui/DESIGN.md)）。下一张从 §2 里选。
 
-| 卡 | 内容 | 依赖 | 验收 |
-| :--- | :--- | :--- | :--- |
-| **W6-4** 作者壳 | `packages/web/src/author/*`（`AuthorApp`/`BeatList`/`BeatDetail`/`LedgerView`/`HealthPanel`/`ContentEditor`/`SaveDialog`）；`packages/server/src/routes/author.ts`；`POST /api/author/content` | — | 改 `core` 保存 → 横幅出现 → 开新局 → 桩模型收到的 prompt 里是新 `core`；保存非法内容返回 `E_INVALID_CONTENT` 且文件字节未变；作者端点无任何写 `data/` 的路径 |
+并行经验（下次切卡时直接用）：一层内的卡互不重叠，可在各自的临时 worktree 里并行；往 `packages/core/src/index.ts` 加导出要**按字母序插入**，否则合并必撞同一行；共用 `packages/web/src/ui/` 的卡要串行（先落基础件，后落的只增不改）。
 
-## 2. 并行分层
-
-```text
-W6-4
-```
-
-- 一层内的卡互不重叠，可在各自的临时 worktree 里并行。
-- `W6-3` 与 `W6-4` 共用 `packages/web/src/ui/` 与 `tokens.css`：`ui/` 由 `W6-3` 先落，`W6-4` 只增不改。
-
-## 3. 下一批候选（待讨论）
+## 2. 下一批候选（待讨论）
 
 | 候选 | 现在做它的理由 | 先看什么 |
 | :--- | :--- | :--- |
@@ -30,7 +19,7 @@ W6-4
 | 折场时压 experience | 上下文预算吃紧时 | `recall` 的检索权重 |
 | 缓存 A/B | 有 before/after 需求时 | 同条件换前缀顺序各跑 6 拍 |
 
-## 4. 已固化的小约定
+## 3. 已固化的小约定
 
 - 接口寻址：`clock` / `ledger` / `referee` / `narrate` 四个服务按接口注入，桩实现与真实实现可互换。
 - 测试桩优先：任何一端都能被确定性桩替换，测试不联网。
@@ -72,8 +61,10 @@ W6-4
 - 静态托管的 content-type 看**实际发出的文件**，不看请求路径：SPA fallback 的路径（`/`、`/author`）通常没有扩展名。
 - `playerView` 的 `here` 必须用人物白名单：`ledger.at` 里有灯、门、地窖门这类实体，它们不是“在场的人”。
 - UI 改完必须跑一次浏览器实测：上面三条 bug 全部是 `pnpm test` 与 typecheck 绿的情况下漏过去的。
+- “哪些 claim 真的落账”必须落在 `journal.committed`：`committed` 集合只在内存里，重启就空，体检表会把有 deltas 的 journal 报成 0 次写操作。
+- 作者壳保存的是**整份** `JSON.stringify(pack)`，不是只拼可编辑字段：它不认识的字段（`ambient`、`aliases`）必须原样带回。
 
-## 5. 执行与验证约定
+## 4. 执行与验证约定
 
 - 一次只做一张卡；每张卡独立 commit，可单独回滚。
 - 按端到端功能垂直切片，切到可单独提交、验证、回滚的粒度。

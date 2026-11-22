@@ -173,7 +173,7 @@ async function main(): Promise<void> {
   rl?.close()
 
   const journal = deps.store.readJournal()
-  const health = healthView({ journal, committed: committedClaims, degraded: beatNotes.length })
+  const health = healthView({ journal, degraded: beatNotes.length })
   const verdicts = journal.flatMap((e) => e.verdicts)
   const committedVerdicts = journal.flatMap((e) => e.verdicts.filter((v) => committedClaims.has(`${e.seq}:${v.claimId}`)))
   const ops = committedVerdicts.flatMap((v) => v.deltas)

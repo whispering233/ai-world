@@ -10,25 +10,26 @@ import type { JournalEntry } from './store.ts'
 
 export interface HealthInput {
   journal: readonly JournalEntry[]
-  /** 已提交的 claim 键，形如 `${journalSeq}:${claimId}`；缺省时按 verdict.ok 判定 */
-  committed?: ReadonlySet<string>
   /** 累计降级 notes 条数 */
   degraded?: number
 }
 
 /**
- * 缺省 `committed` 时退化为「所有 ok 为真的 verdict」：这会把被判为 ok 但未真正
- * 提交（如降级、回滚）的条目算进写操作。有 committed 集合时以它为准。
+ * “哪些 claim 真的落账”由 journal 自己回答：`entry.committed` 是权威。
+ * 旧 journal 没有这个字段，退回「ok 且有 deltas」——会把回滚的条目算进去，但不会归零。
+ *
+ * 不接收外部 `committed` 集合：那个集合只在内存里，进程一重启就是空的，
+ * 会把有 deltas 的 journal 报成 0 次写操作（作者壳实测踩过）。
  */
 export function healthView(input: HealthInput): HealthView {
-  const { journal, committed } = input
+  const { journal } = input
   const beats = journal.filter((e) => e.type === 'beat')
   const verdicts: Verdict[] = journal.flatMap((e) => e.verdicts)
-  // claim id 只含拍前 clock；duration=0 时可能跨拍重名，所以键里带上 journal seq。
-  const committedVerdicts =
-    committed === undefined
-      ? verdicts.filter((v) => v.ok)
-      : journal.flatMap((e) => e.verdicts.filter((v) => committed.has(`${e.seq}:${v.claimId}`)))
+  const committedVerdicts = journal.flatMap((e) =>
+    e.committed === undefined
+      ? e.verdicts.filter((v) => v.ok && v.deltas.length > 0)
+      : e.verdicts.filter((v) => e.committed?.includes(v.claimId) === true),
+  )
   const ops = committedVerdicts.flatMap((v) => v.deltas)
   // op 名开放：未知 op 也计数，只是不打印。
   const writeOps: Record<string, number> = {}

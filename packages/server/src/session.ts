@@ -111,7 +111,6 @@ export function createSession(opts: SessionOptions): Session {
   }
   // 各角色最近一次实际使用的模型串：本拍没调到的角色沿用它，telemetry 才不缺角色
   const models: Record<ModelRoleName, string> = { cognition: '', referee: '', narration: '' }
-  const committed = new Set<string>()
   const notes = new Map<number, string[]>()
   const prompts: { seq: number; calls: PromptCallView[] }[] = []
 
@@ -203,7 +202,7 @@ export function createSession(opts: SessionOptions): Session {
       passages: state.passages,
       content: content(),
       usage,
-      health: healthView({ journal: state.journal, committed, degraded }),
+      health: healthView({ journal: state.journal, degraded }),
       prompts: prompts.slice(-PROMPT_BEATS),
     })
   }
@@ -270,7 +269,6 @@ export function createSession(opts: SessionOptions): Session {
       state.journal = store.readJournal()
       state.passages = store.readPassage()
       notes.set(res.journalSeq, [...(playerClaim === text ? [] : [`玩家输入超过 ${PLAYER_TEXT_MAX} 字，已截断`]), ...res.notes])
-      for (const claimId of res.committedClaims) committed.add(`${res.journalSeq}:${claimId}`)
       prompts.push({ seq: res.journalSeq, calls: sink.calls })
       if (prompts.length > PROMPT_BEATS) prompts.shift()
 
@@ -316,7 +314,6 @@ export function createSession(opts: SessionOptions): Session {
     rmSync(join(opts.dir, PASSAGE), { force: true })
     store = openStore(opts.dir)
     state = boot()
-    committed.clear()
     notes.clear()
     prompts.length = 0
   }

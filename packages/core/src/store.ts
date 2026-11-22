@@ -31,6 +31,12 @@ export interface JournalEntry {
   experience?: Record<EntId, Experience[]>
   /** 本拍运行观测；运行观测不是世界状态，缺它不影响 replay */
   telemetry?: BeatTelemetry
+  /**
+   * 本拍真正落账的 claim id。
+   * `verdicts` 是裁判原话，可能有 `ok` 但整条回滚的条目；这个字段才是“账本真的变了”的名单。
+   * 旧 journal 没有它，体检口径退回「ok 且有 deltas」。
+   */
+  committed?: string[]
 }
 
 export interface PassageEntry {

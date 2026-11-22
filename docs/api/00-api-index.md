@@ -11,6 +11,7 @@
 | POST | `/api/reset` | 清空本局日志，从内容包重新开局 | [20-api-beat.md](20-api-beat.md) §4 |
 | GET | `/api/author/session` | 作者投影：内容状态、journal、账本原始、人物、usage、体检表 | [30-api-author.md](30-api-author.md) |
 | GET | `/api/author/beat/:seq` | 作者投影：单拍详情（含最近拍 prompt 缓冲） | [30-api-author.md](30-api-author.md) |
+| GET | `/api/author/content` | 内容包原文与两个哈希（作者编辑器读取） | [30-api-author.md](30-api-author.md) |
 | POST | `/api/author/content` | 保存内容包（只写 `content/<world>.json`） | [30-api-author.md](30-api-author.md) |
 | GET | `/*` | 静态资源与 SPA fallback（非 `/api` 路径） | [10-api-session.md](10-api-session.md) §3 |
 

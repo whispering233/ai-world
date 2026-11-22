@@ -237,6 +237,8 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     verdicts: out.verdicts,
     observations: out.observations,
     driveHits: out.driveHits,
+    // 落账名单：verdicts 是裁判原话，可能含 ok 但整条回滚的条目
+    committed: [...committedIds],
     ...(Object.keys(newExperience).length > 0 ? { experience: newExperience } : {}),
     ...(input.telemetry && Object.keys(input.telemetry.usage).length > 0 ? { telemetry: input.telemetry } : {}),
   })

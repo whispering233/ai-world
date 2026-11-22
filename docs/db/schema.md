@@ -37,6 +37,7 @@
 | observations | 否 | Record<EntId, string> | | 可见性分发结果 |
 | experience | 否 | Record<EntId, Experience[]> | | 本拍每人新增的记忆条目（不是快照）；旧 journal 缺失时重放停在初始人物 |
 | telemetry | 否 | BeatTelemetry | | 本拍运行观测（模型串与用量），由服务端注入，`src/core` 只透传；旧 journal 缺失时作者视图显示“未记录” |
+| committed | 否 | string[] | | 本拍**真正落账**的 claim id；`verdicts` 是裁判原话，可能含 `ok` 但整条回滚的条目。旧 journal 缺失时体检口径退回「ok 且有 deltas」 |
 
 `BeatTelemetry`：
 

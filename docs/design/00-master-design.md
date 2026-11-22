@@ -83,7 +83,7 @@
 | A3 | 裁判结构化输出 | tool calling（`submit_verdict`），pi-ai 已备校验与修复 |
 | B5 | “有魂”验收判据 | 三条，见试玩结束三问；不绑定临时任务卡编号 |
 
-UI 布局已定稿，见 [../ui/DESIGN.md](../ui/DESIGN.md)；作者/调试模式（三栏）记入 [backlog.md](backlog.md)，不实现。
+UI 布局已定稿，见 [../ui/DESIGN.md](../ui/DESIGN.md)：玩家单栏阅读面与作者三栏壳同在一个 SPA，纯前端开关切换（决策 35）。
 
 ## 7. 设计取舍（为什么这样、不那样）
 
