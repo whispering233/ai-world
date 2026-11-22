@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseModelJson } from '../src/core/model-json.ts'
+import { parseModelJson } from './model-json.ts'
 
 describe('parseModelJson：真模型的实际输出形态', () => {
   it('纯 JSON', () => {

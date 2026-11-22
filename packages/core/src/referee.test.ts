@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { commit, createStubReferee, noRate, parseRefereeOutput, type Claim, type RefereeOutput } from '../src/core/referee.ts'
-import type { World } from '../src/core/world.ts'
+import { commit, createStubReferee, noRate, parseRefereeOutput, type Claim, type RefereeOutput } from './referee.ts'
+import type { World } from './world.ts'
 
 const claims: Claim[] = [
   { id: 'c1', actor: 'ann', text: '我一脚踹开铁门', kind: 'act' },

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { createCognition, createStubCognition, type CognitionInput } from '../src/core/cognition.ts'
-import type { ChatRequest } from '../src/core/llm.ts'
-import type { Character } from '../src/core/character.ts'
+import { createCognition, createStubCognition, type CognitionInput } from './cognition.ts'
+import type { ChatRequest } from './llm.ts'
+import type { Character } from './character.ts'
 
 function input(over: Partial<CognitionInput> = {}): CognitionInput {
   const character: Character = {

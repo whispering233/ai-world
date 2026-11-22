@@ -9,11 +9,11 @@
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '../src/core/config.ts'
-import { createLlm } from '../src/core/llm.ts'
-import { readonlyPiCredentials } from '../src/core/pi-credentials.ts'
+import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
+import { createLlm } from '@ai-world/core'
+import { readonlyPiCredentials } from '@ai-world/core'
 import { fillEvent, SKELETONS } from './storylet-pool.ts'
-import type { Fact } from '../src/core/world.ts'
+import type { Fact } from '@ai-world/core'
 
 const SCENE = '酒馆里：你、安、道森、科迪、格蕾妮。灯还亮着。外面的雨没停。'
 

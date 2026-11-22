@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createStubNarrator, fallbackPassage, type NarrationInput } from '../src/core/narrate.ts'
+import { createStubNarrator, fallbackPassage, type NarrationInput } from './narrate.ts'
 
 function input(): NarrationInput {
   return {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calledActors, dueActors, nextWake, type Activity } from '../src/core/clock.ts'
+import { calledActors, dueActors, nextWake, type Activity } from './clock.ts'
 
 describe('nextWake / dueActors：顺序与边界', () => {
   it('nextWake 取最小 until，空数组为 undefined', () => {

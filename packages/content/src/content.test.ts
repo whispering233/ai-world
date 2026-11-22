@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import type { Character } from '../src/core/character.ts'
-import { validatePack, type ContentPack } from '../src/core/content.ts'
-import { STARTER_TOWN } from '../content/starter-town.ts'
+import type { Character } from '@ai-world/core'
+import { validatePack, type ContentPack } from '@ai-world/core'
+import { STARTER_TOWN } from './starter-town.ts'
 
 function person(id: string): Character {
   const found = STARTER_TOWN.characters.find((c) => c.id === id)

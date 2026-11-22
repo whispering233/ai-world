@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createFauxLlm, createLlm, type ChatMessage } from '../src/core/llm.ts'
+import { createFauxLlm, createLlm, type ChatMessage } from './llm.ts'
 
 const ask: ChatMessage[] = [{ role: 'user', content: '你好' }]
 
