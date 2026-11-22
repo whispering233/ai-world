@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 ### Added
+- `World.ambient`（可选）：世界常态声明，只读根常量、与 `places` 同性质，不属于事实流；环境类故事事件的前因读它，缺键即不满足。
+- `docs/research/storylet-probe.md` §12 §13：v3 10 拍 A/B（两级前因）——世界事件落账 3/3、首条发生在第 1 拍，**净效果 1 个死拍**；同拍与玩家“推门”竞争时裁判判“风胜”，玩家动作被顶掉。
+- `tests/storylet-pool.test.ts`：锁住“ambient 与 facts 不许互借”与冷却规则。
+- `docs/research/storylet-probe.md` §18 §19：R1 后 3+3 重跑——`no_rate` 21.1%→14.3%、世界事件落账 17%→26%，但空转拍仍在噪声带；逐条核对后修正诊断：多数拒绝有账本依据，瓶颈是骨架与账本状态不相容（“风把闩好的门吹开”），不是裁判拿未落账 claim 当证据。
+- `docs/research/storylet-probe.md` §16 §17：两臂各 3 次、每次 10 拍的重复实验——空转拍 base 中位 1 / storylet 中位 2（抽卡无收益），世界事件落账 3/18；否决理由多在引用本拍**未落账**的人物主张（“格蕾妮的拇指正抵在闩销上”），暴露“裁判拿未落账 claim 当证据”；`COOLDOWN_BEATS` 实际与分钟比较，冷却只有 2–3 拍。
+- `scripts/storylet-pool.ts`：骨架池（冷却 6 拍、前因只认 `facts`、模板文本）、`pickSkeleton` / `causesFor` 与填肉入口。
+- `docs/research/storylet-probe.md` §10 §11：v2 10 拍 A/B（冷却 + 紧前因 + 模板文本）——世界事件落账 2/2、抽卡边际成本 0，但空转拍 2/10 → 3/10：“无因不抽”让抽卡只能事后跟风，填不到最早的静。
+- `BeatInput.claimSource`：世界事件作为 claim 第三来源的注入点，只读账本、产出仍由裁判裁决；缺省时一拍只有玩家与人物，抽卡失败只丢世界事件并注 `notes`。
+- `docs/research/storylet-probe.md` 增 §7 §8：填肉 3 条（硬检查全过，软规则被破），10 拍 A/B（空转拍 3/10 → 1/9，但 +21% 墙钟、一张牌连抽 6 次、7 条世界事件只落账 1 条）；同一份文档记录“第一版净收益为负”与四个实现级修正点（后经 3 次重复判定为噪声，见 §16）。
+- `docs/research/storylet-probe.md`：6 次真实裁决的 storylet 探针（非人 actor 可行，缺前因会被拒，竞争臂世界事件 0/3 落账，裁判自造前提）；`scripts/probe-storylet.ts` 可重跑，`--replay` 不重复调用。
+- storylet 定为 claim 第三来源：作者骨架 + 只读条件，抽卡产出世界事件，模型只填文本；不写账本、不做多拍进度。
 - `docs/research/fact-structure.md`：6 拍 fact 结构化 smoke（actor/kind 10/10，`facts/beat` 1.67，单样本不作密度结论）。
 - `docs/research/cache-prefix.md`：6 拍缓存计量（cognition cacheRead 6144 / referee 4608 / narration 0，cacheWrite 全 0）与“不能归因”的说明。
 - `fact` 可选 `actor` / `kind`：`actor` 是动作发出者，`kind` 为 `speech / promise / threat / lie / transaction / identity / state / other`；旧 fact 无字段仍可 replay。
@@ -14,6 +25,14 @@
 - `docs/research/multi-round-experiment.md`：pilot 6 拍三臂结果（回声率、no_rate、成本、硬冲突）与结论。
 
 ### Changed
+- `AGENTS.md`：第 4 条补“空 `deltas` 不是状态”，新增第 9 条“`phys` 键要能写出解除者”；结构一节注明 `claimSource` 是唯一世界事件注入点。
+- `README.md`：用例数与每拍/20 拍时间口径按实测更新，补实验脚本入口。
+- `docs/design/backlog.md` §4：标注 20 拍基线在 R1 之后已过期，重跑前不作判据。
+- `docs/db/schema.md` §9：`phys` 键登记表（键 / 语义 / 值域 / 挂载 / **解除方式**）与命名原则；`phys` 键保持开放、不冻结，但每个键必须能写出解除方式。
+- 裁判规则 9b：`ok` + 空 `deltas` 只表示“发生了”，不得作为否决依据；需要持续的事必须落 `phys` 键。
+- `scripts/experiment-storylet.ts` 支持 `--run N` 与 `--report`：按同条件重复出分布（各 run 值 + 中位 + 范围），不再看单点；避让已回退（`avoidKeys` 删除）。
+- `describeLedger` 导出，供探针拼出与 `runBeat` 同构的裁判上下文；行为不变。
+- 世界事件的前因只从 `facts` 读：没有已确认的前因就不抽；关键词命中不算前因（A/B 里“账本”把“地窖”抽了出来，六次全被拒）。
 - 裁判的 `fact` 输出增加 `actor`/`kind` 填法；`describeFacts` 先按 `fact.actor` 是否在场加权，再回退文本匹配；试玩体检表增加 fact 结构化覆盖率。
 - `cognition` 的 system 前缀按稳定度重排（core/voice → 输出指令 → canon → drives/beliefs/记忆），并把 provider 的 `cacheRead`/`cacheWrite` 接入 `ChatResult`、`UsageSample` 与试玩体检表。
 - 试玩器默认续跑：有 journal 就重放世界与人物记忆，`--fresh` 显式重开一局。

@@ -57,6 +57,8 @@ export interface World {
   facts: Record<FactId, Fact>
   /** 地点白名单：id → 人读的名字。move 只能去这里存在的地方，否则模型会现编地点 */
   places: Record<PlaceId, string>
+  /** 世界常态声明（作者层）：只读根常量，与 places 同性质，不属于事实流 */
+  ambient?: Record<string, string | number | boolean>
 }
 
 export type Op =

@@ -46,6 +46,8 @@ export const STARTER_TOWN: ContentPack = {
     },
     facts: {},
     places: { saloon: '酒馆', street: '街道' },
+    // 世界常态：环境类事件的前因读这里；改它等于改世界设定。
+    ambient: { weather: 'storm', night: true },
   },
   characters: [
     {

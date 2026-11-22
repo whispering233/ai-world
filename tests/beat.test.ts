@@ -539,3 +539,54 @@ describe('runBeat：可回放', () => {
     expect(played.facts.f0?.at).toBe(5)
   })
 })
+
+describe('runBeat：世界事件（claim 第三来源）', () => {
+  function withLamp(input: BeatInput): BeatInput {
+    const ledger = structuredClone(input.world.ledger)
+    ledger.at['lamp'] = 'saloon'
+    ledger.phys['lamp'] = { lit: true }
+    return { ...input, world: { ...input.world, ledger } }
+  }
+
+  it('抽卡产出的 claim 照常裁决、落账、进 journal', async () => {
+    const store = tmpStore()
+    const input = withLamp(
+      base(store, [
+        { order: ['lamp'], verdicts: [verdict('w0', [{ op: 'phys', who: 'lamp', key: 'lit', value: false }], 1)], observations: {}, driveHits: [] },
+      ]),
+    )
+    const r = await runBeat({
+      ...input,
+      claimSource: { draw: () => [{ id: 'w0', actor: 'lamp', text: '灯焰跳了两下，灭了。', kind: 'act' }] },
+    })
+
+    expect(r.committedClaims).toContain('w0')
+    expect(r.world.ledger.phys['lamp']?.['lit']).toBe(false)
+    expect(store.readJournal().flatMap((e) => e.claims).some((c) => c.id === 'w0')).toBe(true)
+  })
+
+  it('抽卡失败只丢世界事件，本拍照常结算', async () => {
+    const store = tmpStore()
+    const input = base(store, [
+      {
+        order: ['ann'],
+        verdicts: [verdict('p0', [{ op: 'fact', text: '玩家点了火' }], 1), verdict('a0', [], 1), verdict('d0', [], 1)],
+        observations: {},
+        driveHits: [],
+      },
+    ])
+    const r = await runBeat({
+      ...input,
+      playerClaim: '我点了火',
+      claimSource: {
+        draw: () => {
+          throw new Error('模型超时')
+        },
+      },
+    })
+
+    expect(r.journalSeq).toBeGreaterThan(0)
+    expect(r.notes.join(' ')).toContain('抽卡失败')
+    expect(r.world.facts['f0']).toBeDefined()
+  })
+})

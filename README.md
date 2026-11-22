@@ -10,10 +10,10 @@
 
 | 能力 | 现状 |
 | :--- | :--- |
-| 逐拍推进对白 | ✅ 每拍约 50 秒，可连跑 20 拍以上 |
+| 逐拍推进对白 | ✅ 每拍数十秒（实测 10 拍 7–10 分钟） |
 | 可验证账本 | ✅ 所在 / 持有 / 物质键 / 关系 / 知识 / 结构化事实，全部可重放 |
 | 叙事只增不改 | ✅ 已发出的正文不回改 |
-| 时间流动 | ⚠️ 以最长的动作推进，实测 20 拍约 41 分钟 |
+| 时间流动 | ⚠️ 以最长的动作推进；实测 20 拍推进约 8.6 小时（含一次 8 小时长动作） |
 | 阅读界面 / 服务端 | ⏳ 未开始 |
 
 ## 开始玩
@@ -41,10 +41,13 @@ node --experimental-strip-types scripts/play.ts --beats 30
 ## 开发
 
 ```sh
-npm test           # vitest，135 个用例
+npm test           # vitest，142 个用例
 npm run typecheck  # tsc --noEmit，必须 0 错误
+npm run play -- --beats 20 --fresh --auto   # 20 拍基线，出体检表
 node --experimental-strip-types scripts/probe-latency.ts   # 可选：模型测速
 ```
+
+实验脚本（一次性，证据落 `data/`，不入库）：`scripts/experiment-storylet.ts`（`--run N` / `--report`）、`scripts/probe-storylet.ts`、`scripts/probe-storylet-fill.ts`；结论见 [docs/research/storylet-probe.md](docs/research/storylet-probe.md)。
 
 约束见 [AGENTS.md](AGENTS.md)：只有裁判能写账本、人物没有技能表、时间只有一个出口。
 
