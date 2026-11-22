@@ -75,8 +75,10 @@
 | ledger | 是 | Ledger | | 见 §1 |
 | facts | 是 | Record<FactId, Fact> | | 只增不改 |
 | places | 是 | Record<PlaceId, string> | | 地点白名单：id → 人读的名字；`move` 只能去这里 |
+| ambient | 否 | Record<string, string\|number\|boolean> | | 世界常态声明（只读根常量，与 `places` 同性质，不属于事实流）；改它等于改世界设定 |
 
 显示名不在 `world` 里：它们是作者层 `ContentPack` 的静态映射，不参与 replay，也不进账本。
+`ambient` 只给环境类前因读：键缺失 = 不满足，不默认通过；它不由裁判写，也不进 journal。
 
 ## 8. `ContentPack`（作者层，不是运行时状态）
 

@@ -10,7 +10,7 @@
 
 | 候选 | 现在做它的理由 | 先看什么 |
 | :--- | :--- | :--- |
-| storylet v3（环境前因来自 canon）重跑 10 拍 | v2 证明机制可行（落账 2/2、零成本）但空转拍没降：两臂死拍都在第 2–3 拍与末拍，那时账本里还没有任何 fact 可当前因 | [storylet-probe.md §10](../research/storylet-probe.md) 的发现 2–3 |
+| storylet v4：抽卡顺序与“世界事件 vs 玩家主张”的优先级 | v3 证明两级前因能捞出第 1 拍，但同拍竞争时玩家“推门”被判 no（风胜），且抽卡在认知之后导致本拍无人能反应 | [storylet-probe.md §12](../research/storylet-probe.md) 的发现 3–4 |
 | W6 服务端 + 阅读面 | 世界层已能回放、续跑；`fact` 已有 actor/kind，阅读面可以按人/类别组织 | `/beat` SSE、`/state`、UI 设计稿 |
 | 折场时压 experience | 上下文预算吃紧时 | `recall` 的检索权重 |
 | 缓存 A/B | 有 before/after 需求时 | 同条件换前缀顺序各跑 6 拍 |

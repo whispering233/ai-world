@@ -17,10 +17,14 @@ export interface Skeleton {
   id: string
   /** 账本里登记过的非人实体 */
   actor: EntId
+  /** ambient = 环境（前因读世界常态）；consequence = 后果（前因读 facts） */
+  tier: 'ambient' | 'consequence'
   /** 账本状态：这件事现在有可能发生 */
   when: (w: World) => boolean
-  /** 前因关键词：账本里得有提到这些词、且已过 `MIN_CAUSE_AGE` 拍的 fact */
-  causeKeys: readonly string[]
+  /** ambient 层：世界常态必须逐键相等；缺键就不抽，不静默当成满足 */
+  needs?: Record<string, string | number | boolean>
+  /** consequence 层：前因关键词，必须在 `facts` 里且已过 `MIN_CAUSE_AGE` 拍 */
+  causeKeys?: readonly string[]
   /** 骨架本身；正文由模型填 */
   template: string
 }
@@ -29,17 +33,27 @@ export const SKELETONS: readonly Skeleton[] = [
   {
     id: 'door-blown',
     actor: 'door',
+    tier: 'ambient',
     when: (w) => w.ledger.phys['door']?.['closed'] === true,
-    causeKeys: ['风', '雨', '门'],
+    needs: { weather: 'storm' },
     template: '风从门缝里挤进来，把没插紧的门闩顶开，门自己撞在墙上。',
   },
   {
     id: 'lamp-dies',
     actor: 'lamp',
     // 门开了才有穿堂风；这一条把“风”写成账本能验证的链
+    tier: 'ambient',
     when: (w) => w.ledger.phys['door']?.['closed'] === false && w.ledger.phys['lamp']?.['lit'] === true,
-    causeKeys: ['风', '雨', '门'],
+    needs: { weather: 'storm' },
     template: '穿堂风把灯焰压得只剩一线，晃了两下，灭了。',
+  },
+  {
+    id: 'door-splinter',
+    actor: 'door',
+    tier: 'consequence',
+    when: (w) => w.ledger.phys['door']?.['broken'] === false,
+    causeKeys: ['门', '撞', '推'],
+    template: '门轴的木销吃不住，门板歪了半寸，闩孔对不上了。',
   },
 ]
 
@@ -61,13 +75,25 @@ export interface Pick {
 /** 同一张牌打过了就得凉一会儿，否则条件一直成立，每拍都重抽同一张。 */
 export const COOLDOWN_BEATS = 6
 
-/** 池里第一个“状态够 + 有前因 + 不在冷却”的骨架；一个都没有就返回 undefined。 */
+/** ambient 层的前因：世界常态逐键相等。缺键 = 不满足，不是“默认通过”。 */
+function ambientOk(world: World, needs: Record<string, string | number | boolean> | undefined): boolean {
+  if (!needs || Object.keys(needs).length === 0) return true
+  const ambient = world.ambient
+  if (!ambient) return false
+  return Object.entries(needs).every(([key, want]) => ambient[key] === want)
+}
+
+/** 池里第一个“状态够 + 前因成立 + 不在冷却”的骨架；一个都没有就返回 undefined。 */
 export function pickSkeleton(world: World, drawnAt: ReadonlyMap<string, number>): Pick | undefined {
   for (const skeleton of SKELETONS) {
     if (!skeleton.when(world)) continue
     const last = drawnAt.get(skeleton.id)
     if (last !== undefined && world.ledger.clock - last < COOLDOWN_BEATS) continue
-    const causes = causesFor(world, skeleton.causeKeys)
+    if (skeleton.tier === 'ambient') {
+      if (!ambientOk(world, skeleton.needs)) continue
+      return { skeleton, causes: [] }
+    }
+    const causes = causesFor(world, skeleton.causeKeys ?? [])
     if (causes.length === 0) continue
     return { skeleton, causes }
   }
@@ -124,8 +150,6 @@ export interface DrawStats {
   /** 有前因、被抽中 */
   picked: number
   pickedIds: string[]
-  /** 条件成立但还在冷却 */
-  cooldownSkips: number
 }
 
 /** 抽卡源：只读账本，产出一条 claim，不写状态、不调模型（模板文本）。 */
@@ -135,10 +159,7 @@ export function createStoryletSource(stats: DrawStats) {
     draw(input: { world: World; clock: number }): Claim[] {
       stats.attempts += 1
       const pick = pickSkeleton(input.world, drawnAt)
-      if (!pick) {
-        if (drawnAt.size > 0) stats.cooldownSkips += 1
-        return []
-      }
+      if (!pick) return []
       drawnAt.set(pick.skeleton.id, input.clock)
       stats.picked += 1
       stats.pickedIds.push(pick.skeleton.id)
