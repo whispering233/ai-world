@@ -10,7 +10,7 @@ import type { Cognition } from './cognition.ts'
 import { fallbackPassage, type Narrator } from './narrate.ts'
 import { commit, type Claim, type Referee, type Verdict } from './referee.ts'
 import { appendBeat, contextOf, fold, foldReason, type FoldMaterial, type Scene } from './scene.ts'
-import type { Store } from './store.ts'
+import type { BeatTelemetry, Store } from './store.ts'
 import type { EntId, World } from './world.ts'
 
 export interface BeatDeps {
@@ -52,6 +52,11 @@ export interface BeatInput {
   playerClaim?: string
   /** 世界事件来源（storylet 抽卡）：可选，缺省时一拍只有玩家与人物 */
   claimSource?: ClaimSource
+  /**
+   * 运行观测：调用方传入一个**会被持续填充的可变对象**。
+   * runBeat 只在 appendBeat 时读它，不深拷贝；本拍没落 journal 就不会被写出去。
+   */
+  telemetry?: BeatTelemetry
   deps: BeatDeps
 }
 
@@ -233,9 +238,15 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     observations: out.observations,
     driveHits: out.driveHits,
     ...(Object.keys(newExperience).length > 0 ? { experience: newExperience } : {}),
+    ...(input.telemetry && Object.keys(input.telemetry.usage).length > 0 ? { telemetry: input.telemetry } : {}),
   })
   try {
-    deps.store.appendPassage({ clock: clockAfter, text: passage, source: narrationFailed ? 'fallback' : 'narrator' })
+    deps.store.appendPassage({
+      clock: clockAfter,
+      text: passage,
+      source: narrationFailed ? 'fallback' : 'narrator',
+      beatSeq: entry.seq,
+    })
   } catch (error) {
     // passage 是派生文本；写失败不能反过来抹掉已经落盘的 journal。
     narrationNotes.push(`passage 写入失败（journal 已落）：${(error as Error).message}`)

@@ -6,9 +6,16 @@
 
 import { appendFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import type { ModelRoleName, UsageView } from '@ai-world/shared'
 import { applyDriveHit, remember, type Character, type Experience } from './character.ts'
 import { commit, type Claim, type DriveHit, type Observation, type Verdict } from './referee.ts'
 import type { EntId, World } from './world.ts'
+
+/** 一拍的运行观测（模型串与用量）；只由服务端注入，`replay` 不读（docs/db/schema.md §3）。 */
+export interface BeatTelemetry {
+  models: Record<ModelRoleName, string>
+  usage: Record<ModelRoleName, UsageView>
+}
 
 export interface JournalEntry {
   seq: number
@@ -22,6 +29,8 @@ export interface JournalEntry {
   driveHits: DriveHit[]
   /** 本拍每人新增的记忆条目（不是快照）；旧 journal 没有这个字段 */
   experience?: Record<EntId, Experience[]>
+  /** 本拍运行观测；运行观测不是世界状态，缺它不影响 replay */
+  telemetry?: BeatTelemetry
 }
 
 export interface PassageEntry {
@@ -29,6 +38,8 @@ export interface PassageEntry {
   clock: number
   text: string
   source: 'narrator' | 'player' | 'npc' | 'fallback'
+  /** 对应 journal 的 seq：连接玩家原话与旁白的稳定键；旧日志没有这个字段 */
+  beatSeq?: number
 }
 
 export interface Store {

@@ -46,6 +46,10 @@ export interface ChatResult {
   /** provider 报回的缓存命中量；不报时缺省 */
   cacheRead?: number
   cacheWrite?: number
+  /** 本次调用费用（供应商计价单位）；不报时缺省 */
+  cost?: number
+  /** 本次调用触发的重试次数 */
+  retries?: number
 }
 
 export interface UsageSample {
@@ -55,6 +59,8 @@ export interface UsageSample {
   output: number
   cacheRead: number
   cacheWrite: number
+  /** 本次调用费用（供应商计价单位）；不报时缺省 */
+  cost?: number
   /** 本次调用总耗时（含重试与退避） */
   ms: number
   /** 本次调用触发的重试次数 */
@@ -164,6 +170,8 @@ export function createLlm(config: LlmConfig): Llm {
         model: ref,
         cacheRead: res.usage.cacheRead,
         cacheWrite: res.usage.cacheWrite,
+        cost: res.usage.cost.total,
+        retries,
       }
       config.onUsage?.({
         role: req.role,
@@ -172,6 +180,7 @@ export function createLlm(config: LlmConfig): Llm {
         output: result.outputTokens,
         cacheRead: res.usage.cacheRead,
         cacheWrite: res.usage.cacheWrite,
+        cost: res.usage.cost.total,
         ms: Math.round(performance.now() - startedAt),
         retries,
       })
