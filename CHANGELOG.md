@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 ### Added
+- `BeatInput.claimSource`：世界事件作为 claim 第三来源的注入点，只读账本、产出仍由裁判裁决；缺省时一拍只有玩家与人物，抽卡失败只丢世界事件并注 `notes`。
+- `docs/research/storylet-probe.md` 增 §7 §8：填肉 3 条（硬检查全过，软规则被破），10 拍 A/B（空转拍 3/10 → 1/9，但 +21% 墙钟、一张牌连抽 6 次、7 条世界事件只落账 1 条）；同一份文档记录“第一版净收益为负”与四个实现级修正点。
 - `docs/research/storylet-probe.md`：6 次真实裁决的 storylet 探针（非人 actor 可行，缺前因会被拒，竞争臂世界事件 0/3 落账，裁判自造前提）；`scripts/probe-storylet.ts` 可重跑，`--replay` 不重复调用。
 - storylet 定为 claim 第三来源：作者骨架 + 只读条件，抽卡产出世界事件，模型只填文本；不写账本、不做多拍进度。
 - `docs/research/fact-structure.md`：6 拍 fact 结构化 smoke（actor/kind 10/10，`facts/beat` 1.67，单样本不作密度结论）。
@@ -17,6 +19,7 @@
 
 ### Changed
 - `describeLedger` 导出，供探针拼出与 `runBeat` 同构的裁判上下文；行为不变。
+- 世界事件的前因只从 `facts` 读：没有已确认的前因就不抽；关键词命中不算前因（A/B 里“账本”把“地窖”抽了出来，六次全被拒）。
 - 裁判的 `fact` 输出增加 `actor`/`kind` 填法；`describeFacts` 先按 `fact.actor` 是否在场加权，再回退文本匹配；试玩体检表增加 fact 结构化覆盖率。
 - `cognition` 的 system 前缀按稳定度重排（core/voice → 输出指令 → canon → drives/beliefs/记忆），并把 provider 的 `cacheRead`/`cacheWrite` 接入 `ChatResult`、`UsageSample` 与试玩体检表。
 - 试玩器默认续跑：有 journal 就重放世界与人物记忆，`--fresh` 显式重开一局。
