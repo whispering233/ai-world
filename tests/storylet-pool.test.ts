@@ -63,3 +63,11 @@ describe('pickSkeleton：两级前因不许互借', () => {
     expect(pickSkeleton(open, new Map([['door-blown', 99], ['lamp-dies', 99]]))).toBeUndefined()
   })
 })
+
+describe('pickSkeleton：避让', () => {
+  it('本拍有人提到目标对象就让路，不顶掉玩家动作', () => {
+    const w = world({ ambient: { weather: 'storm' } })
+    expect(pickSkeleton(w, noDraw, [{ text: '我推门进去' }])).toBeUndefined()
+    expect(pickSkeleton(w, noDraw, [{ text: '我在靠墙的桌边坐下' }])?.skeleton.id).toBe('door-blown')
+  })
+})

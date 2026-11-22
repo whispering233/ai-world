@@ -25,6 +25,8 @@ export interface Skeleton {
   needs?: Record<string, string | number | boolean>
   /** consequence 层：前因关键词，必须在 `facts` 里且已过 `MIN_CAUSE_AGE` 拍 */
   causeKeys?: readonly string[]
+  /** 本拍已有人提到这些词时避让：不去顶掉玩家/人物的动作 */
+  avoidKeys?: readonly string[]
   /** 骨架本身；正文由模型填 */
   template: string
 }
@@ -36,6 +38,7 @@ export const SKELETONS: readonly Skeleton[] = [
     tier: 'ambient',
     when: (w) => w.ledger.phys['door']?.['closed'] === true,
     needs: { weather: 'storm' },
+    avoidKeys: ['门'],
     template: '风从门缝里挤进来，把没插紧的门闩顶开，门自己撞在墙上。',
   },
   {
@@ -45,6 +48,7 @@ export const SKELETONS: readonly Skeleton[] = [
     tier: 'ambient',
     when: (w) => w.ledger.phys['door']?.['closed'] === false && w.ledger.phys['lamp']?.['lit'] === true,
     needs: { weather: 'storm' },
+    avoidKeys: ['灯'],
     template: '穿堂风把灯焰压得只剩一线，晃了两下，灭了。',
   },
   {
@@ -53,6 +57,7 @@ export const SKELETONS: readonly Skeleton[] = [
     tier: 'consequence',
     when: (w) => w.ledger.phys['door']?.['broken'] === false,
     causeKeys: ['门', '撞', '推'],
+    avoidKeys: ['门'],
     template: '门轴的木销吃不住，门板歪了半寸，闩孔对不上了。',
   },
 ]
@@ -83,12 +88,24 @@ function ambientOk(world: World, needs: Record<string, string | number | boolean
   return Object.entries(needs).every(([key, want]) => ambient[key] === want)
 }
 
-/** 池里第一个“状态够 + 前因成立 + 不在冷却”的骨架；一个都没有就返回 undefined。 */
-export function pickSkeleton(world: World, drawnAt: ReadonlyMap<string, number>): Pick | undefined {
+/** 本拍已经有主张提到目标对象时，这张牌让路；不跟玩家抢动作。 */
+function avoided(skeleton: Skeleton, claims: readonly { text: string }[]): boolean {
+  const keys = skeleton.avoidKeys
+  if (!keys || keys.length === 0) return false
+  return keys.some((key) => claims.some((claim) => claim.text.includes(key)))
+}
+
+/** 池里第一个“状态够 + 前因成立 + 不在冷却 + 没人碰”的骨架；一个都没有就返回 undefined。 */
+export function pickSkeleton(
+  world: World,
+  drawnAt: ReadonlyMap<string, number>,
+  claims: readonly { text: string }[] = [],
+): Pick | undefined {
   for (const skeleton of SKELETONS) {
     if (!skeleton.when(world)) continue
     const last = drawnAt.get(skeleton.id)
     if (last !== undefined && world.ledger.clock - last < COOLDOWN_BEATS) continue
+    if (avoided(skeleton, claims)) continue
     if (skeleton.tier === 'ambient') {
       if (!ambientOk(world, skeleton.needs)) continue
       return { skeleton, causes: [] }
@@ -156,9 +173,9 @@ export interface DrawStats {
 export function createStoryletSource(stats: DrawStats) {
   const drawnAt = new Map<string, number>()
   return {
-    draw(input: { world: World; clock: number }): Claim[] {
+    draw(input: { world: World; clock: number; claims: readonly { text: string }[] }): Claim[] {
       stats.attempts += 1
-      const pick = pickSkeleton(input.world, drawnAt)
+      const pick = pickSkeleton(input.world, drawnAt, input.claims)
       if (!pick) return []
       drawnAt.set(pick.skeleton.id, input.clock)
       stats.picked += 1

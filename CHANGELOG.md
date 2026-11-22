@@ -7,6 +7,7 @@
 - `World.ambient`（可选）：世界常态声明，只读根常量、与 `places` 同性质，不属于事实流；环境类故事事件的前因读它，缺键即不满足。
 - `docs/research/storylet-probe.md` §12 §13：v3 10 拍 A/B（两级前因）——世界事件落账 3/3、首条发生在第 1 拍，**净效果 1 个死拍**；同拍与玩家“推门”竞争时裁判判“风胜”，玩家动作被顶掉。
 - `tests/storylet-pool.test.ts`：锁住“ambient 与 facts 不许互借”与冷却规则。
+- `docs/research/storylet-probe.md` §14 §15：v4 抽卡避让（关键词）10 拍 **0 命中**——50 条 claim 里 23 条提到“门”，避让把整池关掉；同配置两次采样空转拍 3 与 5，说明 10 拍单次 A/B 的分辨率不足以判断收益。
 - `scripts/storylet-pool.ts`：骨架池（冷却 6 拍、前因只认 `facts`、模板文本）、`pickSkeleton` / `causesFor` 与填肉入口。
 - `docs/research/storylet-probe.md` §10 §11：v2 10 拍 A/B（冷却 + 紧前因 + 模板文本）——世界事件落账 2/2、抽卡边际成本 0，但空转拍 2/10 → 3/10：“无因不抽”让抽卡只能事后跟风，填不到最早的静。
 - `BeatInput.claimSource`：世界事件作为 claim 第三来源的注入点，只读账本、产出仍由裁判裁决；缺省时一拍只有玩家与人物，抽卡失败只丢世界事件并注 `notes`。

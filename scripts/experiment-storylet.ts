@@ -159,6 +159,9 @@ async function main(): Promise<void> {
 
   process.stdout.write('\n=============== 体检 ===============\n')
   process.stdout.write(`空转拍          ${silentBeats} / ${beats.length}   （整拍账本没动）\n`)
+  const playerNo = verdicts.filter((v) => v.actor === player && !v.ok)
+  const contested = playerNo.filter((v) => (v.reason ?? '').includes('互斥'))
+  process.stdout.write(`玩家判 no       ${playerNo.length}（其中“互斥” ${contested.length}）\n`)
   process.stdout.write(`claims          ${claims.length}   人均 ${(claims.length / Math.max(1, beats.length)).toFixed(2)}/拍\n`)
   process.stdout.write(`裁决            ${verdicts.length}   no_rate ${(noRate(verdicts) * 100).toFixed(1)}%   空结果 ${pct(empty.length, verdicts.length)}\n`)
   process.stdout.write(`写操作          ${ops.length}   ${Object.entries(opCounts).map(([k, n]) => `${k} ${n}`).join(' / ') || '无'}\n`)

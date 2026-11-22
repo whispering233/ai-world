@@ -10,7 +10,8 @@
 
 | 候选 | 现在做它的理由 | 先看什么 |
 | :--- | :--- | :--- |
-| storylet v4：抽卡顺序与“世界事件 vs 玩家主张”的优先级 | v3 证明两级前因能捞出第 1 拍，但同拍竞争时玩家“推门”被判 no（风胜），且抽卡在认知之后导致本拍无人能反应 | [storylet-probe.md §12](../research/storylet-probe.md) 的发现 3–4 |
+| storylet 的度量方法：同条件重复 ≥3 次或 20 拍，报分布 | v4 证明 10 拍单次 A/B 的噪声（±2 死拍）与预期效应（1–2 死拍）同量级，v3 的“3→1”不可作证据 | [storylet-probe.md §14](../research/storylet-probe.md) |
+| 世界事件与玩家主张的优先级（按 actor / 结构化目标避让） | 关键词避让 10 拍 0 命中，已证伪；但“玩家动作被顶掉”仍没有规则 | [storylet-probe.md §12 §14](../research/storylet-probe.md) |
 | W6 服务端 + 阅读面 | 世界层已能回放、续跑；`fact` 已有 actor/kind，阅读面可以按人/类别组织 | `/beat` SSE、`/state`、UI 设计稿 |
 | 折场时压 experience | 上下文预算吃紧时 | `recall` 的检索权重 |
 | 缓存 A/B | 有 before/after 需求时 | 同条件换前缀顺序各跑 6 拍 |
