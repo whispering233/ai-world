@@ -6,7 +6,7 @@ export interface EditableListProps<T> {
   onItemsChange: (items: T[]) => void
   /** 新条目的初始值 */
   newItem: () => T
-  renderItem: (item: T) => ReactNode
+  renderItem: (item: T, index: number) => ReactNode
   addLabel: string
   ariaLabel: string
 }
@@ -24,7 +24,7 @@ export function EditableList<T>({
     <ul aria-label={ariaLabel} className="flex flex-col gap-2">
       {items.map((item, index) => (
         <li key={index} className="flex items-start gap-2">
-          <div className="flex-1">{renderItem(item)}</div>
+          <div className="flex-1">{renderItem(item, index)}</div>
           <Button
             variant="quiet"
             aria-label={`删除第 ${index + 1} 项`}

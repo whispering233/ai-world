@@ -138,7 +138,7 @@ cross-talk 的 `no_rate` 从 6.7% 升到 13.3%，两次 pilot 一致。
 
 `runBeat` 此前只把玩家输入放进 claims，**没有放进人物认知的 prompt**；也就是说，人物看不到玩家这一拍说了什么，只有裁判看得到。实验前已修复：
 
-- `src/core/beat.ts`：`sceneFor()` 追加 `玩家刚才说/做：...`
+- `packages/core/src/beat.ts`：`sceneFor()` 追加 `玩家刚才说/做：...`
 - `tests/beat.test.ts`：锁住人物 prompt 含玩家输入
 
 这个 bug 会让 baseline 明显偏弱；修完后两臂才在同一基线上比较。

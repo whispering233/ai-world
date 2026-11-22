@@ -3,6 +3,7 @@ import { ApiError, fetchAuthorContent, saveContent } from '../api.ts'
 import { Banner } from '../ui/Banner.tsx'
 import { Button } from '../ui/Button.tsx'
 import { Collapsible } from '../ui/Collapsible.tsx'
+import { EditableList } from '../ui/EditableList.tsx'
 import { Field } from '../ui/Field.tsx'
 import { NumberField } from '../ui/NumberField.tsx'
 import { TextField } from '../ui/TextField.tsx'
@@ -188,16 +189,22 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
 
         <section className="mb-8 flex flex-col gap-2">
           <h3 className="text-meta text-ink-soft">canon</h3>
-          {pack.canon.map((line, index) => (
-            <TextField
-              key={index}
-              multiline
-              rows={2}
-              value={line}
-              ariaLabel={`canon 第 ${index + 1} 条`}
-              onValueChange={(next) => updateCanon(index, next)}
-            />
-          ))}
+          <EditableList
+            items={pack.canon}
+            ariaLabel="canon"
+            addLabel="一条 canon"
+            newItem={() => ''}
+            onItemsChange={(canon) => setPack({ ...pack, canon })}
+            renderItem={(line, index) => (
+              <TextField
+                multiline
+                rows={2}
+                value={line}
+                ariaLabel={`canon 第 ${index + 1} 条`}
+                onValueChange={(next) => updateCanon(index, next)}
+              />
+            )}
+          />
         </section>
 
         <Collapsible summary="世界结构（只读）">

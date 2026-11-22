@@ -3,8 +3,9 @@
  *
  * 一个进程同时承担 HTTP API、SSE、静态托管与内存态；不引数据库、队列、后台任务。
  *
- * `pnpm dev:server` 与 `pnpm serve` 本卡是同一条命令：静态托管对 dist 缺失已容错，
- * 到 W6-3 有了 packages/web 之后，`serve` 才真正依赖 `pnpm build` 的产物。
+ * `pnpm dev:server` 与 `pnpm serve` 是同一条命令：都托管 `packages/web/dist`。
+ * 开发态另开 `pnpm dev:web` 用 Vite 热更新，它把 `/api` 反代到本进程；
+ * 生产态只需要 `pnpm build` 一次，然后 `pnpm serve` 一个进程就够。
  */
 import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'

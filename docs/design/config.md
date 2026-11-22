@@ -73,6 +73,6 @@ provider 一律取 settings.json 的 defaultProvider
 | 项 | 值 | 位置 |
 | :--- | :--- | :--- |
 | 单拍上下文上限 | 16k tokens | `docs/design/30-cognition.md` |
-| 折场阈值 | 12 拍 / 16k / 地点变化 / 时间跳跃 240 分钟 | `src/core/scene.ts` |
-| 检索半衰期 | 48 分钟 | `src/core/character.ts` |
+| 折场阈值 | 12 拍 / 16k / 地点变化 / 时间跳跃 240 分钟 | `packages/core/src/scene.ts` |
+| 检索半衰期 | 48 分钟 | `packages/core/src/character.ts` |
 | 试玩存档目录 | `data/starter-town/` | `scripts/play.ts` |

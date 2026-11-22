@@ -194,7 +194,7 @@ npm run experiment:multi-round -- --beats 6 --mode all --tag pilot-1
 | 公开报道 | DeepSeek Super-agent 的 Router/Worker、事件驱动、存算分离、Watchdog | 用于理解设计意图；具体性能数字未在本仓复现 |
 | 独立对比 | Orca vs Herdr 的对比文章、厂商页面 | 独立编辑对比，非厂商官方；版本与数据会变 |
 | 本地包 | `pi-ai` / `pi-agent-core` / `pi-durable` 的 README 与类型 | 与当前安装版本一致；`pi-durable` 为 experimental |
-| 本仓 | `docs/design/*`、`src/core/*` | 当前实现与约束 |
+| 本仓 | `docs/design/*`、`packages/core/src/*` | 当前实现与约束 |
 
 **未验证**：没有在本仓运行多 agent 对照实验，也没有复现 Super-agent 的性能数字；本文的结论是架构分析，不是 benchmark。
 

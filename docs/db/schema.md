@@ -36,7 +36,7 @@
 | driveHits | 否 | DriveHit[] | | 驱动热度增减 |
 | observations | 否 | Record<EntId, string> | | 可见性分发结果 |
 | experience | 否 | Record<EntId, Experience[]> | | 本拍每人新增的记忆条目（不是快照）；旧 journal 缺失时重放停在初始人物 |
-| telemetry | 否 | BeatTelemetry | | 本拍运行观测（模型串与用量），由服务端注入，`src/core` 只透传；旧 journal 缺失时作者视图显示“未记录” |
+| telemetry | 否 | BeatTelemetry | | 本拍运行观测（模型串与用量），由服务端注入，`core` 只透传；旧 journal 缺失时作者视图显示“未记录” |
 | committed | 否 | string[] | | 本拍**真正落账**的 claim id；`verdicts` 是裁判原话，可能含 `ok` 但整条回滚的条目。旧 journal 缺失时体检口径退回「ok 且有 deltas」 |
 
 `BeatTelemetry`：
@@ -104,7 +104,7 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 
 ## 9. `phys` 键表（登记，不冻结）
 
-`phys` 保持**开放**：`apply` 只检查实体存在与值类型（有限数字或布尔），**不检查键名**（`src/core/ledger.ts` 的 `phys` 分支）。本表是登记簿，不是白名单——没列出的键照样能写入。
+`phys` 保持**开放**：`apply` 只检查实体存在与值类型（有限数字或布尔），**不检查键名**（`packages/core/src/ledger.ts` 的 `phys` 分支）。本表是登记簿，不是白名单——没列出的键照样能写入。
 
 登记的作用是审计：让“这个世界记住过什么”可枚举，并逼每个键回答一个问题——**谁解除它**。
 

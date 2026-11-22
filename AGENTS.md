@@ -19,7 +19,8 @@
 - `packages/core/` 纯函数：账本、调度、场景、检索、裁判契约、LLM 适配、投影、体检。全部可替换为确定性桩。
 - 四个服务按**接口**寻址（`clock` / `ledger` / `referee` / `narrate`），不直接 import 具体实现。
 - `BeatInput.claimSource` 是唯一的世界事件注入点（只读账本、产出仍是 claim）；storylet 冻结中，目前只有 `scripts/` 与测试在用。
-- `packages/content/` 只放世界内容与内容校验，不放规则。
+- `packages/content/` 只做内容加载与校验；世界内容本体是根 `content/<world>.json`（git 跟踪），不放规则。
+- 唯一能写文件的入口是 `POST /api/author/content`，且只写 `content/`；`data/` 只能由 store 追加。
 - 依赖方向单向：`shared ← core ← content ← server ← web`；`web` 只依赖 `shared`，由 pnpm 严格 node_modules 强制，不靠自觉。
 - 包入口是 `.ts` 源码（`exports` 指向 `src/index.ts`，无构建步骤）；发布时才逐包加 `build` 并把该包切到 `dist`。
 - `scripts/` 放可丢弃的驱动脚本：试玩器、测速。它们不进任何包。

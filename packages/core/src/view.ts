@@ -47,19 +47,14 @@ export function playerView(input: PlayerViewInput): SessionView {
     title: input.title,
     clock,
     clockText: fmt(clock),
-    state: playerState(input.world, input.names, input.items, input.player, input.people),
+    state: playerState(input),
     beats: beatViews({ journal: input.journal, passages: input.passages, player: input.player }),
     inFlight: input.inFlight,
   }
 }
 
-function playerState(
-  world: World,
-  names: Record<EntId, string>,
-  items: Record<string, string>,
-  player: EntId,
-  people: ReadonlySet<EntId>,
-): PlayerStateView {
+function playerState(input: PlayerViewInput): PlayerStateView {
+  const { world, names, items, player, people } = input
   const atPlace = world.ledger.at[player]
   // 玩家不在任何地点是数据错，但投影崩掉比显示空更糟
   const place = atPlace === undefined ? '' : (world.places[atPlace] ?? atPlace)
@@ -127,7 +122,7 @@ export function beatViews(input: BeatJoinInput): BeatView[] {
   return views
 }
 
-/** W6-1 起 PassageEntry 才带可选 beatSeq；旧日志没有这个字段，只能按 clock 回退。 */
+/** `PassageEntry.beatSeq` 是稳定连接键；旧日志没有这个字段，只能按 clock 回退。 */
 function beatSeq(passage: PassageEntry): number | undefined {
   return (passage as PassageEntry & { beatSeq?: number }).beatSeq
 }

@@ -3,14 +3,10 @@ import type { Character } from './character.ts'
 import { fmt } from './clock.ts'
 import type { JournalEntry, PassageEntry } from './store.ts'
 import type { World } from './world.ts'
-import type { ContentStatusView, HealthView, TelemetryView, UsageView } from '@ai-world/shared'
+import type { ContentStatusView, HealthView, UsageView } from '@ai-world/shared'
 import { authorView, beatViews, playerView, type AuthorViewInput, type PlayerViewInput } from './view.ts'
 
 /* ── fixture：2 个人物 + 3 条 journal + 3 条 passage ──── */
-
-// W6-1 之后 PassageEntry 带可选 beatSeq，行动作卡里还没有
-type JoinedPassage = PassageEntry & { beatSeq?: number }
-type Entry = JournalEntry & { telemetry?: TelemetryView }
 
 const WORLD: World = {
   ledger: {
@@ -33,7 +29,7 @@ const WORLD: World = {
 const NAMES = { guest: '你', ann: '安', doc: '道森医生' }
 const ITEMS = { 'silver-dollar': '银元' }
 
-const JOURNAL: Entry[] = [
+const JOURNAL: JournalEntry[] = [
   {
     seq: 1,
     type: 'beat',
@@ -90,7 +86,7 @@ const JOURNAL: Entry[] = [
   },
 ]
 
-const PASSAGES: JoinedPassage[] = [
+const PASSAGES: PassageEntry[] = [
   { seq: 1, clock: 600, text: '雨顺着门缝往里渗。', source: 'narrator', beatSeq: 1 },
   // 旧日志：没有 beatSeq，只能按 clock 回退
   { seq: 2, clock: 660, text: '（旁白没写出来，这是事实摘要。）', source: 'fallback' },
