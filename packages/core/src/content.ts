@@ -7,9 +7,17 @@
 import type { Character } from './character.ts'
 import type { EntId, ItemId, World } from './world.ts'
 
+/**
+ * 作者层人物：只含人写的字段。`experience` 与 `busyUntil` 是运行时状态，
+ * 由 seedCharacters() 补空，不写进内容包。
+ */
+export type CharacterSeed = Omit<Character, 'experience' | 'busyUntil'>
+
 export interface ContentPack {
+  /** 世界标题：玩家壳顶栏用它 */
+  title: string
   world: World
-  characters: Character[]
+  characters: CharacterSeed[]
   canon: string[]
   player: EntId
   /** 人物/实体显示名：id → 人读的名字；作者层静态内容，不进账本 */
@@ -21,6 +29,11 @@ export interface ContentPack {
    * 典型：裁判把玩家写成“玩家”，而显示名是“你”（第二人称留给旁白）。
    */
   aliases?: Record<EntId, string[]>
+}
+
+/** 内容包 → 开局人物：运行时字段补空。 */
+export function seedCharacters(pack: ContentPack): Character[] {
+  return pack.characters.map((seed) => ({ ...seed, experience: [], busyUntil: 0 }))
 }
 
 const CORE_MIN = 200
@@ -35,6 +48,8 @@ function width(text: string): number {
 export function validatePack(pack: ContentPack): string[] {
   const errors: string[] = []
   const at = pack.world.ledger.at
+
+  if (pack.title.trim() === '') errors.push('title 为空')
 
   // at 是 Record，键天然唯一；实体 id 重复只可能出现在 characters 列表里。
   const ids = new Set<EntId>()

@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type { Character } from '@ai-world/core'
-import { validatePack, type ContentPack } from '@ai-world/core'
-import { STARTER_TOWN } from './starter-town.ts'
+import { validatePack, type CharacterSeed, type ContentPack } from '@ai-world/core'
+import { loadContentPack, STARTER_TOWN_PATH } from './load.ts'
 
-function person(id: string): Character {
-  const found = STARTER_TOWN.characters.find((c) => c.id === id)
-  if (!found) throw new Error(`STARTER_TOWN 缺少 ${id}`)
+const { pack } = loadContentPack(STARTER_TOWN_PATH)
+
+function seed(id: string): CharacterSeed {
+  const found = pack.characters.find((c) => c.id === id)
+  if (!found) throw new Error(`内容包缺少 ${id}`)
   return found
 }
 
@@ -15,14 +16,14 @@ function head(text = ''): string {
 
 describe('validatePack', () => {
   it('STARTER_TOWN 通过校验', () => {
-    expect(validatePack(STARTER_TOWN)).toEqual([])
+    expect(validatePack(pack)).toEqual([])
   })
 
   it('缺人物名或物品名时各报一条', () => {
     const broken: ContentPack = {
-      ...STARTER_TOWN,
-      names: { ...STARTER_TOWN.names, ann: '' },
-      items: { ...STARTER_TOWN.items, whiskey: '' },
+      ...pack,
+      names: { ...pack.names, ann: '' },
+      items: { ...pack.items, whiskey: '' },
     }
     const errors = validatePack(broken)
     expect(errors).toContain('实体 ann 缺少显示名')
@@ -31,14 +32,14 @@ describe('validatePack', () => {
 
   it('core 过长、heat 越界、实体不在 at 里：三处各报一条，互不遮蔽', () => {
     const broken: ContentPack = {
-      ...STARTER_TOWN,
+      ...pack,
       characters: [
-        { ...person('ann'), core: '安'.repeat(401) },
-        { ...person('doc'), drives: [{ id: 'count-morphine', text: '数吗啡', heat: 1.5 }] },
+        { ...seed('ann'), core: '安'.repeat(401) },
+        { ...seed('doc'), drives: [{ id: 'count-morphine', text: '数吗啡', heat: 1.5 }] },
       ],
       world: {
-        ...STARTER_TOWN.world,
-        ledger: { ...STARTER_TOWN.world.ledger, at: { player: 'saloon', ann: 'saloon', lamp: 'saloon' } },
+        ...pack.world,
+        ledger: { ...pack.world.ledger, at: { player: 'saloon', ann: 'saloon', lamp: 'saloon' } },
       },
     }
 
@@ -53,8 +54,8 @@ describe('validatePack', () => {
 
 describe('两人的可区分性', () => {
   it('core 开头 12 字与 voice 都不相同', () => {
-    const ann = person('ann')
-    const doc = person('doc')
+    const ann = seed('ann')
+    const doc = seed('doc')
     expect(head(ann.core)).not.toBe(head(doc.core))
     expect(ann.voice).not.toBe(doc.voice)
   })
