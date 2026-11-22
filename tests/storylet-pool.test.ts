@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { pickSkeleton } from '../scripts/storylet-pool.ts'
-import type { Fact, World } from '../src/core/world.ts'
+import type { Fact, World } from '@ai-world/core'
 
 /** 只装池子要读的字段：门关着、灯亮着、门外无风也无 history。 */
 function world(patch: { ambient?: World['ambient']; facts?: Record<string, Fact>; phys?: Record<string, Record<string, number | boolean>> } = {}): World {

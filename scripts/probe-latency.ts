@@ -3,10 +3,10 @@
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { builtinModels } from '@earendil-works/pi-ai/providers/all'
-import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '../src/core/config.ts'
-import { createLlm, type ToolSpec } from '../src/core/llm.ts'
-import { readonlyPiCredentials } from '../src/core/pi-credentials.ts'
-import { REFEREE_SYSTEM, SUBMIT_VERDICT_TOOL, refereePrompt, type RefereeInput } from '../src/core/referee.ts'
+import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
+import { createLlm, type ToolSpec } from '@ai-world/core'
+import { readonlyPiCredentials } from '@ai-world/core'
+import { REFEREE_SYSTEM, SUBMIT_VERDICT_TOOL, refereePrompt, type RefereeInput } from '@ai-world/core'
 
 const cfg = loadModelConfig(
   process.env.AI_WORLD_CONFIG ?? 'config/models.json',

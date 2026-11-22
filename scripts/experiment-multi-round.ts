@@ -19,14 +19,14 @@ import { randomUUID } from 'node:crypto'
 import { appendFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { estimateTokens, runBeat } from '../src/core/beat.ts'
-import { applyDriveHit, remember, type Character, type Experience } from '../src/core/character.ts'
-import { calledActors, fmt } from '../src/core/clock.ts'
-import { createCognition, type Cognition, type CognitionOutput } from '../src/core/cognition.ts'
-import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '../src/core/config.ts'
-import { createLlm, type ModelRole, type UsageSample } from '../src/core/llm.ts'
-import { createNarrator, type NarrationEvent, type Narrator } from '../src/core/narrate.ts'
-import { readonlyPiCredentials } from '../src/core/pi-credentials.ts'
+import { estimateTokens, runBeat } from '@ai-world/core'
+import { applyDriveHit, remember, type Character, type Experience } from '@ai-world/core'
+import { calledActors, fmt } from '@ai-world/core'
+import { createCognition, type Cognition, type CognitionOutput } from '@ai-world/core'
+import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
+import { createLlm, type ModelRole, type UsageSample } from '@ai-world/core'
+import { createNarrator, type NarrationEvent, type Narrator } from '@ai-world/core'
+import { readonlyPiCredentials } from '@ai-world/core'
 import {
   commit,
   createLlmReferee,
@@ -34,12 +34,12 @@ import {
   type Referee,
   type RefereeOutput,
   type Verdict,
-} from '../src/core/referee.ts'
-import { appendBeat, contextOf, fold, foldReason, openScene, type FoldMaterial, type Scene } from '../src/core/scene.ts'
-import { openStore, type Store } from '../src/core/store.ts'
-import { describeFacts, type LedgerView } from '../src/core/beat.ts'
-import { STARTER_TOWN } from '../content/starter-town.ts'
-import type { EntId, World } from '../src/core/world.ts'
+} from '@ai-world/core'
+import { appendBeat, contextOf, fold, foldReason, openScene, type FoldMaterial, type Scene } from '@ai-world/core'
+import { openStore, type Store } from '@ai-world/core'
+import { describeFacts, type LedgerView } from '@ai-world/core'
+import { STARTER_TOWN } from '@ai-world/content/starter-town.ts'
+import type { EntId, World } from '@ai-world/core'
 
 type Arm = 'baseline' | 'self-retry' | 'cross-talk'
 
@@ -170,7 +170,7 @@ function describeScene(world: World): string {
   return `酒馆里：${present.map((ent) => STARTER_TOWN.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
 }
 
-/** 与 src/core/beat.ts 的 describeLedger 保持同形状（选项对象）；实验脚本不把它抽成公共层。 */
+/** 与 packages/core/src/beat.ts 的 describeLedger 保持同形状（选项对象）；实验脚本不把它抽成公共层。 */
 function describeLedger(world: World, present: readonly EntId[], view: LedgerView = {}): string {
   const label = (id: string): string => (view.withIds ? `${view.names?.[id] ?? id}(${id})` : (view.names?.[id] ?? id))
   const itemLabel = (id: string): string => (view.withIds ? `${view.items?.[id] ?? id}(${id})` : (view.items?.[id] ?? id))

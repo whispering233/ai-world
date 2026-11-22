@@ -1,0 +1,16 @@
+{
+  "name": "@ai-world/content",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./starter-town.ts": "./src/starter-town.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ai-world/core": "workspace:*"
+  }
+}

@@ -19,7 +19,7 @@
 ## 开始玩
 
 ```sh
-npm install
+pnpm install
 rm -rf data
 node --experimental-strip-types scripts/play.ts --beats 30
 ```
@@ -41,9 +41,9 @@ node --experimental-strip-types scripts/play.ts --beats 30
 ## 开发
 
 ```sh
-npm test           # vitest，142 个用例
-npm run typecheck  # tsc --noEmit，必须 0 错误
-npm run play -- --beats 20 --fresh --auto   # 20 拍基线，出体检表
+pnpm test           # vitest，142 个用例
+pnpm typecheck      # tsc --noEmit，必须 0 错误
+pnpm play -- --beats 20 --fresh --auto   # 20 拍基线，出体检表
 node --experimental-strip-types scripts/probe-latency.ts   # 可选：模型测速
 ```
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { FACT_BUDGET, describeFacts } from '../src/core/beat.ts'
-import type { Fact, World } from '../src/core/world.ts'
+import { FACT_BUDGET, describeFacts } from './beat.ts'
+import type { Fact, World } from './world.ts'
 
 function world(facts: Fact[]): World {
   return {

@@ -2,9 +2,9 @@ import { appendFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { Claim, RefereeOutput } from '../src/core/referee.ts'
-import { openStore, replay, type JournalEntry } from '../src/core/store.ts'
-import type { World } from '../src/core/world.ts'
+import type { Claim, RefereeOutput } from './referee.ts'
+import { openStore, replay, type JournalEntry } from './store.ts'
+import type { World } from './world.ts'
 
 const dirs: string[] = []
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canWriteSelf, recall, remember, score, type Character, type Experience } from '../src/core/character.ts'
+import { canWriteSelf, recall, remember, score, type Character, type Experience } from './character.ts'
 
 function ch(experience: Experience[] = []): Character {
   return {

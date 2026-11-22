@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fmt } from '../src/core/clock.ts'
+import { fmt } from './clock.ts'
 import {
   FOLD_AFTER_BEATS,
   FOLD_AFTER_MINUTES,
@@ -9,7 +9,7 @@ import {
   fold,
   foldReason,
   openScene,
-} from '../src/core/scene.ts'
+} from './scene.ts'
 
 function scene() {
   return openScene({ id: 's1', place: 'saloon', clock: 100, participants: ['ann', 'bob', 'ann'] })

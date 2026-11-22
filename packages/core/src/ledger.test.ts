@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { apply } from '../src/core/ledger.ts'
-import { REL_MAX, REL_MIN, type Op, type World } from '../src/core/world.ts'
+import { apply } from './ledger.ts'
+import { REL_MAX, REL_MIN, type Op, type World } from './world.ts'
 
 function world(): World {
   return {
