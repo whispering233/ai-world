@@ -20,6 +20,20 @@ export interface BeatDeps {
   store: Store
 }
 
+export interface ClaimDrawInput {
+  /** 只读：抽卡层拿不到写入口 */
+  world: World
+  clock: number
+  present: readonly EntId[]
+  /** 本拍已收集的主张（玩家 + 人物） */
+  claims: readonly Claim[]
+}
+
+/** 第三来源：世界事件。无因返回空数组；产出的仍是 claim，仍由裁判裁决。 */
+export interface ClaimSource {
+  draw(input: ClaimDrawInput): Claim[] | Promise<Claim[]>
+}
+
 export interface BeatInput {
   world: World
   scene: Scene
@@ -36,6 +50,8 @@ export interface BeatInput {
   aliases?: Record<EntId, string[]>
   /** 玩家自由输入原文；为空表示玩家这拍不发言 */
   playerClaim?: string
+  /** 世界事件来源（storylet 抽卡）：可选，缺省时一拍只有玩家与人物 */
+  claimSource?: ClaimSource
   deps: BeatDeps
 }
 
@@ -116,6 +132,16 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     for (const e of t.res.experience) next = remember(next, e)
     if (t.res.output.selfChange) next = remember(next, { t: clock, kind: 'thought', text: t.res.output.selfChange, w: 2 })
     characters.set(t.ent, next)
+  }
+
+  if (input.claimSource) {
+    try {
+      const drawn = await input.claimSource.draw({ world: input.world, clock, present: inScene, claims })
+      claims.push(...drawn)
+    } catch (error) {
+      // 抄不到世界事件不该毁掉整拍：本拍就是没有世界事件。
+      degraded.push(`抽卡失败（本拍无世界事件）：${(error as Error).message}`)
+    }
   }
 
   if (claims.length === 0) {
