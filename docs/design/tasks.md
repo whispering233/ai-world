@@ -4,13 +4,13 @@
 
 ## 1. 当前批次
 
-上一张卡（R1 未落账主张没有持续性）已合并，等待 3 次重跑的度量结论。
+R1 已合并并完成 3+3 重跑（`no_rate` 21.1%→14.3%，但空转拍仍在噪声带）；结论见 [storylet-probe.md §18](../research/storylet-probe.md)。storylet 维持冻结。
 
 ## 2. 下一批候选（待讨论）
 
 | 候选 | 现在做它的理由 | 先看什么 |
 | :--- | :--- | :--- |
-| 裁判拿“未落账的 claim”当依据 | 3 次重复里，世界事件的否决理由几乎都在引用本拍 `ok + deltas:[]` 的人物主张（“格蕾妮的拇指正抵在闩销上”）；玩家一句“我按住门”同样能改写世界 | [storylet-probe.md §16](../research/storylet-probe.md) 发现 2 |
+| storylet 骨架与账本状态的相容性（冻结中） | R1 后逐条核对：14 条拒绝里绝大多数有账本依据（`closed=true` / `broken=false`），瓶颈是骨架没把“闩着/完好/没受力”写进 `when`，不是裁判证据漏洞 | [storylet-probe.md §18](../research/storylet-probe.md) |
 | 世界事件与玩家主张的优先级（按 actor / 结构化目标避让） | 关键词避让 10 拍 0 命中，已证伪；但“玩家动作被顶掉”仍没有规则 | [storylet-probe.md §12 §14](../research/storylet-probe.md) |
 | W6 服务端 + 阅读面 | 世界层已能回放、续跑；`fact` 已有 actor/kind，阅读面可以按人/类别组织 | `/beat` SSE、`/state`、UI 设计稿 |
 | 折场时压 experience | 上下文预算吃紧时 | `recall` 的检索权重 |
