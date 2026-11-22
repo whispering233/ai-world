@@ -2,6 +2,7 @@ import { useEffect, useReducer, useRef } from 'react'
 import type { BeatView, SessionView } from '@ai-world/shared'
 import { fetchSession, postBeat, resetSession } from './api.ts'
 import type { BeatFrame } from './api.ts'
+import { AuthorApp } from './author/AuthorApp.tsx'
 import { Composer } from './shell/Composer.tsx'
 import { ErrorNotice } from './shell/ErrorNotice.tsx'
 import type { ErrorKind } from './shell/ErrorNotice.tsx'
@@ -12,7 +13,6 @@ import { READING_COLUMN } from './shell/column.ts'
 import { Banner } from './ui/Banner.tsx'
 import { Button } from './ui/Button.tsx'
 import { Dialog } from './ui/Dialog.tsx'
-import { ModeSwitch } from './ui/ModeSwitch.tsx'
 import type { ShellMode } from './ui/ModeSwitch.tsx'
 
 const MODE_KEY = 'ai-world.mode'
@@ -202,14 +202,20 @@ export function App() {
         title={state.session?.title ?? '…'}
         clockText={state.session?.clockText ?? ''}
         inFlight={state.inFlight}
+        mode={state.mode}
         onOpenState={() => dispatch({ type: 'drawer', open: true })}
         onNewGame={() => dispatch({ type: 'dialog', dialog: 'new-game' })}
-        onAuthorView={() => dispatch({ type: 'mode', mode: 'author' })}
+        onModeChange={(mode) => dispatch({ type: 'mode', mode })}
         onAbout={() => dispatch({ type: 'dialog', dialog: 'about' })}
       />
 
       {state.mode === 'author' ? (
-        <AuthorPlaceholder onModeChange={(mode) => dispatch({ type: 'mode', mode })} />
+        <AuthorApp
+          beats={state.beats}
+          pendingText={state.pendingText}
+          onModeChange={(mode) => dispatch({ type: 'mode', mode })}
+          onNewGame={startNewGame}
+        />
       ) : (
         <>
           <ReadingStream beats={state.beats} pendingText={state.pendingText} />
@@ -264,21 +270,6 @@ export function App() {
           <p className="mt-3 text-meta text-ink-soft">调试与账本信息只在作者视图里。</p>
         </div>
       </Dialog>
-    </div>
-  )
-}
-
-/** 作者壳在 W6-4 落地；这里只保证同一 SPA 能换壳、且换壳不重置任何东西。 */
-function AuthorPlaceholder({ onModeChange }: { onModeChange: (mode: ShellMode) => void }) {
-  return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className={`${READING_COLUMN} py-20 text-center`}>
-        <p className="font-serif text-title">作者壳在 W6-4 落地。</p>
-        <p className="mt-3 text-meta text-ink-soft">这里将出现三栏：拍列表、同一份阅读流、本拍详情。</p>
-        <div className="mt-8 flex justify-center">
-          <ModeSwitch mode="author" onModeChange={onModeChange} />
-        </div>
-      </div>
     </div>
   )
 }

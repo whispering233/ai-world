@@ -5,6 +5,8 @@
  */
 import { SSE_EVENTS } from '@ai-world/shared'
 import type {
+  AuthorBeatView,
+  AuthorSessionView,
   BeatView,
   DoneFrame,
   ErrorFrame,
@@ -94,10 +96,23 @@ interface Envelope<T> {
   data?: T
 }
 
+/** 非 `code: '0'` 的响应：调用方按 `code` 分支，`errors` 只在 `E_INVALID_CONTENT` 时有内容。 */
+export class ApiError extends Error {
+  readonly code: string
+  readonly errors: string[]
+
+  constructor(code: string, msg: string, errors: string[] = []) {
+    super(msg)
+    this.code = code
+    this.errors = errors
+  }
+}
+
 async function readEnvelope<T>(response: Response): Promise<T> {
   const body = (await response.json()) as Envelope<T>
-  if (body.code !== '0' || body.data === undefined) throw new Error(body.msg || '请求失败')
-  return body.data
+  if (body.code === '0' && body.data !== undefined) return body.data
+  const errors = (body.data as { errors?: unknown } | undefined)?.errors
+  throw new ApiError(body.code, body.msg || '请求失败', Array.isArray(errors) ? errors.map(String) : [])
 }
 
 /** 整局的玩家投影；重连与续跑都靠它补齐。 */
@@ -108,6 +123,38 @@ export async function fetchSession(): Promise<SessionView> {
 /** 开新局。不可撤销，二次确认在调用方。 */
 export async function resetSession(): Promise<void> {
   await readEnvelope<unknown>(await fetch('/api/reset', { method: 'POST' }))
+}
+
+/* ── 作者壳：只在切到作者视图时才请求（docs/design/60-server.md §6） ── */
+
+export async function fetchAuthorSession(): Promise<AuthorSessionView> {
+  return readEnvelope<AuthorSessionView>(await fetch('/api/author/session'))
+}
+
+export async function fetchAuthorBeat(seq: number): Promise<AuthorBeatView> {
+  return readEnvelope<AuthorBeatView>(await fetch(`/api/author/beat/${seq}`))
+}
+
+export interface AuthorContent {
+  /** 磁盘上的内容包原文 */
+  text: string
+  activeHash: string
+  diskHash: string
+}
+
+export async function fetchAuthorContent(): Promise<AuthorContent> {
+  return readEnvelope<AuthorContent>(await fetch('/api/author/content'))
+}
+
+/** 唯一写文件的请求：只写 `content/`，本局内容不生效。校验失败抛 `ApiError` + `errors`。 */
+export async function saveContent(text: string): Promise<{ saved: true; activeHash: string; diskHash: string }> {
+  return readEnvelope<{ saved: true; activeHash: string; diskHash: string }>(
+    await fetch('/api/author/content', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text }),
+    }),
+  )
 }
 
 export interface PostBeatOptions {

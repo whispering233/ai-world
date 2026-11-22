@@ -1,18 +1,20 @@
 import { useRef } from 'react'
 import { Button } from '../ui/Button.tsx'
+import type { ShellMode } from '../ui/ModeSwitch.tsx'
 
 export interface TopBarProps {
   title: string
   clockText: string
   inFlight: boolean
+  mode: ShellMode
   onOpenState: () => void
   onNewGame: () => void
-  onAuthorView: () => void
+  onModeChange: (mode: ShellMode) => void
   onAbout: () => void
 }
 
 /** 48px 细栏：只放全局信息，逐拍控制留在输入区。 */
-export function TopBar({ title, clockText, inFlight, onOpenState, onNewGame, onAuthorView, onAbout }: TopBarProps) {
+export function TopBar({ title, clockText, inFlight, mode, onOpenState, onNewGame, onModeChange, onAbout }: TopBarProps) {
   const menu = useRef<HTMLDetailsElement>(null)
   const close = () => {
     if (menu.current !== null) menu.current.open = false
@@ -44,8 +46,8 @@ export function TopBar({ title, clockText, inFlight, onOpenState, onNewGame, onA
             <Button variant="quiet" className="w-full text-left" disabled={inFlight} onClick={choose(onNewGame)}>
               新的一局
             </Button>
-            <Button variant="quiet" className="w-full text-left" onClick={choose(onAuthorView)}>
-              作者视图
+            <Button variant="quiet" className="w-full text-left" onClick={choose(() => onModeChange(mode === 'player' ? 'author' : 'player'))}>
+              {mode === 'player' ? '作者视图' : '阅读面'}
             </Button>
             <Button variant="quiet" className="w-full text-left" onClick={choose(onAbout)}>
               关于

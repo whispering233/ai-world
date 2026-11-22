@@ -16,6 +16,7 @@ import { Hono, type Context } from 'hono'
 import { FALLBACK_MODEL, createLlm, loadModelConfig, readPiDefaultModel, readonlyPiCredentials } from '@ai-world/core'
 import { STARTER_TOWN_PATH, loadContentPack } from '@ai-world/content'
 import { createSession } from './session.ts'
+import { authorRoutes } from './routes/author.ts'
 import { beatRoutes } from './routes/beat.ts'
 import { readRoutes } from './routes/session.ts'
 import { resetRoutes } from './routes/reset.ts'
@@ -47,10 +48,11 @@ const llm = createLlm({
 })
 
 const { pack } = loadContentPack(STARTER_TOWN_PATH)
-const session = createSession({ dir: DATA_DIR, pack, llm, title: pack.title })
+const session = createSession({ dir: DATA_DIR, contentPath: STARTER_TOWN_PATH, pack, llm, title: pack.title })
 
 const api = new Hono()
 api.route('/', readRoutes(session))
+api.route('/', authorRoutes(session))
 api.route('/', beatRoutes(session))
 api.route('/', resetRoutes(session))
 api.all('/*', (c) => c.json({ code: 'E_NOT_FOUND', msg: '资源不存在' }, 404))

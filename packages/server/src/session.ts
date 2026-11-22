@@ -4,8 +4,8 @@
  * 不依赖 HTTP：路由只做帧的适配，"有没有拍在结算"、"中止后世界不动"这些语义都在这里。
  * boot 与 scripts/play.ts 同源：有 journal 就 replay + replayCharacters，没有就 seedCharacters。
  */
-import { rmSync } from 'node:fs'
-import { basename, join } from 'node:path'
+import { readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { basename, dirname, join } from 'node:path'
 import type {
   AuthorBeatView,
   AuthorSessionView,
@@ -29,6 +29,7 @@ import {
   replayCharacters,
   runBeat,
   seedCharacters,
+  validatePack,
   type BeatTelemetry,
   type Character,
   type ContentPack,
@@ -39,12 +40,14 @@ import {
   type Scene,
   type World,
 } from '@ai-world/core'
-import { contentHash } from '@ai-world/content'
+import { contentHash, loadContentPack } from '@ai-world/content'
 import { emptyUsage, withBeatScope, type BeatSink } from './llm.ts'
 
 export interface SessionOptions {
   /** data/<world>/：journal 与 passage 落在这里 */
   dir: string
+  /** content/<world>.json：本项目唯一可写的文件，保存与开新局都读它 */
+  contentPath: string
   pack: ContentPack
   llm: Llm
   title: string
@@ -56,11 +59,25 @@ export interface BeatOutcome {
   beat: BeatView
 }
 
+/** 保存结果：只写盘，`activeHash` 仍是本局启动时那一份。 */
+export interface SavedContent {
+  saved: true
+  activeHash: string
+  diskHash: string
+}
+
 export interface Session {
   view(): SessionView
   authorView(): AuthorSessionView
   /** 单拍详情；seq 不存在返回 undefined */
   authorBeat(seq: number): AuthorBeatView | undefined
+  /** 内容状态：每次现读磁盘重算 `diskHash` */
+  content(): ContentStatusView
+  /** 磁盘上的内容包原文 */
+  contentText(): string
+  contentPath(): string
+  /** 唯一写入：校验通过后写 `content/`，不改 `activeHash`、不改运行时世界 */
+  saveContent(text: string): SavedContent
   /** 单飞：已有拍在结算时立刻抛 `code: 'E_BEAT_IN_FLIGHT'`，不排队 */
   beat(text: string, signal: AbortSignal, onProgress: (elapsedMs: number) => void): Promise<BeatOutcome>
   reset(): void
@@ -84,10 +101,9 @@ interface State {
 }
 
 export function createSession(opts: SessionOptions): Session {
-  const { pack } = opts
-  const player = pack.player
-  const participants = [player, ...pack.characters.map((c) => c.id)]
-  const activeHash = contentHash(pack)
+  let { pack } = opts
+  let activeHash = contentHash(pack)
+  let participants = roster(pack)
   // 本次进程累计，不是本局累计：进程重启归零，作者壳须注明
   const usage: Record<ModelRoleName, UsageView> = {
     cognition: emptyUsage(),
@@ -117,7 +133,7 @@ export function createSession(opts: SessionOptions): Session {
     // 场景上下文不落盘：续跑从新场景开始，人物记忆已经由 experience 复原
     const scene = openScene({
       id: `s${beats + 1}`,
-      place: world.ledger.at[player] ?? '',
+      place: world.ledger.at[pack.player] ?? '',
       clock: world.ledger.clock,
       participants,
     })
@@ -127,7 +143,7 @@ export function createSession(opts: SessionOptions): Session {
   function view(): SessionView {
     return playerView({
       title: opts.title,
-      player,
+      player: pack.player,
       // 只有内容包里的人物算“人”：账本里还有灯、门、地窖门这类实体
       people: new Set(pack.characters.map((seed) => seed.id)),
       world: state.world,
@@ -140,8 +156,41 @@ export function createSession(opts: SessionOptions): Session {
   }
 
   function content(): ContentStatusView {
-    // 本卡没有保存端点：diskHash 直接沿用启动时算出的值，changed 恒为 false。W6-4 补读盘。
-    return { path: `content/${basename(opts.dir)}.json`, activeHash, diskHash: activeHash, changed: false }
+    const disk = diskHash()
+    return { path: opts.contentPath, activeHash, diskHash: disk, changed: activeHash !== disk }
+  }
+
+  function diskHash(): string {
+    try {
+      return contentHash(JSON.parse(readFileSync(opts.contentPath, 'utf8')) as ContentPack)
+    } catch {
+      // 读不到或不是 JSON：与生效版本必然不同，作者壳显示“未生效”，不会静默说“没变”
+      return ''
+    }
+  }
+
+  function contentText(): string {
+    return readFileSync(opts.contentPath, 'utf8')
+  }
+
+  function saveContent(text: string): SavedContent {
+    if (busy) throw coded('E_BEAT_IN_FLIGHT', '上一拍还在结算')
+    let next: ContentPack
+    try {
+      next = JSON.parse(text) as ContentPack
+    } catch {
+      throw coded('E_INVALID_BODY', '内容不是合法 JSON')
+    }
+    const errors = validatePack(next)
+    // 校验不过就不碰磁盘：写坏的内容会让下一次启动直接失败
+    if (errors.length > 0) {
+      throw Object.assign(coded('E_INVALID_CONTENT', `内容校验失败：${errors.join('；')}`), { errors })
+    }
+    const tmp = join(dirname(opts.contentPath), `.${basename(opts.contentPath)}.tmp`)
+    writeFileSync(tmp, text)
+    // 先写临时文件再 rename：rename 是原子的，不会留下半份内容包
+    renameSync(tmp, opts.contentPath)
+    return { saved: true, activeHash, diskHash: diskHash() }
   }
 
   function sessionAuthorView(): AuthorSessionView {
@@ -197,7 +246,7 @@ export function createSession(opts: SessionOptions): Session {
         world: state.world,
         scene: state.scene,
         characters: state.characters,
-        player,
+        player: pack.player,
         sceneText: sceneText(pack, state.world),
         canon: pack.canon,
         names: pack.names,
@@ -256,6 +305,12 @@ export function createSession(opts: SessionOptions): Session {
 
   function reset(): void {
     if (busy) throw coded('E_BEAT_IN_FLIGHT', '上一拍还在结算')
+    // 新局用磁盘上的那一份：保存只写盘，生效靠重开（docs/design/60-server.md §5）。
+    // 读盘放在清日志之前：内容坏了就整拍不动，不留半局。
+    const reloaded = loadContentPack(opts.contentPath)
+    pack = reloaded.pack
+    activeHash = reloaded.hash
+    participants = roster(pack)
     // 只清这两份日志：本局的全部世界状态就是它们，内容与人物来自内容包
     store.close()
     rmSync(join(opts.dir, JOURNAL), { force: true })
@@ -267,7 +322,23 @@ export function createSession(opts: SessionOptions): Session {
     prompts.length = 0
   }
 
-  return { view, authorView: sessionAuthorView, authorBeat, beat, reset, inFlight: () => busy }
+  return {
+    view,
+    authorView: sessionAuthorView,
+    authorBeat,
+    content,
+    contentText,
+    contentPath: () => opts.contentPath,
+    saveContent,
+    beat,
+    reset,
+    inFlight: () => busy,
+  }
+}
+
+/** 场景参与者：玩家 + 内容包里的人物（账本里的灯、门不算人）。 */
+function roster(pack: ContentPack): EntId[] {
+  return [pack.player, ...pack.characters.map((c) => c.id)]
 }
 
 /** 场景的静态描述：本拍的地点和在场者，与 play.ts 的 describeScene 同源。 */
