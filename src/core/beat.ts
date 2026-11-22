@@ -243,7 +243,7 @@ export interface LedgerView {
 }
 
 /** shortcut: 只给“在场者的持有物 + 地点表”，不做相关实体剪枝；实体多了再按场景切片 */
-function describeLedger(world: World, present: readonly EntId[], view: LedgerView = {}): string {
+export function describeLedger(world: World, present: readonly EntId[], view: LedgerView = {}): string {
   const label = (id: string): string => (view.withIds ? `${view.names?.[id] ?? id}(${id})` : (view.names?.[id] ?? id))
   const itemLabel = (id: string): string => (view.withIds ? `${view.items?.[id] ?? id}(${id})` : (view.items?.[id] ?? id))
   const places = Object.entries(world.places).map(([id, name]) => `${name}(${id})`).join('、')
