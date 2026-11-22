@@ -72,7 +72,12 @@ export interface Pick {
   causes: Fact[]
 }
 
-/** 同一张牌打过了就得凉一会儿，否则条件一直成立，每拍都重抽同一张。 */
+/**
+ * 同一张牌打过了就得凉一会儿，否则条件一直成立，每拍都重抽同一张。
+ *
+ * shortcut: 这里比值的是 `clock`（分钟）而不是拍号，"6 拍"实际只有 2–3 拍；
+ * storylet 解冻时改成拍号（需要 `ClaimDrawInput` 带拍序号）。
+ */
 export const COOLDOWN_BEATS = 6
 
 /** ambient 层的前因：世界常态逐键相等。缺键 = 不满足，不是“默认通过”。 */

@@ -12,7 +12,7 @@
 - `scripts/storylet-pool.ts`：骨架池（冷却 6 拍、前因只认 `facts`、模板文本）、`pickSkeleton` / `causesFor` 与填肉入口。
 - `docs/research/storylet-probe.md` §10 §11：v2 10 拍 A/B（冷却 + 紧前因 + 模板文本）——世界事件落账 2/2、抽卡边际成本 0，但空转拍 2/10 → 3/10：“无因不抽”让抽卡只能事后跟风，填不到最早的静。
 - `BeatInput.claimSource`：世界事件作为 claim 第三来源的注入点，只读账本、产出仍由裁判裁决；缺省时一拍只有玩家与人物，抽卡失败只丢世界事件并注 `notes`。
-- `docs/research/storylet-probe.md` 增 §7 §8：填肉 3 条（硬检查全过，软规则被破），10 拍 A/B（空转拍 3/10 → 1/9，但 +21% 墙钟、一张牌连抽 6 次、7 条世界事件只落账 1 条）；同一份文档记录“第一版净收益为负”与四个实现级修正点。
+- `docs/research/storylet-probe.md` 增 §7 §8：填肉 3 条（硬检查全过，软规则被破），10 拍 A/B（空转拍 3/10 → 1/9，但 +21% 墙钟、一张牌连抽 6 次、7 条世界事件只落账 1 条）；同一份文档记录“第一版净收益为负”与四个实现级修正点（后经 3 次重复判定为噪声，见 §16）。
 - `docs/research/storylet-probe.md`：6 次真实裁决的 storylet 探针（非人 actor 可行，缺前因会被拒，竞争臂世界事件 0/3 落账，裁判自造前提）；`scripts/probe-storylet.ts` 可重跑，`--replay` 不重复调用。
 - storylet 定为 claim 第三来源：作者骨架 + 只读条件，抽卡产出世界事件，模型只填文本；不写账本、不做多拍进度。
 - `docs/research/fact-structure.md`：6 拍 fact 结构化 smoke（actor/kind 10/10，`facts/beat` 1.67，单样本不作密度结论）。
@@ -25,6 +25,9 @@
 - `docs/research/multi-round-experiment.md`：pilot 6 拍三臂结果（回声率、no_rate、成本、硬冲突）与结论。
 
 ### Changed
+- `AGENTS.md`：第 4 条补“空 `deltas` 不是状态”，新增第 9 条“`phys` 键要能写出解除者”；结构一节注明 `claimSource` 是唯一世界事件注入点。
+- `README.md`：用例数与每拍/20 拍时间口径按实测更新，补实验脚本入口。
+- `docs/design/backlog.md` §4：标注 20 拍基线在 R1 之后已过期，重跑前不作判据。
 - `docs/db/schema.md` §9：`phys` 键登记表（键 / 语义 / 值域 / 挂载 / **解除方式**）与命名原则；`phys` 键保持开放、不冻结，但每个键必须能写出解除方式。
 - 裁判规则 9b：`ok` + 空 `deltas` 只表示“发生了”，不得作为否决依据；需要持续的事必须落 `phys` 键。
 - `scripts/experiment-storylet.ts` 支持 `--run N` 与 `--report`：按同条件重复出分布（各 run 值 + 中位 + 范围），不再看单点；避让已回退（`avoidKeys` 删除）。

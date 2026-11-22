@@ -4,7 +4,7 @@
 
 ## 1. 当前批次
 
-R1 已合并并完成 3+3 重跑（`no_rate` 21.1%→14.3%，但空转拍仍在噪声带）；结论见 [storylet-probe.md §18](../research/storylet-probe.md)。storylet 维持冻结。
+没有卡片。storylet 维持冻结（[storylet-probe.md §18](../research/storylet-probe.md)），下一张从 §2 候选里选。
 
 ## 2. 下一批候选（待讨论）
 
@@ -24,6 +24,7 @@ R1 已合并并完成 3+3 重跑（`no_rate` 21.1%→14.3%，但空转拍仍在�
 - 人物侧零词表：卡片里出现“动作枚举”“技能表”“时长表”一律打回。
 - 测量先于改世界：先用已提交 op / duration 分桶 / `know_rate` / `facts/beat` / `cacheRead` 定位，再切卡。
 - 体检表只统计已提交 claim 的 ops；回滚的 claim 不算世界变化。
+- 10 拍单次 A/B 没有分辨率：同配置重复的空转拍实测跨 0–5 个，不要用它下结论；要测就 3 次以上并报分布（[storylet-probe.md §16 §18](../research/storylet-probe.md)）。
 - `transfer` 是唯一持有变化 op；`consume` 只表示物品离开世界；旧 `give/take` 仅 replay 别名。
 - `clock` 只按已提交 claim 的最大 duration 推进；时间跳跃折场用上一拍结束时刻判断。
 - `know` 只记听众原本不知道且以后会用的信息；在场记忆交给 `observations`；耳语只发给听见的人。
