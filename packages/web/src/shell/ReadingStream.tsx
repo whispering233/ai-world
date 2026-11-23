@@ -61,7 +61,15 @@ export function ReadingStream({ beats, pendingText }: ReadingStreamProps) {
               )}
               {beat.player !== undefined && <PlayerLine text={beat.player} />}
               {beat.passage !== undefined && (
-                <p className="mt-4 whitespace-pre-wrap text-prose leading-prose text-ink">{beat.passage}</p>
+                // 段落按空行拆开渲染：`whitespace-pre-wrap` 下一整块里的空行只有行高那么高，
+                // 段落分不清（需要「段间距 > 行距」）。`space-y-6` 给 24px，比 31.45px 行高之外的留白明显。
+                <div className="mt-4 space-y-6">
+                  {beat.passage.split(/\n{2,}/).map((paragraph, index) => (
+                    <p key={index} className="whitespace-pre-wrap text-prose leading-prose text-ink">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
               )}
               {beat.fallback && <ErrorNotice kind="fallback" />}
               {beat.passage === undefined && <ErrorNotice kind="missing" />}
