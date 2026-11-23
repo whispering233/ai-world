@@ -1,0 +1,10 @@
+/*
+ * 路线 a：官方 `@layer` 排层。
+ *
+ * 排层语句必须待在 `@import "tailwindcss"` **之前**：层序由文档里第一条排层语句钉死，
+ * 反过来（先 tailwind）的话 antd 层会被追加到最后 = 优先级最高，工具类照样被压掉。
+ * antd 的运行时样式由 `AntdProvider` 里的 `<StyleProvider layer>` 包进 `layer(antd)`。
+ */
+@layer theme, base, antd, components, utilities;
+
+@import "tailwindcss";
