@@ -1,11 +1,8 @@
+import { Alert, Button, Collapse, Modal } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import type { AuthorBeatView, AuthorSessionView, BeatView } from '@ai-world/shared'
 import { fetchAuthorBeat, fetchAuthorSession } from '../api.ts'
 import { ReadingStream } from '../shell/ReadingStream.tsx'
-import { Banner } from '../ui/Banner.tsx'
-import { Button } from '../ui/Button.tsx'
-import { Collapsible } from '../ui/Collapsible.tsx'
-import { Dialog } from '../ui/Dialog.tsx'
 import { ModeSwitch } from '../ui/ModeSwitch.tsx'
 import type { ShellMode } from '../ui/ModeSwitch.tsx'
 import { BeatDetail } from './BeatDetail.tsx'
@@ -86,7 +83,7 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: Autho
           <span>降级 {session?.health.degraded ?? 0} 条</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="quiet" onClick={() => setContentOpen(true)}>
+          <Button type="text" size="small" onClick={() => setContentOpen(true)}>
             内容
           </Button>
           <ModeSwitch mode="author" onModeChange={onModeChange} />
@@ -95,8 +92,8 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: Autho
 
       {changed && (
         <div className="flex shrink-0 items-center justify-between gap-4 border-b border-rule px-4 py-2">
-          <Banner tone="note">内容已变更，未生效。</Banner>
-          <Button variant="quiet" onClick={() => setSaved(true)}>
+          <Alert type="warning" showIcon title="内容已变更，未生效。" className="flex-1" />
+          <Button size="small" onClick={() => setSaved(true)}>
             开新局
           </Button>
         </div>
@@ -104,7 +101,7 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: Autho
 
       {failed && (
         <div className="shrink-0 px-4 py-2">
-          <Banner tone="alert">读不到作者投影。请确认服务在跑。</Banner>
+          <Alert type="error" showIcon title="读不到作者投影。请确认服务在跑。" />
         </div>
       )}
 
@@ -120,22 +117,34 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: Autho
         <aside aria-label="本拍详情" className="w-[420px] shrink-0 overflow-y-auto border-l border-rule p-4">
           <BeatDetail beat={shown} world={session?.world ?? null} />
           <div className="mt-6 border-t border-rule pt-3">
-            <Collapsible summary="体检">
-              {session === null ? (
-                <p className="text-meta text-ink-soft">还没有读到作者投影。</p>
-              ) : (
-                <HealthPanel health={session.health} />
-              )}
-            </Collapsible>
+            <Collapse
+              ghost
+              size="small"
+              items={[
+                {
+                  key: 'health',
+                  label: '体检',
+                  children:
+                    session === null ? (
+                      <p className="text-meta text-ink-soft">还没有读到作者投影。</p>
+                    ) : (
+                      <HealthPanel health={session.health} />
+                    ),
+                },
+              ]}
+            />
           </div>
         </aside>
       </div>
 
-      <Dialog
+      <Modal
         open={contentOpen}
-        onClose={() => setContentOpen(false)}
+        onCancel={() => setContentOpen(false)}
         title="内容"
-        panelClassName="w-[min(720px,92vw)] max-h-[86dvh]"
+        footer={null}
+        width={720}
+        destroyOnHidden
+        styles={{ body: { padding: 0 } }}
       >
         {contentOpen && (
           <ContentEditor
@@ -146,7 +155,7 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: Autho
             }}
           />
         )}
-      </Dialog>
+      </Modal>
 
       <SaveDialog
         open={saved}
