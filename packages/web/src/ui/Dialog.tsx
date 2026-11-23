@@ -29,7 +29,7 @@ export function Dialog({ open, onClose, title, children, panelClassName = '' }: 
       className={`m-auto hidden flex-col rounded-sm border border-rule bg-paper p-0 text-ink open:flex backdrop:bg-ink/25 ${panelClassName}`}
     >
       <header className="flex items-center justify-between border-b border-rule px-4 py-2">
-        <h2 className="font-serif text-title">{title}</h2>
+        <h2 className="text-title">{title}</h2>
         <Button variant="quiet" aria-label="关闭" onClick={onClose}>
           ×
         </Button>

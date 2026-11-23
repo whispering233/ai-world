@@ -1,38 +1,36 @@
+/*
+ * 排层语句必须待在 `@import "tailwindcss"` **之前**：层序由文档里第一条排层语句钉死，
+ * 反过来（先 tailwind）的话 antd 层会被追加到最后 = 优先级最高，工具类照样被压掉。
+ * `antdx` 必须写进层序：`@ant-design/x` 把自己的样式放进 `@layer antdx`，官方那份层序里没有它，
+ * 漏写时 Sender 上的 `w-96` 静默被压（实测 1337px vs 384px），其余控件看不出来。
+ */
+@layer theme, base, antd, antdx, components, utilities;
+
 @import "tailwindcss";
 
 /*
  * 唯一改色入口：组件里不写颜色/字号字面量。
- * 暖纸 / 暖黑，零阴影、无渐变、无紫；正文对比度 ≥ 4.5:1（ink 15.1:1 / ink-soft 6.9:1）。
- * 字号只四档：prose / title / body / meta。
+ * 色板不在这里定，只在 `theme/AntdProvider.tsx`（浅 `defaultAlgorithm` / 深 `darkAlgorithm`，antd 默认色板）；
+ * 这里只把 `--ant-*`（antd 6 的 cssVar，作用域是 `<html class="ai-world-theme">`）映射成既有 class 名。
+ * 字号取 antd 默认：正文 14px / 1.5715。
  */
 @theme {
-  --color-paper: #faf6ee;
-  --color-paper-2: #f2ecdf;
-  --color-ink: #23201a;
-  --color-ink-soft: #5c5446;
-  --color-rule: #d9d1c1;
-  --color-accent: #8a4a2f;
-  --color-danger: #9a2f2f;
+  --color-paper: var(--ant-color-bg-layout);
+  --color-paper-2: var(--ant-color-bg-container);
+  --color-ink: var(--ant-color-text);
+  --color-ink-soft: var(--ant-color-text-secondary);
+  --color-rule: var(--ant-color-border-secondary);
+  --color-accent: var(--ant-color-primary);
+  --color-danger: var(--ant-color-error);
 
-  /* 系统字体栈，不下载 webfont（离线可用） */
-  --font-serif: ui-serif, "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", Georgia, serif;
+  /* 系统字体栈，不下载 webfont（离线可用）；衬线正文已退役 */
   --font-sans: ui-sans-serif, "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif;
 
-  --text-prose: 19px;
-  --text-title: 23px;
-  --text-body: 16px;
-  --text-meta: 13px;
-  --leading-prose: 1.9;
-}
-
-:root[data-theme="dark"] {
-  --color-paper: #16130f;
-  --color-paper-2: #201c16;
-  --color-ink: #ece4d5;
-  --color-ink-soft: #b5a993;
-  --color-rule: #3a342b;
-  --color-accent: #dda06a;
-  --color-danger: #e79080;
+  --text-prose: 14px;
+  --text-title: 20px;
+  --text-body: 14px;
+  --text-meta: 12px;
+  --leading-prose: 1.5715;
 }
 
 @layer base {
@@ -53,7 +51,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* 抽屉打开时锁住底层滚动 */
+  /* 抽屉打开时锁住底层滚动；这只管 `ui/Dialog.tsx` 的 <dialog>，antd Drawer 自己管滚动锁 */
   body:has(dialog[open]) {
     overflow: hidden;
   }

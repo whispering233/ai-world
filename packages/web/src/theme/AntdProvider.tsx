@@ -1,44 +1,38 @@
 /**
- * antd 主题唯一入口（照 ai-editor 的做法：颜色只在这里定）。
+ * antd 主题唯一入口：颜色只在这里定。
  * 浅色 `defaultAlgorithm` / 深色 `darkAlgorithm`，色板用 antd 默认色板，不写自定义 seed。
  *
- * 深色开关 = URL `?dark=1`（探针页二选一：显式参数便于在真浏览器里一轮跑完，
- * 不读 `prefers-color-scheme`——headless 浏览器改系统偏好要过 devtools 协议）。
+ * 层叠：`<StyleProvider layer>` 把 antd 运行时样式整体包进 `@layer antd`；层序钉在 `tokens.css`
+ * 顶部（`theme, base, antd, antdx, components, utilities`，`antdx` 是 `@ant-design/x` 自己的层）。
+ * `@ant-design/cssinjs` 必须与 antd 的样式钩子读的**同一份实例**（2.2.0），否则 StyleProvider 设的
+ * React context 没人读，`layer` 静默失效：只有图标样式进层，Button / Table 仍是无层 CSS，页面看着正常。
  *
- * 三条层叠路线只在这里分叉：
- * - `a`：`<StyleProvider layer>` 把 antd 运行时样式整体包进 `@layer antd`；
- * - `b`：`theme={{ zeroRuntime: true }}`，运行时不再注入样式，改由 `antd/dist/antd.css` 供给
- *   （该文件已由 `route-b.css` 装进 `layer(antd)`）；
- * - `c`：什么都不加，antd 以**无层** `<style>` 注入。
- *
- * `@ant-design/cssinjs` 必须与 antd 的样式钩子读的**同一份实例**，否则 StyleProvider 设的
- * React context 没人读，`layer` 静默失效（实测：装 2.1.2 时只有图标样式进了 `@layer antd`，
- * Button / Table 仍然是运行时注入的无层 CSS）。antd 的 `genStyleUtils` 来自
- * `@ant-design/cssinjs-utils@2.1.2`，它解析到的是 cssinjs **2.2.0**，所以这里直接钉 2.2.0。
+ * `cssVar.key` 必须与 `index.html` 的 `<html class>` 字面量一致：antd 6 不把 `--ant-*` 注入 `:root`，
+ * 只给带这个类的元素挂变量。不一致时 `tokens.css` 里那 7 个映射全是空值，表现为「暖纸底 + 冷白控件」。
  */
 import { StyleProvider } from '@ant-design/cssinjs'
 import { ConfigProvider, theme } from 'antd'
 import type { ReactNode } from 'react'
 
-export type CascadeRoute = 'a' | 'b' | 'c'
+/** 与 `index.html` 里的 `<html class>` 同一个字面量；`theme/layers.test.ts` 守这条一致性。 */
+export const THEME_CLASS = 'ai-world-theme'
 
 export interface AntdProviderProps {
-  route: CascadeRoute
   dark: boolean
   children: ReactNode
 }
 
-export function AntdProvider({ route, dark, children }: AntdProviderProps) {
-  const provider = (
-    <ConfigProvider
-      theme={{
-        algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm,
-        ...(route === 'b' ? { zeroRuntime: true } : {}),
-      }}
-    >
-      {children}
-    </ConfigProvider>
+export function AntdProvider({ dark, children }: AntdProviderProps) {
+  return (
+    <StyleProvider layer>
+      <ConfigProvider
+        theme={{
+          algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+          cssVar: { key: THEME_CLASS },
+        }}
+      >
+        {children}
+      </ConfigProvider>
+    </StyleProvider>
   )
-
-  return route === 'a' ? <StyleProvider layer>{provider}</StyleProvider> : provider
 }
