@@ -14,7 +14,12 @@
 | §13 tokens 单一文件与自绘件清单 | **作废**：色板只在 `AntdProvider` 的 seed 表 |
 | §2 单栏布局、§3 行为契约、§4 失败语义、§7 响应式、§8 无障碍、§11 两种壳隔离 | **仍有效**（表述里的「引文块 / 不用气泡」按 §6 的新口径重读） |
 
-**待定（由探针结论回填本节）**：Tailwind 与 antd 的层叠路线、`jsdom` 是否进 CI、`Bubble` 在阅读面的落位。
+**探针结论（B0，真浏览器实测）**：**层叠路线 = 官方 `@layer` 排层 + `<StyleProvider layer>`**，层序必须写成 `theme, base, antd, **antdx**, components, utilities`。`antdx` 是 `@ant-design/x` 自己的层，官方那份层序漏了它；漏写时 Sender 上的 `w-96` 静默被压（实测 1337px vs 384px），其余控件看不出来。
+
+- `@ant-design/cssinjs` 必须与 antd 内部读的**同一份实例**（当前 `2.2.0`）。版本错时只有 `.anticon` 进层，Button/Table 仍是运行时无层 CSS，而页面看起来正常、类型检查也绿。
+- `zeroRuntime` 路线不可用：`@ant-design/x` 不发 CSS，预编译产物里没有 x 的样式，Bubble/Sender 会裸奔（Sender 边框 0px、Bubble 根高 20px vs 68px）。
+- `jsdom` + `@testing-library/react` 可用，只需 stub `matchMedia` 与 `ResizeObserver`；但 jsdom 不算布局也不算层叠——样式类缺陷只能靠浏览器实测。
+- `Bubble placement="end"` 在普通块级父容器里**不会右对齐**（两条气泡 `left` 都是 24px），用它得自己补布局或改走 `Bubble.List`。
 
 ## 1. 定位
 
