@@ -1,6 +1,20 @@
-# 玩家阅读面设计契约（v1）
+# 玩家阅读面设计契约
 
 > 本文只描述玩家侧阅读面的布局、排版与交互契约，不描述实现代码。作者/调试模式（三栏）在 [backlog.md](../design/backlog.md) 里。
+
+## 0. 方向变更（v2）：引入 antd 6 + @ant-design/x
+
+**决策**：chrome 全部交给 `antd` 6 + `@ant-design/x` 2，不再手写组件；主题事实源 = `ConfigProvider` 的 `theme`（浅色 `defaultAlgorithm`、深色 `darkAlgorithm`、**默认色板**），Tailwind 只做排版与布局。
+
+| 旧条款 | 状态 |
+| :--- | :--- |
+| §5 视觉方向（暖纸 / 暖墨 / 衬线正文 / 零圆角） | **作废**：暖纸色板与衬线正文退役 |
+| §6「不引入 Bubble/Conversations/ThoughtChain」 | **作废**：对话呈现走 x 的 `Bubble` |
+| §9「不引入组件库 / 图标库」 | **作废**：图标走 `@ant-design/icons` |
+| §13 tokens 单一文件与自绘件清单 | **作废**：色板只在 `AntdProvider` 的 seed 表 |
+| §2 单栏布局、§3 行为契约、§4 失败语义、§7 响应式、§8 无障碍、§11 两种壳隔离 | **仍有效**（表述里的「引文块 / 不用气泡」按 §6 的新口径重读） |
+
+**待定（由探针结论回填本节）**：Tailwind 与 antd 的层叠路线、`jsdom` 是否进 CI、`Bubble` 在阅读面的落位。
 
 ## 1. 定位
 
