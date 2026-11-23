@@ -28,7 +28,7 @@ const ROUTES: Record<CascadeRoute, RouteSpec> = {
   a: {
     title: '路线 a：官方 @layer 排层 + <StyleProvider layer>',
     detail:
-      'route-a.css 先写 @layer theme, base, antd, components, utilities 再 @import "tailwindcss"；antd 运行时样式被 StyleProvider 包进 layer(antd)。注意 x 用的是自己的 @layer antdx，官方那份层序里没有它 → Sender 的宽度被压在 utilities 之后（见表）。',
+      'route-a.css 先写 @layer theme, base, antd, antdx, components, utilities 再 @import "tailwindcss"；antd 运行时样式被 StyleProvider 包进 layer(antd)，x 自己的样式进 layer(antdx)。官方文档那份层序漏了 antdx，漏写时 Sender 的宽度会被压到 utilities 之后（实测 1337px vs 384px）。',
     loadCss: () => import('./theme/route-a.css'),
   },
   b: {
