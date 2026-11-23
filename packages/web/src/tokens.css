@@ -26,11 +26,12 @@
   /* 系统字体栈，不下载 webfont（离线可用）；衬线正文已退役 */
   --font-sans: ui-sans-serif, "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif;
 
-  --text-prose: 14px;
+  /* 正文档位：17px / 1.85（比 antd 的控件档大一号，长文才不挤）；控件仍跟随 antd 默认 14px */
+  --text-prose: 17px;
   --text-title: 20px;
   --text-body: 14px;
   --text-meta: 12px;
-  --leading-prose: 1.5715;
+  --leading-prose: 1.85;
 }
 
 @layer base {
