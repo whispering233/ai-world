@@ -1,9 +1,0 @@
-/*
- * 路线 c：不排层（ai-editor 现行做法）+ 纪律守卫。
- *
- * antd 由 cssinjs 在运行时以**无层** `<style>` 注入；无层规则压过任何 `@layer` 里的规则，
- * 所以挂在 antd 根元素上的 Tailwind 工具类会被静默压掉（不报错、只在浏览器里看得见）。
- * 纪律：布局挂外层 `div`，能用 antd token / props 就不写工具类。
- * 守卫 = 本页「运行时纪律守卫」一节（ai-editor 是源码扫描版的 `design-discipline.test.ts`）。
- */
-@import "tailwindcss";

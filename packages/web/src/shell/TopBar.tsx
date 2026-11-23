@@ -1,5 +1,6 @@
-import { useRef } from 'react'
-import { Button } from '../ui/Button.tsx'
+import { MoreOutlined } from '@ant-design/icons'
+import { Button, Divider, Dropdown } from 'antd'
+import type { MenuProps } from 'antd'
 import type { ShellMode } from '../ui/ModeSwitch.tsx'
 
 export interface TopBarProps {
@@ -15,13 +16,18 @@ export interface TopBarProps {
 
 /** 48px 细栏：只放全局信息，逐拍控制留在输入区。 */
 export function TopBar({ title, clockText, inFlight, mode, onOpenState, onNewGame, onModeChange, onAbout }: TopBarProps) {
-  const menu = useRef<HTMLDetailsElement>(null)
-  const close = () => {
-    if (menu.current !== null) menu.current.open = false
-  }
-  const choose = (action: () => void) => () => {
-    close()
-    action()
+  // 开新局会清空整局记录，结算中不给点
+  const items: MenuProps['items'] = [
+    { key: 'new-game', label: '新的一局', disabled: inFlight },
+    { key: 'mode', label: mode === 'player' ? '作者视图' : '阅读面' },
+    { type: 'divider' },
+    { key: 'about', label: '关于' },
+  ]
+
+  function handleMenuClick({ key }: { key: string }) {
+    if (key === 'new-game') onNewGame()
+    if (key === 'mode') onModeChange(mode === 'player' ? 'author' : 'player')
+    if (key === 'about') onAbout()
   }
 
   return (
@@ -29,31 +35,14 @@ export function TopBar({ title, clockText, inFlight, mode, onOpenState, onNewGam
       <p className="truncate text-meta text-ink-soft">
         <span className="text-ink">{title}</span> · {clockText}
       </p>
-      <div className="flex items-center gap-2">
-        <Button variant="quiet" onClick={onOpenState}>
+      <div className="flex items-center gap-1">
+        <Button type="text" size="small" onClick={onOpenState}>
           此刻
         </Button>
-        <details ref={menu} className="group relative">
-          <summary
-            aria-label="更多"
-            className="cursor-pointer list-none px-2 py-1 leading-none text-ink-soft hover:text-ink [&::-webkit-details-marker]:hidden"
-          >
-            ⋯
-          </summary>
-          {/* 打开时铺一层透明背景，点空白处收起 */}
-          <div aria-hidden="true" onClick={close} className="fixed inset-0 hidden group-open:block" />
-          <div className="absolute right-0 z-10 mt-1 hidden min-w-36 flex-col border border-rule bg-paper-2 py-1 group-open:flex">
-            <Button variant="quiet" className="w-full text-left" disabled={inFlight} onClick={choose(onNewGame)}>
-              新的一局
-            </Button>
-            <Button variant="quiet" className="w-full text-left" onClick={choose(() => onModeChange(mode === 'player' ? 'author' : 'player'))}>
-              {mode === 'player' ? '作者视图' : '阅读面'}
-            </Button>
-            <Button variant="quiet" className="w-full text-left" onClick={choose(onAbout)}>
-              关于
-            </Button>
-          </div>
-        </details>
+        <Divider type="vertical" className="mx-1" />
+        <Dropdown menu={{ items, onClick: handleMenuClick }} trigger={['click']} placement="bottomRight">
+          <Button type="text" size="small" icon={<MoreOutlined />} aria-label="更多" />
+        </Dropdown>
       </div>
     </header>
   )

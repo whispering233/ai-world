@@ -61,7 +61,7 @@ export function ReadingStream({ beats, pendingText }: ReadingStreamProps) {
               )}
               {beat.player !== undefined && <PlayerLine text={beat.player} />}
               {beat.passage !== undefined && (
-                <p className="mt-4 whitespace-pre-wrap font-serif text-prose leading-prose text-ink">{beat.passage}</p>
+                <p className="mt-4 whitespace-pre-wrap text-prose leading-prose text-ink">{beat.passage}</p>
               )}
               {beat.fallback && <ErrorNotice kind="fallback" />}
               {beat.passage === undefined && <ErrorNotice kind="missing" />}
