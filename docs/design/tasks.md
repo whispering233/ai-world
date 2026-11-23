@@ -21,9 +21,10 @@
 
 **目标**：作者壳复用同一份阅读流与同一套发送逻辑，`Composer` 在两种壳里都在。**不改服务端**。
 
-- `AuthorApp` 接收 `draft` / `onDraftChange` / `onSend` / `onStop` / `inFlight` / `elapsedMs`，在阅读流下方渲染同一个 `Composer`。
-- 发送后作者投影要跟着刷新（`refresh()`），否则详情停在旧拍。
-- 玩家壳的发送逻辑仍只有一处（`App.tsx` 的 `send`）。
+- `App.tsx` 把 `<Composer …>` 当**一个节点**传给 `AuthorApp`（`composer: ReactNode`），不要逐个透传 6 个 prop，也不要在 `AuthorApp` 里复制发送逻辑。
+- 渲染位置：作者壳中间那一列，阅读流下方（与玩家壳一致）。
+- 发送后作者投影要跟着刷新（`refresh()`），否则右侧详情停在旧拍；用 `beats.length` 变化触发即可。
+- 发送逻辑仍只有一处（`App.tsx` 的 `send`）。
 
 **验收**（真浏览器，条目上限 5）：作者壳能发一拍并在阅读流里出现；右侧详情出现新拍；不重复发送；停止可用；换回玩家壳看到同一拍。
 
