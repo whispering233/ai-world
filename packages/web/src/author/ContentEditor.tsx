@@ -1,12 +1,8 @@
+import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+import { Alert, Button, Collapse, Input, InputNumber } from 'antd'
 import { useEffect, useState } from 'react'
 import { ApiError, fetchAuthorContent, saveContent } from '../api.ts'
-import { Banner } from '../ui/Banner.tsx'
-import { Button } from '../ui/Button.tsx'
-import { Collapsible } from '../ui/Collapsible.tsx'
-import { EditableList } from '../ui/EditableList.tsx'
 import { Field } from '../ui/Field.tsx'
-import { NumberField } from '../ui/NumberField.tsx'
-import { TextField } from '../ui/TextField.tsx'
 
 interface EditableDrive {
   id: string
@@ -70,7 +66,11 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
   if (pack === null) {
     return (
       <div className="p-4">
-        {errors.length === 0 ? <p className="text-meta text-ink-soft">正在读内容包…</p> : <Banner tone="alert">{errors.join('；')}</Banner>}
+        {errors.length === 0 ? (
+          <p className="text-meta text-ink-soft">正在读内容包…</p>
+        ) : (
+          <Alert type="error" showIcon title={errors.join('；')} />
+        )}
       </div>
     )
   }
@@ -93,6 +93,11 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
     setPack({ ...pack, canon: pack.canon.map((item, i) => (i === index ? line : item)) })
   }
 
+  function removeCanon(index: number): void {
+    if (pack === null) return
+    setPack({ ...pack, canon: pack.canon.filter((_, i) => i !== index) })
+  }
+
   async function save(): Promise<void> {
     setSaving(true)
     setErrors([])
@@ -109,11 +114,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
   return (
     <div className="flex max-h-[80dvh] flex-col">
       <div className="flex-1 overflow-y-auto p-4">
-        {errors.length > 0 && (
-          <Banner tone="alert" className="mb-4">
-            {errors.join('；')}
-          </Banner>
-        )}
+        {errors.length > 0 && <Alert type="error" showIcon title={errors.join('；')} className="mb-4" />}
 
         <section className="mb-8">
           <h3 className="mb-2 text-meta text-ink-soft">人物</h3>
@@ -121,44 +122,46 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
             <fieldset key={character.id} className="mb-6 flex flex-col gap-3 border border-rule p-3">
               <legend className="px-1 text-meta text-ink-soft">{character.id}</legend>
               <Field label="core" htmlFor={`${character.id}-core`}>
-                <TextField
+                <Input.TextArea
                   id={`${character.id}-core`}
-                  multiline
                   rows={6}
                   value={character.core ?? ''}
-                  onValueChange={(core) => updateCharacter(characterIndex, { core })}
+                  onChange={(event) => updateCharacter(characterIndex, { core: event.target.value })}
                 />
               </Field>
               <Field label="voice" htmlFor={`${character.id}-voice`}>
-                <TextField
+                <Input.TextArea
                   id={`${character.id}-voice`}
-                  multiline
                   rows={2}
                   value={character.voice ?? ''}
-                  onValueChange={(voice) => updateCharacter(characterIndex, { voice })}
+                  onChange={(event) => updateCharacter(characterIndex, { voice: event.target.value })}
                 />
               </Field>
 
               <div className="flex flex-col gap-2">
                 <h4 className="text-meta text-ink-soft">drives</h4>
                 {character.drives.map((drive, driveIndex) => (
-                  <div key={drive.id} className="flex items-end gap-2">
+                  <div key={drive.id} className="flex items-start gap-2">
                     <div className="flex-1">
                       <Field label={drive.id}>
-                        <TextField
+                        <Input
                           value={drive.text}
-                          ariaLabel={`${character.id} 的 ${drive.id} 文本`}
-                          onValueChange={(text) => updateDrive(characterIndex, driveIndex, { text })}
+                          aria-label={`${character.id} 的 ${drive.id} 文本`}
+                          onChange={(event) => updateDrive(characterIndex, driveIndex, { text: event.target.value })}
                         />
                       </Field>
                     </div>
                     <Field label="heat">
-                      <NumberField
+                      <InputNumber
                         value={drive.heat}
                         min={0}
                         max={1}
                         step={0.05}
-                        onValueChange={(heat) => updateDrive(characterIndex, driveIndex, { heat })}
+                        aria-label={`${character.id} 的 ${drive.id} heat`}
+                        onChange={(heat) => {
+                          // 清空输入框时 antd 给 null，别把它写进上层状态
+                          if (heat !== null) updateDrive(characterIndex, driveIndex, { heat })
+                        }}
                       />
                     </Field>
                   </div>
@@ -172,11 +175,13 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
                 ) : (
                   Object.entries(character.beliefs).map(([key, value]) => (
                     <Field key={key} label={key}>
-                      <TextField
+                      <Input
                         value={value}
-                        ariaLabel={`${character.id} 的信念 ${key}`}
-                        onValueChange={(next) =>
-                          updateCharacter(characterIndex, { beliefs: { ...character.beliefs, [key]: next } })
+                        aria-label={`${character.id} 的信念 ${key}`}
+                        onChange={(event) =>
+                          updateCharacter(characterIndex, {
+                            beliefs: { ...character.beliefs, [key]: event.target.value },
+                          })
                         }
                       />
                     </Field>
@@ -189,39 +194,65 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
 
         <section className="mb-8 flex flex-col gap-2">
           <h3 className="text-meta text-ink-soft">canon</h3>
-          <EditableList
-            items={pack.canon}
-            ariaLabel="canon"
-            addLabel="一条 canon"
-            newItem={() => ''}
-            onItemsChange={(canon) => setPack({ ...pack, canon })}
-            renderItem={(line, index) => (
-              <TextField
-                multiline
-                rows={2}
-                value={line}
-                ariaLabel={`canon 第 ${index + 1} 条`}
-                onValueChange={(next) => updateCanon(index, next)}
-              />
-            )}
-          />
+          <ul aria-label="canon" className="flex flex-col gap-2">
+            {pack.canon.map((line, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <div className="flex-1">
+                  <Input.TextArea
+                    rows={2}
+                    value={line}
+                    aria-label={`canon 第 ${index + 1} 条`}
+                    onChange={(event) => updateCanon(index, event.target.value)}
+                  />
+                </div>
+                <Button
+                  type="text"
+                  icon={<DeleteOutlined />}
+                  aria-label={`删除第 ${index + 1} 项`}
+                  onClick={() => removeCanon(index)}
+                />
+              </li>
+            ))}
+            <li>
+              <Button type="dashed" icon={<PlusOutlined />} onClick={() => setPack({ ...pack, canon: [...pack.canon, ''] })}>
+                一条 canon
+              </Button>
+            </li>
+          </ul>
         </section>
 
-        <Collapsible summary="世界结构（只读）">
-          <pre className="overflow-x-auto whitespace-pre-wrap break-all text-meta text-ink-soft">
-            {JSON.stringify(
-              { title: pack.title, world: pack.world, player: pack.player, names: pack.names, items: pack.items, aliases: pack.aliases },
-              null,
-              2,
-            )}
-          </pre>
-        </Collapsible>
+        <Collapse
+          ghost
+          size="small"
+          items={[
+            {
+              key: 'world',
+              label: '世界结构（只读）',
+              children: (
+                <pre className="overflow-x-auto whitespace-pre-wrap break-all text-meta text-ink-soft">
+                  {JSON.stringify(
+                    {
+                      title: pack.title,
+                      world: pack.world,
+                      player: pack.player,
+                      names: pack.names,
+                      items: pack.items,
+                      aliases: pack.aliases,
+                    },
+                    null,
+                    2,
+                  )}
+                </pre>
+              ),
+            },
+          ]}
+        />
       </div>
 
       <footer className="flex items-center justify-between gap-2 border-t border-rule p-3">
         <p className="text-meta text-ink-soft">保存只写 content/，本局不变；新内容要开新局才生效。</p>
-        <Button disabled={saving} onClick={() => void save()}>
-          {saving ? '保存中…' : '保存'}
+        <Button type="primary" loading={saving} onClick={() => void save()}>
+          保存
         </Button>
       </footer>
     </div>

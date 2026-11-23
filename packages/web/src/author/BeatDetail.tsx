@@ -1,5 +1,5 @@
 import type { AuthorBeatView, OpView, PromptCallView, TelemetryView, WorldView } from '@ai-world/shared'
-import { Collapsible } from '../ui/Collapsible.tsx'
+import { Collapse, Table } from 'antd'
 import { LedgerView } from './LedgerView.tsx'
 
 export interface BeatDetailProps {
@@ -81,17 +81,27 @@ export function BeatDetail({ beat, world }: BeatDetailProps) {
         )}
       </section>
 
-      <Collapsible summary="账本原始">
-        {world === null ? <p className="text-meta text-ink-soft">还没有读到账本。</p> : <LedgerView world={world} />}
-      </Collapsible>
-
-      <Collapsible summary={`prompt（${beat.prompts.length}）`}>
-        {beat.prompts.length === 0 ? (
-          <p className="text-meta text-ink-soft">超出环形缓冲窗口（最近 3 拍），这一拍的 prompt 已经丢了。</p>
-        ) : (
-          beat.prompts.map((call, index) => <PromptCall key={index} call={call} />)
-        )}
-      </Collapsible>
+      <Collapse
+        ghost
+        size="small"
+        items={[
+          {
+            key: 'ledger',
+            label: '账本原始',
+            children: world === null ? <p className="text-meta text-ink-soft">还没有读到账本。</p> : <LedgerView world={world} />,
+          },
+          {
+            key: 'prompts',
+            label: `prompt（${beat.prompts.length}）`,
+            children:
+              beat.prompts.length === 0 ? (
+                <p className="text-meta text-ink-soft">超出环形缓冲窗口（最近 3 拍），这一拍的 prompt 已经丢了。</p>
+              ) : (
+                beat.prompts.map((call, index) => <PromptCall key={index} call={call} />)
+              ),
+          },
+        ]}
+      />
     </div>
   )
 }
@@ -101,32 +111,24 @@ function DeltaLine({ delta }: { delta: OpView }) {
 }
 
 function TelemetryTable({ telemetry }: { telemetry: TelemetryView }) {
+  const rows = (Object.keys(telemetry.models) as (keyof TelemetryView['models'])[]).map((role) => {
+    const usage = telemetry.usage[role]
+    return { role, model: telemetry.models[role], calls: usage.calls, cost: usage.cost.toFixed(4), ms: usage.ms }
+  })
   return (
-    <table className="w-full border-collapse text-left text-meta">
-      <thead>
-        <tr>
-          {['角色', '模型', 'calls', 'cost', 'ms'].map((column) => (
-            <th key={column} scope="col" className="border-b border-rule py-1 pr-3 font-normal text-ink-soft">
-              {column}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {(Object.keys(telemetry.models) as (keyof TelemetryView['models'])[]).map((role) => {
-          const usage = telemetry.usage[role]
-          return (
-            <tr key={role}>
-              <td className="border-b border-rule py-1 pr-3">{role}</td>
-              <td className="border-b border-rule py-1 pr-3">{telemetry.models[role]}</td>
-              <td className="border-b border-rule py-1 pr-3">{usage.calls}</td>
-              <td className="border-b border-rule py-1 pr-3">{usage.cost.toFixed(4)}</td>
-              <td className="border-b border-rule py-1 pr-3">{usage.ms}</td>
-            </tr>
-          )
-        })}
-      </tbody>
-    </table>
+    <Table
+      size="small"
+      pagination={false}
+      rowKey="role"
+      dataSource={rows}
+      columns={[
+        { key: 'role', title: '角色', dataIndex: 'role' },
+        { key: 'model', title: '模型', dataIndex: 'model' },
+        { key: 'calls', title: 'calls', dataIndex: 'calls', align: 'right' },
+        { key: 'cost', title: 'cost', dataIndex: 'cost', align: 'right' },
+        { key: 'ms', title: 'ms', dataIndex: 'ms', align: 'right' },
+      ]}
+    />
   )
 }
 

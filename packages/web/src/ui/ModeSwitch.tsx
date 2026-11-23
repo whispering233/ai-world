@@ -1,30 +1,26 @@
-import { Button } from './Button.tsx'
+import { Segmented } from 'antd'
 
 export type ShellMode = 'player' | 'author'
 
-const LABEL: Record<ShellMode, string> = { player: '阅读面', author: '作者视图' }
+const OPTIONS: { label: string; value: ShellMode }[] = [
+  { label: '阅读面', value: 'player' },
+  { label: '作者视图', value: 'author' },
+]
 
 export interface ModeSwitchProps {
   mode: ShellMode
   onModeChange: (mode: ShellMode) => void
 }
 
-/** 两个外壳共用同一份流与状态，切换只换皮。 */
+/** 两个外壳共用同一份流与状态，切换只换皮；选中态与键盘切换由 `Segmented` 自己管。 */
 export function ModeSwitch({ mode, onModeChange }: ModeSwitchProps) {
   return (
-    <fieldset className="flex gap-1 border-0 p-0">
-      <legend className="sr-only">视图</legend>
-      {(Object.keys(LABEL) as ShellMode[]).map((option) => (
-        <Button
-          key={option}
-          variant="quiet"
-          aria-pressed={mode === option}
-          className={mode === option ? 'text-ink underline underline-offset-4' : ''}
-          onClick={() => onModeChange(option)}
-        >
-          {LABEL[option]}
-        </Button>
-      ))}
-    </fieldset>
+    <Segmented<ShellMode>
+      aria-label="视图"
+      size="small"
+      value={mode}
+      options={OPTIONS}
+      onChange={onModeChange}
+    />
   )
 }
