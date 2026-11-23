@@ -13,7 +13,7 @@ export interface StateDrawerProps {
  */
 export function StateDrawer({ open, onClose, state }: StateDrawerProps) {
   return (
-    <Drawer open={open} onClose={onClose} title="此刻" placement="right" width="min(360px, 100vw)">
+    <Drawer open={open} onClose={onClose} title="此刻" placement="right" size="min(360px, 100vw)">
       {state === null ? (
         <p className="text-meta text-ink-soft">还没有读到世界的状态。</p>
       ) : (

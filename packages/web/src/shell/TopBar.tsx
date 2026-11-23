@@ -39,7 +39,7 @@ export function TopBar({ title, clockText, inFlight, mode, onOpenState, onNewGam
         <Button type="text" size="small" onClick={onOpenState}>
           此刻
         </Button>
-        <Divider type="vertical" className="mx-1" />
+        <Divider orientation="vertical" className="mx-1" />
         <Dropdown menu={{ items, onClick: handleMenuClick }} trigger={['click']} placement="bottomRight">
           <Button type="text" size="small" icon={<MoreOutlined />} aria-label="更多" />
         </Dropdown>

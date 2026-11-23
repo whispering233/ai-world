@@ -16,7 +16,7 @@ export function ErrorNotice({ kind }: { kind: ErrorKind }) {
   const copy = COPY[kind]
   return (
     <div className="mt-4">
-      <Alert type={copy.type} showIcon message={copy.text} />
+      <Alert type={copy.type} showIcon title={copy.text} />
     </div>
   )
 }
