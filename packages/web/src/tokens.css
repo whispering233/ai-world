@@ -12,7 +12,7 @@
  * 唯一改色入口：组件里不写颜色/字号字面量。
  * 色板不在这里定，只在 `theme/AntdProvider.tsx`（浅 `defaultAlgorithm` / 深 `darkAlgorithm`，antd 默认色板）；
  * 这里只把 `--ant-*`（antd 6 的 cssVar，作用域是 `<html class="ai-world-theme">`）映射成既有 class 名。
- * 字号取 antd 默认：正文 14px / 1.5715。
+ * `paper` / `paper-2` 是历史命名，值已经是 antd 的 layout / container 底（改名的收益低于风险）。
  */
 @theme {
   --color-paper: var(--ant-color-bg-layout);

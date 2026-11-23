@@ -3,6 +3,20 @@
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+### Added
+- `packages/web`：chrome 全部换成 `antd` 6 + `@ant-design/x` 2（`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Menu` `Dropdown` `Divider` `Empty` `Segmented` + `Sender`），图标走 `@ant-design/icons`；`ui/` 下 10 个手写基础件删除，只剩 `ModeSwitch`。
+- `packages/web/src/theme/AntdProvider.tsx`：色板唯一事实源（浅 `defaultAlgorithm` / 深 `darkAlgorithm`、antd 默认色板、`cssVar.key` = `<html class="ai-world-theme">`），`<StyleProvider layer>` 把 antd 运行时样式放进 `@layer antd`。
+- `packages/web/src/theme/layers.test.ts`：层序必须含 `antdx` 且在 `@import "tailwindcss"` 之前；红线是 `Sender` 的工具类漏了会被静默压掉。
+- `packages/web/src/shell/composer.test.ts`：`Sender` 的 Enter 发送 / Shift+Enter 换行 / 流式期间不可重复发送。
+- 开发者依赖：`jsdom` + `@testing-library/react`（只需 stub `matchMedia` 与 `ResizeObserver`）。
+- 作者视图也能发拍：两壳共用同一个 `Composer` 节点（`AuthorApp` 只多一个 `composer: ReactNode`），发送后作者投影跟着 `beats.length` 刷新。
+
+### Changed
+- 正文档位 17px / 1.85 / 段间 24px，列宽 40rem（1024–1280 降 36rem）；`passage` 按空行拆成多个 `<p>` 渲染，段落间距才大于行距。暖纸色板与衷线正文退役。
+- `tokens.css` 从「唯一改色入口」改成映射层：`--ant-*` → 既有 class 名 + 排版 token。
+
+### Fixed
+- antd 6 的三处改名（`Alert.title` / `Drawer.size` / `Divider.orientation`）：写错时界面正常、只有 `console.error`。
 
 ## [v0.0.2] - 2026-11-22
 ### Added

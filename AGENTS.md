@@ -39,6 +39,16 @@
 - `sessionId` 是 provider 的路由/缓存亲和头，不是消息线程；一次世界运行只用一个，不按角色拆。
 - 启动时打印实际使用的模型串；调错模型必须当场可见。
 
+## UI 与组件
+
+- **chrome 只有一套**：`antd` 6 + `@ant-design/x` 2。不写第二套自绘基础件；确实缺的薄包装放调用点文件内，不进 `src/ui/`。
+- `tokens.css` 的排层语句必须在 `@import "tailwindcss"` 之前，层序必须含 `antdx`（`@ant-design/x` 自己的层）。漏写时 `Sender` 的工具类被静默压掉，页面看着正常、类型检查也绿。
+- `<html class="ai-world-theme">` 与 `AntdProvider` 的 `cssVar.key` 必须同字面量：antd 6 不把 `--ant-*` 注入 `:root`，不同步会让全站语义色静默变透明。
+- `@ant-design/cssinjs` 必须与 antd 内部读的同一实例（当前 2.2.0），否则 `<StyleProvider layer>` 静默失效（只有图标进层）。
+- 色值只允许写在 `theme/AntdProvider.tsx` 的 seed 表；组件里只用 `paper` / `paper-2` / `ink` / `ink-soft` / `rule` / `accent` / `danger` 这些映射名。
+- antd 6 改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` 用 `orientation`。写错只 `console.error`，界面照常。
+- 正文档位（17px / 1.85 / 段距 24px / 列宽 40rem）在 `tokens.css`；jsdom 不算布局也不算层叠，UI 卡必须跑真浏览器。
+
 ## 发布
 
 - 版本号三处一致才能发：tag `vX.Y.Z`、根 `package.json` 的 `version`、`CHANGELOG.md` 的 `## [vX.Y.Z] - 日期`。Release 工作流先校验，不一致直接红。

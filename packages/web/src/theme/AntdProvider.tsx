@@ -8,7 +8,7 @@
  * React context 没人读，`layer` 静默失效：只有图标样式进层，Button / Table 仍是无层 CSS，页面看着正常。
  *
  * `cssVar.key` 必须与 `index.html` 的 `<html class>` 字面量一致：antd 6 不把 `--ant-*` 注入 `:root`，
- * 只给带这个类的元素挂变量。不一致时 `tokens.css` 里那 7 个映射全是空值，表现为「暖纸底 + 冷白控件」。
+ * 只给带这个类的元素挂变量。不一致时 `tokens.css` 里那 7 个映射全是空值，表现为全站语义色静默变透明。
  */
 import { StyleProvider } from '@ant-design/cssinjs'
 import { ConfigProvider, theme } from 'antd'

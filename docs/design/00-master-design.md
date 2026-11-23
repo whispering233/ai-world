@@ -69,7 +69,7 @@
 | 36 | **内容为 JSON 数据**（`content/<world>.json`，git 跟踪）：只存作者字段，运行时字段由 `seedCharacters()` 补空 | 60 / db |
 | 37 | **内容只在新局生效**：保存 = 写盘，本局不变；不做热生效（会静默清掉 `heat`/`beliefs`） | 60 |
 | 38 | **`packages/*` + pnpm**：`exports` 指向 `.ts` 源码（无构建步骤），发布时才逐包切 `dist` | 60 |
-| 39 | **不引组件库**：11 个手写基础件 + 原生 `<details>`/`<dialog>`/`<table>`/`<dl>` | 60 / ui |
+| 39 | **chrome = antd 6 + `@ant-design/x` 2**：不自绘基础件，色板只在 `AntdProvider` 的 seed；`@layer` 排层且必须含 `antdx` | 60 / ui |
 | 40 | **一拍单飞**：并发 `/api/beat` 返回 409，不排队 | api |
 
 ## 6. 待定

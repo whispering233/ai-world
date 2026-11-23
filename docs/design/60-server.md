@@ -117,19 +117,20 @@ packages/web      ← shared：React SPA（拿不到 core，边界由 pnpm 严�
 
 ## 8. 前端组件方案
 
-不引入组件库、图标库、状态库、路由库。
+**chrome 全部用 `antd` 6 + `@ant-design/x` 2**；不自绘基础件，不引状态库、不引路由库。
 
 | 层 | 内容 |
 | :--- | :--- |
-| tokens | `packages/web/src/tokens.css` 单一文件，Tailwind 4 `@theme`；暗色靠 `<html data-theme>` 覆盖同名变量 |
-| 基础件 | `ui/` 下 11 个手写：`Button` `Field` `TextField` `NumberField` `Collapsible` `Dialog` `Banner` `KeyValueList` `EditableList` `DataTable` `ModeSwitch` |
-| 原生等价物 | 折叠 `<details>`、模态 `<dialog showModal>`（外部 inert + top layer 嵌套）、表格 `<table>`、键值 `<dl>`、滑杆 `<input type=range>` |
+| 主题 | `theme/AntdProvider.tsx`：`ConfigProvider` + `<StyleProvider layer>`，浅 `defaultAlgorithm` / 深 `darkAlgorithm`，antd 默认色板；`cssVar.key` = `<html class="ai-world-theme">` |
+| 层叠 | `tokens.css` 先写 `@layer theme, base, antd, antdx, components, utilities` 再 `@import "tailwindcss"`；漏写 `antdx` 时 x 组件的工具类会被静默压掉 |
+| tokens | `tokens.css` 只做两件事：把 `--ant-*` 映射成既有 class 名（`paper`/`ink`/`rule`/`accent`/`danger`），以及放排版 token（正文 17px / 1.85 / 段距 24px / 列宽 40rem） |
+| 组件 | `Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Menu` `Dropdown` `Divider` `Empty` `Segmented` + x 的 `Sender`；图标走 `@ant-design/icons` |
+| `ui/` 自有件 | 只剩 `ModeSwitch`（`Segmented` 薄壳，两壳共用）；就地的小排版包装留在调用文件里，不进 `ui/` |
 | 玩家壳 | `TopBar` `ReadingStream` `PlayerLine` `BeatDivider` `Composer` `StateDrawer` `EmptyState` `ErrorNotice` |
-| 作者壳 | `AuthorApp` `BeatList` `BeatDetail` `LedgerView` `HealthPanel` `ContentEditor` `SaveDialog` |
+| 作者壳 | `AuthorApp` `BeatList` `BeatDetail` `LedgerView` `HealthPanel` `ContentEditor` `SaveDialog`；两壳共用同一个 `Composer` 节点，作者壳也能发拍 |
 | 状态 | 一个 `useReducer`；`mode` 与滚动位置进 localStorage |
-| 图标 | 文本字符（`×` `▸` `▾` `↻` `⋯`），零依赖 |
 
-抽屉的滚动锁定用 `body:has(dialog[open]) { overflow: hidden }`。真出现焦点问题再单独引 `@radix-ui/react-dialog` 一个包，不引整套组件库。
+层叠与 cssVar 的两个陷阱（都会静默失效、测试全绿）：`@ant-design/cssinjs` 必须与 antd 内部读同一实例；`zeroRuntime` 路线不可用（x 不发 CSS）。详见 [ui/DESIGN.md](../ui/DESIGN.md) §0。
 
 ## 9. 失败与降级
 

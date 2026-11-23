@@ -3,7 +3,7 @@
  * 输入区的键盘契约。`Sender` 自己实现 Enter / Shift+Enter / 组字判断，这几条**只能在事件层真跑一遍**：
  * 读源码看不出装上之后还成不成立，而错了的后果是半句话被发出去。
  *
- * jsdom 只需两个 stub（`matchMedia` / `ResizeObserver`，见 `theme/jsdom-probe.test.ts`）；
+ * jsdom 只需两个 stub（`matchMedia` / `ResizeObserver`）；下面 `beforeAll` 里就是全部。
  * 这里不断言样式，只断言「按了什么键、`onSend` 有没有被叫」。
  */
 import { fireEvent, render } from '@testing-library/react'
