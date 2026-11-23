@@ -196,6 +196,18 @@ export function App() {
     }
   }
 
+  // 两个壳共用同一个输入节点：发送逻辑只有下面这一个 `send`
+  const composer = (
+    <Composer
+      draft={state.draft}
+      onDraftChange={(draft) => dispatch({ type: 'draft', draft })}
+      onSend={() => void send()}
+      onStop={() => inFlightRequest.current?.abort()}
+      inFlight={state.inFlight}
+      elapsedMs={state.elapsedMs}
+    />
+  )
+
   return (
     <div className="flex h-dvh flex-col bg-paper text-ink">
       <TopBar
@@ -215,6 +227,7 @@ export function App() {
           pendingText={state.pendingText}
           onModeChange={(mode) => dispatch({ type: 'mode', mode })}
           onNewGame={startNewGame}
+          composer={composer}
         />
       ) : (
         <>
@@ -229,14 +242,7 @@ export function App() {
               <ErrorNotice kind={state.error} />
             </div>
           )}
-          <Composer
-            draft={state.draft}
-            onDraftChange={(draft) => dispatch({ type: 'draft', draft })}
-            onSend={() => void send()}
-            onStop={() => inFlightRequest.current?.abort()}
-            inFlight={state.inFlight}
-            elapsedMs={state.elapsedMs}
-          />
+          {composer}
         </>
       )}
 
