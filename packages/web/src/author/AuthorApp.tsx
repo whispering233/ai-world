@@ -1,5 +1,6 @@
 import { Alert, Button, Collapse, Modal } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import type { AuthorBeatView, AuthorSessionView, BeatView } from '@ai-world/shared'
 import { fetchAuthorBeat, fetchAuthorSession } from '../api.ts'
 import { ReadingStream } from '../shell/ReadingStream.tsx'
@@ -18,10 +19,12 @@ export interface AuthorAppProps {
   onModeChange: (mode: ShellMode) => void
   /** 开新局由 App 统一做：玩家壳也要一起换成新局 */
   onNewGame: () => Promise<void>
+  /** 与玩家壳同一份输入区：发送逻辑仍在 App，作者壳只负责摆位置 */
+  composer: ReactNode
 }
 
 /** 作者壳：拍列表 / 同一份阅读流 / 本拍详情，固定宽度，不做拖拽分隔条。 */
-export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: AuthorAppProps) {
+export function AuthorApp({ beats, pendingText, onModeChange, onNewGame, composer }: AuthorAppProps) {
   const [session, setSession] = useState<AuthorSessionView | null>(null)
   const [failed, setFailed] = useState(false)
   const [selected, setSelected] = useState<number | null>(null)
@@ -38,9 +41,12 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: Autho
     }
   }, [])
 
+  // 首读与跟拍共用一条 effect：`refresh` 每次挂载不变，`beats.length` 变才再取一遍，
+  // 免得新拍落地后右侧详情与顶栏 cost 停在旧拍
+  const beatCount = beats.length
   useEffect(() => {
     void refresh()
-  }, [refresh])
+  }, [refresh, beatCount])
 
   // 单拍详情只在点选时取：不把 prompt 这类大块数据塞进整局投影
   useEffect(() => {
@@ -112,6 +118,7 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: Autho
 
         <div className="flex min-w-0 flex-1 flex-col">
           <ReadingStream beats={beats} pendingText={pendingText} />
+          {composer}
         </div>
 
         <aside aria-label="本拍详情" className="w-[420px] shrink-0 overflow-y-auto border-l border-rule p-4">
