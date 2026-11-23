@@ -1,3 +1,4 @@
+import { Alert, Modal } from 'antd'
 import { useEffect, useReducer, useRef } from 'react'
 import type { BeatView, SessionView } from '@ai-world/shared'
 import { fetchSession, postBeat, resetSession } from './api.ts'
@@ -10,9 +11,6 @@ import { ReadingStream } from './shell/ReadingStream.tsx'
 import { StateDrawer } from './shell/StateDrawer.tsx'
 import { TopBar } from './shell/TopBar.tsx'
 import { READING_COLUMN } from './shell/column.ts'
-import { Banner } from './ui/Banner.tsx'
-import { Button } from './ui/Button.tsx'
-import { Dialog } from './ui/Dialog.tsx'
 import type { ShellMode } from './ui/ModeSwitch.tsx'
 
 const MODE_KEY = 'ai-world.mode'
@@ -234,7 +232,7 @@ export function App() {
           <ReadingStream beats={state.beats} pendingText={state.pendingText} />
           {state.loadFailed && (
             <div className={`${READING_COLUMN} pb-2`}>
-              <Banner tone="alert">读不到世界。请确认服务在跑。</Banner>
+              <Alert type="error" showIcon title="读不到世界。请确认服务在跑。" />
             </div>
           )}
           {state.error !== null && (
@@ -252,30 +250,30 @@ export function App() {
         state={state.session?.state ?? null}
       />
 
-      <Dialog
+      {/* 开新局不可撤销：取消在左、红色「开新局」在右，没有第三种出路 */}
+      <Modal
         open={state.dialog === 'new-game'}
-        onClose={() => dispatch({ type: 'dialog', dialog: 'none' })}
+        onCancel={() => dispatch({ type: 'dialog', dialog: 'none' })}
         title="新的一局"
+        cancelText="取消"
+        okText="开新局"
+        okButtonProps={{ danger: true }}
+        onOk={() => void startNewGame()}
       >
-        <div className="p-4">
-          <p className="text-body">开新局会清空这一局的全部记录，不可撤销。</p>
-          <div className="mt-6 flex justify-end gap-2">
-            <Button variant="quiet" onClick={() => dispatch({ type: 'dialog', dialog: 'none' })}>
-              取消
-            </Button>
-            <Button variant="danger" onClick={() => void startNewGame()}>
-              开新局
-            </Button>
-          </div>
-        </div>
-      </Dialog>
+        <p className="text-body">开新局会清空这一局的全部记录，不可撤销。</p>
+      </Modal>
 
-      <Dialog open={state.dialog === 'about'} onClose={() => dispatch({ type: 'dialog', dialog: 'none' })} title="关于">
-        <div className="p-4 text-body">
+      <Modal
+        open={state.dialog === 'about'}
+        onCancel={() => dispatch({ type: 'dialog', dialog: 'none' })}
+        title="关于"
+        footer={null}
+      >
+        <div className="text-body">
           <p>一句一句写下去，世界一拍一拍回应。</p>
           <p className="mt-3 text-meta text-ink-soft">调试与账本信息只在作者视图里。</p>
         </div>
-      </Dialog>
+      </Modal>
     </div>
   )
 }
