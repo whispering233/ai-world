@@ -7,16 +7,6 @@
 
 串行顺序：**B2 → B3 → B4 → B5**。
 
-### B3 删掉自绘基础件
-
-**目标**：`packages/web/src/ui/` 下 11 个自绘件在 B1/B2 之后应当无人引用，删掉，不留第二套组件。
-
-- 删前必须用 `grep` 证明零引用（`App.tsx`、`shell/`、`author/`、测试）。
-- `ui/Dialog.tsx` 若仍被玩家壳用着（`App.tsx` 的新局/关于弹窗），本卡把它一并换成 antd `Modal`，然后才删。
-- **不删** `ui/ModeSwitch.tsx`（B2 已改成 `Segmented` 薄壳，仍被两壳调用）；它的位置在 `ui/` 而不是 `shell/`，删目录时要保留。
-
-**验收**：`pnpm test` / `typecheck` / `build` 全绿；浏览器各跑一遍两壳，控制台 0 error；`git grep` 不再出现被删文件名。
-
 ### B5 排版参数
 
 **目标**：正文现在跟随 antd 默认 14px / 1.5715，段落间距几乎为零。只调排版变量，不改组件、不改色板。
