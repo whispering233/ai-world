@@ -1,8 +1,20 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { Alert, Button, Collapse, Input, InputNumber } from 'antd'
 import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { ApiError, fetchAuthorContent, saveContent } from '../api.ts'
-import { Field } from '../ui/Field.tsx'
+
+/** 表单里"标签在上、控件在下"只有这一种排法，就地为它写一个，不为它再立一个公共件。 */
+function LabeledField({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={htmlFor} className="text-meta text-ink-soft">
+        {label}
+      </label>
+      {children}
+    </div>
+  )
+}
 
 interface EditableDrive {
   id: string
@@ -121,37 +133,37 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
           {pack.characters.map((character, characterIndex) => (
             <fieldset key={character.id} className="mb-6 flex flex-col gap-3 border border-rule p-3">
               <legend className="px-1 text-meta text-ink-soft">{character.id}</legend>
-              <Field label="core" htmlFor={`${character.id}-core`}>
+              <LabeledField label="core" htmlFor={`${character.id}-core`}>
                 <Input.TextArea
                   id={`${character.id}-core`}
                   rows={6}
                   value={character.core ?? ''}
                   onChange={(event) => updateCharacter(characterIndex, { core: event.target.value })}
                 />
-              </Field>
-              <Field label="voice" htmlFor={`${character.id}-voice`}>
+              </LabeledField>
+              <LabeledField label="voice" htmlFor={`${character.id}-voice`}>
                 <Input.TextArea
                   id={`${character.id}-voice`}
                   rows={2}
                   value={character.voice ?? ''}
                   onChange={(event) => updateCharacter(characterIndex, { voice: event.target.value })}
                 />
-              </Field>
+              </LabeledField>
 
               <div className="flex flex-col gap-2">
                 <h4 className="text-meta text-ink-soft">drives</h4>
                 {character.drives.map((drive, driveIndex) => (
                   <div key={drive.id} className="flex items-start gap-2">
                     <div className="flex-1">
-                      <Field label={drive.id}>
+                      <LabeledField label={drive.id}>
                         <Input
                           value={drive.text}
                           aria-label={`${character.id} 的 ${drive.id} 文本`}
                           onChange={(event) => updateDrive(characterIndex, driveIndex, { text: event.target.value })}
                         />
-                      </Field>
+                      </LabeledField>
                     </div>
-                    <Field label="heat">
+                    <LabeledField label="heat">
                       <InputNumber
                         value={drive.heat}
                         min={0}
@@ -163,7 +175,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
                           if (heat !== null) updateDrive(characterIndex, driveIndex, { heat })
                         }}
                       />
-                    </Field>
+                    </LabeledField>
                   </div>
                 ))}
               </div>
@@ -174,7 +186,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
                   <p className="text-meta text-ink-soft">还没有信念。</p>
                 ) : (
                   Object.entries(character.beliefs).map(([key, value]) => (
-                    <Field key={key} label={key}>
+                    <LabeledField key={key} label={key}>
                       <Input
                         value={value}
                         aria-label={`${character.id} 的信念 ${key}`}
@@ -184,7 +196,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
                           })
                         }
                       />
-                    </Field>
+                    </LabeledField>
                   ))
                 )}
               </div>

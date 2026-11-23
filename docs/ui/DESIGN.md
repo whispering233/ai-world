@@ -170,7 +170,7 @@ v1 只读；打开抽屉不改变阅读位置。
 ```
 
 - 拍列表：只显示 `clockText` 与首句摘要；点击定位到该拍，不改阅读流内容。
-- 本拍详情：`claims` / `verdicts`（`ok`、`reason`、`deltas`、`duration`）/ `notes` / `telemetry`；再往下是 `Collapsible` 的「账本原始」与「prompt」。
+- 本拍详情：`claims` / `verdicts`（`ok`、`reason`、`deltas`、`duration`）/ `notes` / `telemetry`；再往下是 antd `Collapse` 的「账本原始」与「prompt」。
 - 顶部条：内容状态（`activeHash === diskHash` 与否）、累计 cost、降级 notes 计数。
 - 「内容」面板：`core` / `voice` / `drives` / `beliefs` / `canon` 表单 + 只读 JSON 块（世界结构）；显式「保存」→ 三选一弹窗。
 - 三栏固定宽度，不做拖拽分隔条。
@@ -181,13 +181,14 @@ v1 只读；打开抽屉不改变阅读位置。
 
 | 层 | 内容 |
 | :--- | :--- |
-| 基础件（11） | `Button` `Field` `TextField` `NumberField` `Collapsible` `Dialog` `Banner` `KeyValueList` `EditableList` `DataTable` `ModeSwitch` |
+| chrome | 全部用 antd 6 / `@ant-design/x` 2 组件：`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Menu` `Dropdown` `Divider` `Empty` `Sender` `Segmented` |
+| `ui/` 下的自有件（1） | `ModeSwitch`（antd `Segmented` 的薄壳，壳切换的两处共用） |
 | 玩家壳（8） | `TopBar` `ReadingStream` `PlayerLine` `BeatDivider` `Composer` `StateDrawer` `EmptyState` `ErrorNotice` |
 | 作者壳（7） | `AuthorApp` `BeatList` `BeatDetail` `LedgerView` `HealthPanel` `ContentEditor` `SaveDialog` |
 
-- 不引组件库 / 图标库 / 状态库 / 路由库。折叠 `<details>`、模态 `<dialog showModal>`（外部 inert + top layer 嵌套）、表格 `<table>`、键值 `<dl>`、滑杆 `<input type=range>`。
-- 图标用文本字符（`×` `▸` `▾` `↻` `⋯`）。
-- 抽屉滚动锁定：`body:has(dialog[open]) { overflow: hidden }`。
-- `discipline.test.ts` 断言：玩家壳源码不出现 `claim`/`verdict`/`heat`/`rel`/`token`/`cost`/`no_rate`；玩家壳不 import 作者壳模块；颜色字面量只允许出现在 tokens 文件；字号只用四档。
-- `<dialog>` 上不许直接写 `flex`/`block`：Tailwind 的 `.flex` 会压过 UA 的 `dialog:not([open]){display:none}`，抽屉会常开、拦住后面的按钮，而且 `Esc` 后依然显示。用 `hidden` + `open:flex`（特异度 0,2,0 > 0,1,0）。
+- **不留第二套组件**：`ui/` 下不许再长出手写的 `Button` / `Modal` / `Alert` / `Table` / `Collapse` 这一类；要新控件先找 antd。
+- 就地的小排版包装只待在用到它的文件里（例如 `ContentEditor.tsx` 的 `LabeledField`），不进 `ui/`。
+- 图标走 `@ant-design/icons`，不再用文本字符充当图标。
+- 抽屉与模态的滚动锁定由 antd 自己管，`tokens.css` 不写 `body:has(...)` 这类全局选择器。
+- `discipline.test.ts` 断言：玩家壳源码不出现 `claim`/`verdict`/`heat`/`rel`/`token`/`cost`/`no_rate`；玩家壳不 import 作者壳模块；颜色字面量只允许出现在 tokens 文件。
 - UI 改完必须跑一次**浏览器实测**：抽屉常开、`/` 返回 octet-stream、按钮被遮这三类缺陷，`pnpm test` 与 typecheck 全绿时都会漏过去。

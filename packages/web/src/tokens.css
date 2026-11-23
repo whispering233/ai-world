@@ -51,11 +51,6 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* 抽屉打开时锁住底层滚动；这只管 `ui/Dialog.tsx` 的 <dialog>，antd Drawer 自己管滚动锁 */
-  body:has(dialog[open]) {
-    overflow: hidden;
-  }
-
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
