@@ -5,32 +5,41 @@
 
 ## 当前批次
 
-串行顺序：**B1 → B2 → B3 → B4 → B5**。B1 与 B2 可以并行（玩家壳与作者壳文件不重叠），但两者都要改 `tokens.css` 之外的同一个 `AntdProvider`，故实际按串行推进；B5 只改排版变量，必须等 B1/B2 的截图出来再开。
+串行顺序：**B2 → B3 → B4 → B5**。
 
-### B1 玩家壳换 chrome
+### B2 作者壳换 chrome
 
-**目标**：玩家壳 6 个件换成 antd / `@ant-design/x`；**不改 `passage` 语义、不改 `ReadingStream` 结构**（对话气泡是另一张卡）。
+**目标**：作者壳 7 个件换成 antd；`BeatDetail` 的 `Collapsible`、`LedgerView` 的表格、`ContentEditor` 的文本域优先复用 antd 现成件。**不改作者投影的字段与语义**。
 
 | 现有件 | 换成 |
 | :--- | :--- |
-| `TopBar` | `Button` + `Dropdown`/`Menu` + `Divider` |
-| `Composer` | x `Sender` |
-| `StateDrawer` | `Drawer` + `Descriptions` + `Table` |
-| `EmptyState` | `Empty` |
-| `ErrorNotice` | `Alert`（`refused`/`fallback`/`missing` 三档文案不动） |
-| `BeatDivider` | `Divider` |
+| `BeatList` | `List` 或 `Menu`（选中态由 antd 管） |
+| `BeatDetail` | `Descriptions` + `Collapse` |
+| `LedgerView` | `Table` |
+| `HealthPanel` | `Descriptions` + `Statistic` |
+| `ContentEditor` | `Input.TextArea`（保留现有的保存/校验交互） |
+| `SaveDialog` | `Modal` |
+| `ModeSwitch` | `Segmented` |
 
-配套（不做就会出现「暖纸底 + 冷白控件」）：
+**验收**（真浏览器，条目上限 6）：三栏布局不塌（拍列表 / 阅读流 / 本拍详情）；点一拍能出详情且不闪上一拍；内容面板能打开、校验失败有报错、保存成功走三选一；`Ctrl/Cmd+Shift+D` 换壳不重置滚动；控制台 0 条 error；深色一轮。
 
-- `index.html` 的 `<html>` 加 cssVar 作用域类（antd v6 不把 `--ant-*` 注入 `:root`；缺这个类，`@theme` 里的映射全是空值）。
-- 生产版 `AntdProvider`（只保留路线 a，去掉 `route` 参数）挂进 `main.tsx`；深色仍按 `prefers-color-scheme`。
-- `tokens.css` 的 7 个颜色变量改指 `--ant-*`：`paper`→`colorBgLayout`、`paper-2`→`colorBgContainer`、`ink`→`colorText`、`ink-soft`→`colorTextSecondary`、`rule`→`colorBorderSecondary`、`accent`→`colorPrimary`、`danger`→`colorError`；**不重命名**那 118 处 class。
-- 字号取 antd 默认（正文 14px / 1.5715），衬线退役；排版参数见 B5。
+已知坑（B1 实测）：antd v6 的 `Alert` 用 `title` 不是 `message`；`Drawer` 用 `size` 不是 `width`；`Divider` 用 `orientation` 不是 `type`。这三处写错只会 console.error，界面照常。
 
-已知坑（B0 实测）：`Sender` 没有 `disabled`，流式期间只给 `loading` 并拦发送；antd `Drawer` 自带滚动锁与焦点管理，`body:has(dialog[open])` 对它无效；x 的样式在 `@layer antdx`，层序不能漏。
+### B4 作者视图也能输入对话
 
-**验收**（真浏览器，条目上限 6）：发送即回显 + 计时 + 停止；流式中不能重复发送；抽屉打开 / `Esc` 关闭 / 背后的按钮可点；三种 `ErrorNotice` 的文案；分拍分隔条；深色一轮 + 控制台无 error（favicon 404 不计）。
+**目标**：作者壳复用同一份阅读流与同一套发送逻辑，`Composer` 在两种壳里都在。**不改服务端**。
+
+- `AuthorApp` 接收 `draft` / `onDraftChange` / `onSend` / `onStop` / `inFlight` / `elapsedMs`，在阅读流下方渲染同一个 `Composer`。
+- 发送后作者投影要跟着刷新（`refresh()`），否则详情停在旧拍。
+- 玩家壳的发送逻辑仍只有一处（`App.tsx` 的 `send`）。
+
+**验收**（真浏览器，条目上限 5）：作者壳能发一拍并在阅读流里出现；右侧详情出现新拍；不重复发送；停止可用；换回玩家壳看到同一拍。
 
 ### B5 排版参数
 
-正文现在跟随 antd 默认 14px / 1.5715。这张卡只调排版变量（正文档位、行长、段间距、标题档），不改组件、不改色板。开卡前先看 B1/B2 的实际截图。
+**目标**：正文现在跟随 antd 默认 14px / 1.5715，段落间距几乎为零。只调排版变量，不改组件、不改色板。
+
+- 正文档位（字号 / 行高 / 段间距）、行长、标题档。
+- 深色下 antd 的 `colorBgLayout` 是纯黑 `#000000`，长文阅读是否可接受一并判断。
+
+**验收**（真浏览器，条目上限 4）：浅色与深色各一张整页读数（字号 / 行高 / 段间距 / 行长 / 对比度）；连续三段的视觉可分性。
