@@ -13,10 +13,10 @@
 
 | 现有件 | 换成 |
 | :--- | :--- |
-| `BeatList` | `List` 或 `Menu`（选中态由 antd 管） |
-| `BeatDetail` | `Descriptions` + `Collapse` |
-| `LedgerView` | `Table` |
-| `HealthPanel` | `Descriptions` + `Statistic` |
+| `BeatList` | `Menu`（选中态与键盘导航白得；两行 label 自定义） |
+| `BeatDetail` | `Collapse`（原 `Collapsible`）+ `Descriptions`/`Statistic` 收拢 telemetry |
+| `LedgerView` | **保持 `<pre>`**（账本是六张任意形状的表，`Table` 表达不了） |
+| `HealthPanel` | `Descriptions` |
 | `ContentEditor` | `Input.TextArea`（保留现有的保存/校验交互） |
 | `SaveDialog` | `Modal` |
 | `ModeSwitch` | `Segmented` |
