@@ -7,23 +7,15 @@
 
 串行顺序：**B2 → B3 → B4 → B5**。
 
-### B2 作者壳换 chrome
+### B3 删掉自绘基础件
 
-**目标**：作者壳 7 个件换成 antd；`BeatDetail` 的 `Collapsible`、`LedgerView` 的表格、`ContentEditor` 的文本域优先复用 antd 现成件。**不改作者投影的字段与语义**。
+**目标**：`packages/web/src/ui/` 下 11 个自绘件在 B1/B2 之后应当无人引用，删掉，不留第二套组件。
 
-| 现有件 | 换成 |
-| :--- | :--- |
-| `BeatList` | `Menu`（选中态与键盘导航白得；两行 label 自定义） |
-| `BeatDetail` | `Collapse`（原 `Collapsible`）+ `Descriptions`/`Statistic` 收拢 telemetry |
-| `LedgerView` | **保持 `<pre>`**（账本是六张任意形状的表，`Table` 表达不了） |
-| `HealthPanel` | `Descriptions` |
-| `ContentEditor` | `Input.TextArea`（保留现有的保存/校验交互） |
-| `SaveDialog` | `Modal` |
-| `ModeSwitch` | `Segmented` |
+- 删前必须用 `grep` 证明零引用（`App.tsx`、`shell/`、`author/`、测试）。
+- `ui/Dialog.tsx` 若仍被玩家壳用着（`App.tsx` 的新局/关于弹窗），本卡把它一并换成 antd `Modal`，然后才删。
+- **不删** `ui/ModeSwitch.tsx`（B2 已改成 `Segmented` 薄壳，仍被两壳调用）；它的位置在 `ui/` 而不是 `shell/`，删目录时要保留。
 
-**验收**（真浏览器，条目上限 6）：三栏布局不塌（拍列表 / 阅读流 / 本拍详情）；点一拍能出详情且不闪上一拍；内容面板能打开、校验失败有报错、保存成功走三选一；`Ctrl/Cmd+Shift+D` 换壳不重置滚动；控制台 0 条 error；深色一轮。
-
-已知坑（B1 实测）：antd v6 的 `Alert` 用 `title` 不是 `message`；`Drawer` 用 `size` 不是 `width`；`Divider` 用 `orientation` 不是 `type`。这三处写错只会 console.error，界面照常。
+**验收**：`pnpm test` / `typecheck` / `build` 全绿；浏览器各跑一遍两壳，控制台 0 error；`git grep` 不再出现被删文件名。
 
 ### B4 作者视图也能输入对话
 
