@@ -121,9 +121,9 @@ packages/web      ← shared：React SPA（拿不到 core，边界由 pnpm 严�
 
 | 层 | 内容 |
 | :--- | :--- |
-| 主题 | `theme/AntdProvider.tsx`：`ConfigProvider` + `<StyleProvider layer>`，浅 `defaultAlgorithm` / 深 `darkAlgorithm`，antd 默认色板；`cssVar.key` = `<html class="ai-world-theme">` |
+| 主题 | `theme/AntdProvider.tsx`：`ConfigProvider` + `<StyleProvider layer>`，浅 `defaultAlgorithm` / 深 `darkAlgorithm`，antd 默认色板（不写自定义 seed）；`cssVar.key` = `<html class="ai-world-theme">` |
 | 层叠 | `tokens.css` 先写 `@layer theme, base, antd, antdx, components, utilities` 再 `@import "tailwindcss"`；漏写 `antdx` 时 x 组件的工具类会被静默压掉 |
-| tokens | `tokens.css` 只做两件事：把 `--ant-*` 映射成既有 class 名（`paper`/`ink`/`rule`/`accent`/`danger`），以及放排版 token（正文 17px / 1.85 / 段距 24px / 列宽 40rem） |
+| tokens | `tokens.css` 只做两件事：把 `--ant-*` 映射成既有 class 名（`paper`/`paper-2`/`ink`/`ink-soft`/`rule`/`accent`），以及放排版 token（正文 17px / 1.85 / 段距 24px / 列宽 40rem） |
 | 组件 | `Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Menu` `Dropdown` `Divider` `Empty` `Segmented` + x 的 `Sender`；图标走 `@ant-design/icons` |
 | `ui/` 自有件 | 只剩 `ModeSwitch`（`Segmented` 薄壳，两壳共用）；就地的小排版包装留在调用文件里，不进 `ui/` |
 | 玩家壳 | `TopBar` `ReadingStream` `PlayerLine` `BeatDivider` `Composer` `StateDrawer` `EmptyState` `ErrorNotice` |

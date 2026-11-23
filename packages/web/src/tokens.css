@@ -21,7 +21,6 @@
   --color-ink-soft: var(--ant-color-text-secondary);
   --color-rule: var(--ant-color-border-secondary);
   --color-accent: var(--ant-color-primary);
-  --color-danger: var(--ant-color-error);
 
   /* 系统字体栈，不下载 webfont（离线可用）；衬线正文已退役 */
   --font-sans: ui-sans-serif, "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif;

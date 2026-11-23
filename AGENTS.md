@@ -45,7 +45,7 @@
 - `tokens.css` 的排层语句必须在 `@import "tailwindcss"` 之前，层序必须含 `antdx`（`@ant-design/x` 自己的层）。漏写时 `Sender` 的工具类被静默压掉，页面看着正常、类型检查也绿。
 - `<html class="ai-world-theme">` 与 `AntdProvider` 的 `cssVar.key` 必须同字面量：antd 6 不把 `--ant-*` 注入 `:root`，不同步会让全站语义色静默变透明。
 - `@ant-design/cssinjs` 必须与 antd 内部读的同一实例（当前 2.2.0），否则 `<StyleProvider layer>` 静默失效（只有图标进层）。
-- 色值只允许写在 `theme/AntdProvider.tsx` 的 seed 表；组件里只用 `paper` / `paper-2` / `ink` / `ink-soft` / `rule` / `accent` / `danger` 这些映射名。
+- 色值不许进组件：色板只在 `theme/AntdProvider.tsx`（浅 `defaultAlgorithm` / 深 `darkAlgorithm`，不自定 seed），组件里只用 `paper` / `paper-2` / `ink` / `ink-soft` / `rule` / `accent` 这几个映射名。
 - antd 6 改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` 用 `orientation`。写错只 `console.error`，界面照常。
 - 正文档位（17px / 1.85 / 段距 24px / 列宽 40rem）在 `tokens.css`；jsdom 不算布局也不算层叠，UI 卡必须跑真浏览器。
 

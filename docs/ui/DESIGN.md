@@ -103,7 +103,7 @@ v1 只读；打开抽屉不改变阅读位置。
 - 正文无衬线系统栈，17px / 行高 1.85，**不下载 web 字体**（离线可用）；控件与 meta 跟随 antd 默认 14px / 12px。
 - 正文对比度：浅色 19.3:1、深色 21:1（均远超 4.5:1）。
 - 深色底是纯黑 `#000000`，长文会觉得硬——这是「跟随 antd 默认」的既定取舍；若要改，得同时抬起 `colorBgLayout` 与 `colorBgContainer`，否则正文与气泡落到同一亮度层反而更糊。
-- 颜色只在 `theme/AntdProvider.tsx` 的 seed 表；组件里只用 `paper` / `paper-2` / `ink` / `ink-soft` / `rule` / `accent` / `danger` 这 7 个映射名。
+- 颜色只在 `theme/AntdProvider.tsx`（不写自定义 seed），组件里只用 `paper` / `paper-2` / `ink` / `ink-soft` / `rule` / `accent` 这 6 个映射名。
 
 ## 6. 组件切分
 
@@ -187,5 +187,5 @@ chrome 全部用 antd 6 / `@ant-design/x` 2，见 §13；壳层的自有组件�
 - 就地的小排版包装只待在用到它的文件里（例如 `ContentEditor.tsx` 的 `LabeledField`），不进 `ui/`。
 - 图标走 `@ant-design/icons`，不再用文本字符充当图标。
 - 抽屉与模态的滚动锁定由 antd 自己管，`tokens.css` 不写 `body:has(...)` 这类全局选择器。
-- `discipline.test.ts` 断言：玩家壳源码不出现 `claim`/`verdict`/`heat`/`rel`/`token`/`cost`/`no_rate`；玩家壳不 import 作者壳模块；玩家壳不出现颜色字面量（色值只允许在 `theme/AntdProvider.tsx` 的 seed 表）。
+- `discipline.test.ts` 断言：玩家壳源码不出现 `claim`/`verdict`/`heat`/`rel`/`token`/`cost`/`no_rate`；玩家壳不 import 作者壳模块；玩家壳不出现颜色字面量（色值只允许在 `theme/AntdProvider.tsx`，映射名见 §5）。
 - UI 改完必须跑一次**浏览器实测**：抽屉常开、`/` 返回 octet-stream、按钮被遮这三类缺陷，`pnpm test` 与 typecheck 全绿时都会漏过去。

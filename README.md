@@ -52,6 +52,8 @@ pnpm play -- --beats 20 --fresh --auto   # 20 拍基线，出体检表
 
 包结构：`packages/{shared,core,content,server,web}`，依赖方向 `shared ← core ← content ← server ← web`，包入口是 `.ts` 源码（无构建步骤）。发布、tag 与版本号约定见 [docs/design/build.md](docs/design/build.md) §10。
 
+前端 chrome 是 `antd` 6 + `@ant-design/x` 2（不自绘基础件）；层叠、色板与排版口径见 [docs/ui/DESIGN.md](docs/ui/DESIGN.md) §0。
+
 实验脚本（一次性，证据落 `data/`，不入库）：`scripts/experiment-storylet.ts`（`--run N` / `--report`）、`scripts/probe-storylet.ts`、`scripts/probe-storylet-fill.ts`；结论见 [docs/research/storylet-probe.md](docs/research/storylet-probe.md)。
 
 约束见 [AGENTS.md](AGENTS.md)：只有裁判能写账本、人物没有技能表、时间只有一个出口、玩家视图不出现引擎语义。
