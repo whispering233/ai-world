@@ -1,6 +1,19 @@
-# 玩家阅读面设计契约（v1）
+# 玩家阅读面设计契约
 
 > 本文只描述玩家侧阅读面的布局、排版与交互契约，不描述实现代码。作者/调试模式（三栏）在 [backlog.md](../design/backlog.md) 里。
+
+## 0. 组件与样式基线
+
+- **chrome 全部用 `antd` 6 + `@ant-design/x` 2**，不自绘基础件；`ui/` 只剩 `ModeSwitch`（`Segmented` 的薄壳）。
+- **色板只有一个事实源**：`theme/AntdProvider.tsx` 的 `theme`（浅 `defaultAlgorithm` / 深 `darkAlgorithm`，antd 默认色板）。`tokens.css` 只把 `--ant-*` 映射成既有 class 名，并放排版 token。
+- **层叠**：`@layer theme, base, antd, antdx, components, utilities` 必须写在 `@import "tailwindcss"` 之前。`antdx` 是 `@ant-design/x` 自己的层；漏写时 `Sender` 上的工具类被静默压掉（实测 1337px vs 384px），其余控件看不出来。
+- **`<html class="ai-world-theme">` 必须与 `AntdProvider` 的 `cssVar.key` 同字面量**：antd 6 把 `--ant-*` 注入组件级 class 作用域、不注入 `:root`，不同步会让全站语义色静默变透明。
+- **`@ant-design/cssinjs` 必须与 antd 内部读的同一实例**（当前 2.2.0）：版本错时只有 `.anticon` 进层，Button/Table 仍是运行时无层 CSS，而页面看着正常、类型检查也绿。
+- **`zeroRuntime` 路线不可用**：`@ant-design/x` 不发 CSS，预编译产物里没有 x 的样式，Bubble/Sender 会裸奔。
+- **`Bubble placement="end"` 在普通块级父容器里不会右对齐**（实测两条气泡 `left` 都是 24px）；用它得自己补布局或改走 `Bubble.List`。
+- **jsdom 不算布局也不算层叠**：只需要 stub `matchMedia` 与 `ResizeObserver` 就能渲染，但样式类缺陷只能靠真浏览器。
+
+antd 6 的三处改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` 用 `orientation`。写错只 `console.error`，界面照常。
 
 ## 1. 定位
 
@@ -85,25 +98,27 @@ v1 只读；打开抽屉不改变阅读位置。
 
 ## 5. 视觉方向
 
-- **书页，不是仪表盘，也不是聊天软件。**
-- 暖纸 / 暖黑；墨色文字；1px hairline 分栏；零阴影、无渐变、无 AI 紫。
-- 正文衬线系统栈，chrome 无衬线；**不下载 web 字体**（离线可用）。
-- 正文 18–20px / 行高 1.9；meta 13px；标题 22–24px；最多四档。
-- 暗色不用纯黑；正文对比度不低于 4.5:1。
-- 颜色、字号、间距最终收敛到单一 tokens 文件（实现阶段）。
+- **正文是读的，chrome 是用的**：两种尺度共存，不试图把它们合成一种。
+- 底色跟随 antd 默认算法：浅色 `#f5f5f5`（`colorBgLayout`）、深色 `#000000`；墨色文字；1px hairline 分栏；零阴影、无渐变。
+- 正文无衬线系统栈，17px / 行高 1.85，**不下载 web 字体**（离线可用）；控件与 meta 跟随 antd 默认 14px / 12px。
+- 正文对比度：浅色 19.3:1、深色 21:1（均远超 4.5:1）。
+- 深色底是纯黑 `#000000`，长文会觉得硬——这是「跟随 antd 默认」的既定取舍；若要改，得同时抬起 `colorBgLayout` 与 `colorBgContainer`，否则正文与气泡落到同一亮度层反而更糊。
+- 颜色只在 `theme/AntdProvider.tsx` 的 seed 表；组件里只用 `paper` / `paper-2` / `ink` / `ink-soft` / `rule` / `accent` / `danger` 这 7 个映射名。
 
 ## 6. 组件切分
 
+chrome 全部用 antd 6 / `@ant-design/x` 2，见 §13；壳层的自有组件：
+
 `TopBar` · `ReadingStream` · `PlayerLine` · `BeatDivider` · `Composer` · `StateDrawer` · `EmptyState` · `ErrorNotice`
 
-不引入 `Bubble` / `Conversations` / `ThoughtChain` 这类聊天语义组件。
+对话与旁白目前共用一段正文；把它们拆成「气泡 + 场景块」需要先定说话人契约，见 [backlog.md](../design/backlog.md) §6.1。
 
 ## 7. 响应式
 
 | 视口 | 正文列 | 抽屉 |
 | :--- | :--- | :--- |
-| ≥1280px | 42rem 居中 | 360px 覆盖式 |
-| 1024–1280px | 38rem 居中 | 360px 覆盖式 |
+| ≥1280px | 40rem 居中 | 360px 覆盖式 |
+| 1024–1280px | 36rem 居中 | 360px 覆盖式 |
 | <1024px | 全宽，左右 24px | 全屏 sheet |
 
 ## 8. 无障碍
@@ -117,9 +132,9 @@ v1 只读；打开抽屉不改变阅读位置。
 
 - 地图、人物立绘、语音、复杂动画
 - 存档槽 / 多世界切换
-- 聊天式气泡、角色头像、消息列表
+- 角色头像、消息列表（对话拆成气泡见 [backlog](../design/backlog.md) §6.1）
 - 前端直连模型（key 不进浏览器）
-- 组件库 / 图标库 / 状态库 / 路由库（见 §13）
+- 状态库 / 路由库（组件与图标已换成 antd，见 §13）
 
 ## 10. 开工前置
 
@@ -140,7 +155,7 @@ v1 只读；打开抽屉不改变阅读位置。
 ```text
 ┌──────────┬───────────────────────────┬──────────────────┐
 │ 拍列表   │      同一份阅读流          │   本拍详情        │
-│ 240px    │      38–42em               │   420px          │
+│ 240px    │      40rem                │   420px          │
 │          │                           │                  │
 │ #7 夜    │  你：我把银元塞进安手里    │  claims          │
 │ #6 夜    │  安把银元按在掌心里…       │  verdicts        │
@@ -151,9 +166,10 @@ v1 只读；打开抽屉不改变阅读位置。
 ```
 
 - 拍列表：只显示 `clockText` 与首句摘要；点击定位到该拍，不改阅读流内容。
-- 本拍详情：`claims` / `verdicts`（`ok`、`reason`、`deltas`、`duration`）/ `notes` / `telemetry`；再往下是 `Collapsible` 的「账本原始」与「prompt」。
+- 本拍详情：`claims` / `verdicts`（`ok`、`reason`、`deltas`、`duration`）/ `notes` / `telemetry`；再往下是 antd `Collapse` 的「账本原始」与「prompt」。
 - 顶部条：内容状态（`activeHash === diskHash` 与否）、累计 cost、降级 notes 计数。
 - 「内容」面板：`core` / `voice` / `drives` / `beliefs` / `canon` 表单 + 只读 JSON 块（世界结构）；显式「保存」→ 三选一弹窗。
+- **作者壳也能发拍**：与玩家壳共用同一个 `Composer` 节点，位置在中栏底部；发送后作者投影按 `beats.length` 重取。
 - 三栏固定宽度，不做拖拽分隔条。
 
 ## 13. tokens 与组件
@@ -162,13 +178,14 @@ v1 只读；打开抽屉不改变阅读位置。
 
 | 层 | 内容 |
 | :--- | :--- |
-| 基础件（11） | `Button` `Field` `TextField` `NumberField` `Collapsible` `Dialog` `Banner` `KeyValueList` `EditableList` `DataTable` `ModeSwitch` |
+| chrome | 全部用 antd 6 / `@ant-design/x` 2 组件：`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Menu` `Dropdown` `Divider` `Empty` `Sender` `Segmented` |
+| `ui/` 下的自有件（1） | `ModeSwitch`（antd `Segmented` 的薄壳，壳切换的两处共用） |
 | 玩家壳（8） | `TopBar` `ReadingStream` `PlayerLine` `BeatDivider` `Composer` `StateDrawer` `EmptyState` `ErrorNotice` |
 | 作者壳（7） | `AuthorApp` `BeatList` `BeatDetail` `LedgerView` `HealthPanel` `ContentEditor` `SaveDialog` |
 
-- 不引组件库 / 图标库 / 状态库 / 路由库。折叠 `<details>`、模态 `<dialog showModal>`（外部 inert + top layer 嵌套）、表格 `<table>`、键值 `<dl>`、滑杆 `<input type=range>`。
-- 图标用文本字符（`×` `▸` `▾` `↻` `⋯`）。
-- 抽屉滚动锁定：`body:has(dialog[open]) { overflow: hidden }`。
-- `discipline.test.ts` 断言：玩家壳源码不出现 `claim`/`verdict`/`heat`/`rel`/`token`/`cost`/`no_rate`；玩家壳不 import 作者壳模块；颜色字面量只允许出现在 tokens 文件；字号只用四档。
-- `<dialog>` 上不许直接写 `flex`/`block`：Tailwind 的 `.flex` 会压过 UA 的 `dialog:not([open]){display:none}`，抽屉会常开、拦住后面的按钮，而且 `Esc` 后依然显示。用 `hidden` + `open:flex`（特异度 0,2,0 > 0,1,0）。
+- **不留第二套组件**：`ui/` 下不许再长出手写的 `Button` / `Modal` / `Alert` / `Table` / `Collapse` 这一类；要新控件先找 antd。
+- 就地的小排版包装只待在用到它的文件里（例如 `ContentEditor.tsx` 的 `LabeledField`），不进 `ui/`。
+- 图标走 `@ant-design/icons`，不再用文本字符充当图标。
+- 抽屉与模态的滚动锁定由 antd 自己管，`tokens.css` 不写 `body:has(...)` 这类全局选择器。
+- `discipline.test.ts` 断言：玩家壳源码不出现 `claim`/`verdict`/`heat`/`rel`/`token`/`cost`/`no_rate`；玩家壳不 import 作者壳模块；玩家壳不出现颜色字面量（色值只允许在 `theme/AntdProvider.tsx` 的 seed 表）。
 - UI 改完必须跑一次**浏览器实测**：抽屉常开、`/` 返回 octet-stream、按钮被遮这三类缺陷，`pnpm test` 与 typecheck 全绿时都会漏过去。

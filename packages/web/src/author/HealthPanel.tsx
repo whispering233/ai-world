@@ -1,5 +1,5 @@
 import type { HealthView } from '@ai-world/shared'
-import { KeyValueList } from '../ui/KeyValueList.tsx'
+import { Descriptions } from 'antd'
 
 export interface HealthPanelProps {
   health: HealthView
@@ -21,5 +21,13 @@ export function HealthPanel({ health }: HealthPanelProps) {
     ...Object.entries(health.writeOps).map(([op, count]) => ({ label: `写操作 ${op}`, value: String(count) })),
     ...BUCKETS.map((bucket) => ({ label: `时长 ${bucket} 分钟`, value: String(health.durationBuckets[bucket]) })),
   ]
-  return <KeyValueList items={items} className="text-meta" />
+  return (
+    <Descriptions
+      column={1}
+      size="small"
+      colon={false}
+      className="text-meta"
+      items={items.map((item) => ({ key: item.label, label: item.label, children: item.value }))}
+    />
+  )
 }

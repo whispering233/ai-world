@@ -1,5 +1,4 @@
-import { Button } from '../ui/Button.tsx'
-import { Dialog } from '../ui/Dialog.tsx'
+import { Button, Modal } from 'antd'
 
 export interface SaveDialogProps {
   open: boolean
@@ -11,19 +10,19 @@ export interface SaveDialogProps {
 /** 保存后的三选一（docs/api/30-api-author.md §3）。 */
 export function SaveDialog({ open, onClose, onNewGame }: SaveDialogProps) {
   return (
-    <Dialog open={open} onClose={onClose} title="内容已保存">
-      <div className="flex w-[28rem] flex-col gap-4 p-4">
+    <Modal open={open} onCancel={onClose} title="内容已保存" footer={null} width={448}>
+      <div className="flex flex-col gap-4 pt-2">
         <p className="text-body">新内容只在新局生效：本局的人物 drives 热度与 beliefs 不会被改写。</p>
         <div className="flex flex-col items-start gap-2">
-          <Button onClick={onNewGame}>开新局（推荐）</Button>
-          <Button variant="quiet" onClick={onClose}>
-            只保存，本局不变
+          <Button type="primary" onClick={onNewGame}>
+            开新局（推荐）
           </Button>
-          <Button variant="quiet" onClick={onClose}>
+          <Button onClick={onClose}>只保存，本局不变</Button>
+          <Button type="text" onClick={onClose}>
             取消
           </Button>
         </div>
       </div>
-    </Dialog>
+    </Modal>
   )
 }

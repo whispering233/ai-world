@@ -11,7 +11,7 @@
 | [40-time-and-loop.md](design/40-time-and-loop.md) | clock / busyUntil / 一拍、时长归属、时间唯一出口 |
 | [50-llm.md](design/50-llm.md) | pi-ai 接入、三个模型角色、Context 入档、测试策略 |
 | [60-server.md](design/60-server.md) | 服务端进程、一拍生命周期、中止语义、内容生命周期、两种壳、包结构与组件方案 |
-| [backlog.md](design/backlog.md) | 延后项与触发条件、监控指标、已知失败模式 |
+| [backlog.md](design/backlog.md) | 延后项与触发条件、监控指标、已知失败模式、下一步候选、UI 待办（说话人分层、思考过程反馈） |
 | [build.md](design/build.md) | 环境、游玩、模型配置、产物位置、故障处理 |
 | [config.md](design/config.md) | 模型配置、模型串格式、凭据来源 |
 | [tasks.md](design/tasks.md) | 【临时】未完成的任务卡片（约定进设计文档，候选进 backlog §5） |

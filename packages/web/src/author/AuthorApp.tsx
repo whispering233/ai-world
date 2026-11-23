@@ -1,11 +1,9 @@
+import { Alert, Button, Collapse, Modal } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import type { AuthorBeatView, AuthorSessionView, BeatView } from '@ai-world/shared'
 import { fetchAuthorBeat, fetchAuthorSession } from '../api.ts'
 import { ReadingStream } from '../shell/ReadingStream.tsx'
-import { Banner } from '../ui/Banner.tsx'
-import { Button } from '../ui/Button.tsx'
-import { Collapsible } from '../ui/Collapsible.tsx'
-import { Dialog } from '../ui/Dialog.tsx'
 import { ModeSwitch } from '../ui/ModeSwitch.tsx'
 import type { ShellMode } from '../ui/ModeSwitch.tsx'
 import { BeatDetail } from './BeatDetail.tsx'
@@ -21,10 +19,12 @@ export interface AuthorAppProps {
   onModeChange: (mode: ShellMode) => void
   /** 开新局由 App 统一做：玩家壳也要一起换成新局 */
   onNewGame: () => Promise<void>
+  /** 与玩家壳同一份输入区：发送逻辑仍在 App，作者壳只负责摆位置 */
+  composer: ReactNode
 }
 
 /** 作者壳：拍列表 / 同一份阅读流 / 本拍详情，固定宽度，不做拖拽分隔条。 */
-export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: AuthorAppProps) {
+export function AuthorApp({ beats, pendingText, onModeChange, onNewGame, composer }: AuthorAppProps) {
   const [session, setSession] = useState<AuthorSessionView | null>(null)
   const [failed, setFailed] = useState(false)
   const [selected, setSelected] = useState<number | null>(null)
@@ -41,9 +41,12 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: Autho
     }
   }, [])
 
+  // 首读与跟拍共用一条 effect：`refresh` 每次挂载不变，`beats.length` 变才再取一遍，
+  // 免得新拍落地后右侧详情与顶栏 cost 停在旧拍
+  const beatCount = beats.length
   useEffect(() => {
     void refresh()
-  }, [refresh])
+  }, [refresh, beatCount])
 
   // 单拍详情只在点选时取：不把 prompt 这类大块数据塞进整局投影
   useEffect(() => {
@@ -86,7 +89,7 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: Autho
           <span>降级 {session?.health.degraded ?? 0} 条</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="quiet" onClick={() => setContentOpen(true)}>
+          <Button type="text" size="small" onClick={() => setContentOpen(true)}>
             内容
           </Button>
           <ModeSwitch mode="author" onModeChange={onModeChange} />
@@ -95,8 +98,8 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: Autho
 
       {changed && (
         <div className="flex shrink-0 items-center justify-between gap-4 border-b border-rule px-4 py-2">
-          <Banner tone="note">内容已变更，未生效。</Banner>
-          <Button variant="quiet" onClick={() => setSaved(true)}>
+          <Alert type="warning" showIcon title="内容已变更，未生效。" className="flex-1" />
+          <Button size="small" onClick={() => setSaved(true)}>
             开新局
           </Button>
         </div>
@@ -104,7 +107,7 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: Autho
 
       {failed && (
         <div className="shrink-0 px-4 py-2">
-          <Banner tone="alert">读不到作者投影。请确认服务在跑。</Banner>
+          <Alert type="error" showIcon title="读不到作者投影。请确认服务在跑。" />
         </div>
       )}
 
@@ -115,27 +118,40 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: Autho
 
         <div className="flex min-w-0 flex-1 flex-col">
           <ReadingStream beats={beats} pendingText={pendingText} />
+          {composer}
         </div>
 
         <aside aria-label="本拍详情" className="w-[420px] shrink-0 overflow-y-auto border-l border-rule p-4">
           <BeatDetail beat={shown} world={session?.world ?? null} />
           <div className="mt-6 border-t border-rule pt-3">
-            <Collapsible summary="体检">
-              {session === null ? (
-                <p className="text-meta text-ink-soft">还没有读到作者投影。</p>
-              ) : (
-                <HealthPanel health={session.health} />
-              )}
-            </Collapsible>
+            <Collapse
+              ghost
+              size="small"
+              items={[
+                {
+                  key: 'health',
+                  label: '体检',
+                  children:
+                    session === null ? (
+                      <p className="text-meta text-ink-soft">还没有读到作者投影。</p>
+                    ) : (
+                      <HealthPanel health={session.health} />
+                    ),
+                },
+              ]}
+            />
           </div>
         </aside>
       </div>
 
-      <Dialog
+      <Modal
         open={contentOpen}
-        onClose={() => setContentOpen(false)}
+        onCancel={() => setContentOpen(false)}
         title="内容"
-        panelClassName="w-[min(720px,92vw)] max-h-[86dvh]"
+        footer={null}
+        width={720}
+        destroyOnHidden
+        styles={{ body: { padding: 0 } }}
       >
         {contentOpen && (
           <ContentEditor
@@ -146,7 +162,7 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame }: Autho
             }}
           />
         )}
-      </Dialog>
+      </Modal>
 
       <SaveDialog
         open={saved}
