@@ -147,6 +147,8 @@ pnpm test
 
 CI 用 Node 22 与 pnpm 缓存（`pnpm/action-setup` 的版本取自根 `package.json` 的 `packageManager` 字段）；本地等价命令就是上面三条。`pnpm-lock.yaml` 必须提交，CI 用 `--frozen-lockfile` 而不是 `pnpm install`。
 
+**两个平台都跑**：`ubuntu-latest` 与 `windows-latest` 各一份，命令完全相同。只跑 Linux 是不够的：路径分隔符、大小写不敏感的文件系统、CRLF、`renameSync` 的原子性都只在 Windows 上暴露，而这套代码的开发者就在 Windows 上。两个平台互不快速失败（`fail-fast: false`），一次能看全。
+
 ## 10. Release
 
 `.github/workflows/release.yml` 在 push `vX.Y.Z` tag 时运行：先校验 tag 与 `package.json` 的 `version` 一致，再由 `hermannm/release-from-changelog` 从根 `CHANGELOG.md` 的 `## [vX.Y.Z] - 日期` 段创建 GitHub Release。
