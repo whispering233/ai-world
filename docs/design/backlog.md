@@ -89,12 +89,17 @@
 | 折场时压 experience | 上下文预算吃紧时 | `recall` 的检索权重 |
 | “被直接作用者”接线 | 决策 16 已定但没接：`runBeat` 的 `touched` 恒空，玩家动手时对方这拍不反应 | 口径未定：本拍谁被作用，只有裁判**之后**才知道；只能取上一拍的 deltas 或解析玩家原话 |
 | 折场时的成长入口 | `folded.perEnt` 现在无人消费（`FoldMaterial` 算出来了、没人用），`40 §7` 的“折场写 self”还没接线 | 长局手感变差或上下文吃紧时 |
+| 首屏体积 | 单文件 1.12 MB / gzip 354 kB（antd + x 全量）；作者壳与语法高亮都在同一个 chunk 里 | 弱网下能感知白屏时；先懒加载作者壳，再谈拆包 |
 | 每拍全量重读 journal/passage | 长局 O(n²)：`session.beat` 每拍整份 `JSON.parse`，`routes/beat.ts` 为一个 `clockText` 建整份 view，`GET /api/session` 全量下发历史 | 当前几十拍无感，上百拍再动 |
 | 缓存 A/B | 有 before/after 需求时 | 同条件换前缀顺序各跑 6 拍 |
 
 **测法下限**：10 拍单次 A/B 没有分辨率（空转拍在同一配置下实测跨 0–5 个）。要测就同条件跑 3 次以上并报分布，不要用单点下结论。
 
 ## 6. UI 待办（组件库迁移之后）
+
+### 6.0 已否决：用 `CodeHighlighter` 替 `<pre>`
+
+量过了：只换 `LedgerView` 的 JSON 与 `BeatDetail` 的两处 prompt，构建产物从 **1.12 MB / gzip 354 kB** 涨到 **1.79 MB / gzip 592 kB**（+667 kB raw、+238 kB gzip）。换来的只是一个复制按钮与 JSON 上色，而它是**玩家壳也要下载的同一个 chunk**。要做得先把作者壳懒加载，否则不做。
 
 两条都不是样式活：各自卡在一条没定的语义契约上，契约定了才能切卡。
 
