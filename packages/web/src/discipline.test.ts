@@ -20,7 +20,8 @@ const PLAYER_SCOPE = ['shell/', 'ui/', 'api.ts', 'main.tsx']
 /** 只有 `App.tsx` 可以 import `author/`：两个壳的接线只能有一处。 */
 const AUTHOR_IMPORTERS = ['App.tsx']
 
-const AUTHOR_IMPORT = /from\s+'(?:\.\/|\.\.\/)author\//
+// 静态与动态 import 都要认：懒加载只是换了写法，不是松绑隔离
+const AUTHOR_IMPORT = /(?:from\s+|import\(\s*)'(?:\.\/|\.\.\/)author\//
 
 interface SourceFile {
   name: string
@@ -116,9 +117,10 @@ describe('玩家壳纪律', () => {
       expect(PLAYER_FILES.some((file) => linesMatching([file], AUTHOR_IMPORT).length > 0)).toBe(false)
     })
 
-    it('自检：import author/ 的两种写法都认', () => {
+    it('自检：import author/ 的三种写法都认', () => {
       expect(AUTHOR_IMPORT.test("import { AuthorApp } from './author/AuthorApp.tsx'")).toBe(true)
       expect(AUTHOR_IMPORT.test("import { AuthorApp } from '../author/AuthorApp.tsx'")).toBe(true)
+      expect(AUTHOR_IMPORT.test("const AuthorApp = lazy(() => import('./author/AuthorApp.tsx'))")).toBe(true)
       expect(AUTHOR_IMPORT.test("import { TopBar } from './shell/TopBar.tsx'")).toBe(false)
     })
 

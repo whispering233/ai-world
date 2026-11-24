@@ -1,9 +1,8 @@
 import { Alert, Modal } from 'antd'
-import { useEffect, useReducer, useRef } from 'react'
+import { lazy, Suspense, useEffect, useReducer, useRef } from 'react'
 import type { BeatView, SessionView } from '@ai-world/shared'
 import { fetchSession, postBeat, resetSession } from './api.ts'
 import type { BeatFrame } from './api.ts'
-import { AuthorApp } from './author/AuthorApp.tsx'
 import { Composer } from './shell/Composer.tsx'
 import { ErrorNotice } from './shell/ErrorNotice.tsx'
 import type { ErrorKind } from './shell/ErrorNotice.tsx'
@@ -14,6 +13,10 @@ import { READING_COLUMN } from './shell/column.ts'
 import type { ShellMode } from './ui/ModeSwitch.tsx'
 
 const MODE_KEY = 'ai-world.mode'
+
+// 作者壳只在切过去时才下载：它带着 Table / Descriptions 这类玩家壳用不到的组件，
+// 静态 import 会让每个读者都付这份体积（实测 1.12 MB 的单 chunk）。
+const AuthorApp = lazy(() => import('./author/AuthorApp.tsx').then((mod) => ({ default: mod.AuthorApp })))
 
 interface AppState {
   session: SessionView | null
@@ -248,13 +251,15 @@ export function App() {
       />
 
       {state.mode === 'author' ? (
-        <AuthorApp
-          beats={state.beats}
-          pendingText={state.pendingText}
-          onModeChange={(mode) => dispatch({ type: 'mode', mode })}
-          onNewGame={startNewGame}
-          composer={composer}
-        />
+        <Suspense fallback={<p className="p-6 text-meta text-ink-soft">正在载入作者视图…</p>}>
+          <AuthorApp
+            beats={state.beats}
+            pendingText={state.pendingText}
+            onModeChange={(mode) => dispatch({ type: 'mode', mode })}
+            onNewGame={startNewGame}
+            composer={composer}
+          />
+        </Suspense>
       ) : (
         <>
           <ReadingStream beats={state.beats} pendingText={state.pendingText} />
