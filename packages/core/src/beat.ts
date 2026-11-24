@@ -5,7 +5,7 @@
  * 这一层是唯一知道"顺序"的地方，下面每一块都保持纯函数或单一职责。
  */
 import { calledActors, fmt } from './clock.ts'
-import { applyDriveHit, remember, type Character, type Experience } from './character.ts'
+import { applyDriveHit, canWriteSelf, remember, type Character, type Experience } from './character.ts'
 import type { Cognition } from './cognition.ts'
 import { fallbackPassage, type Narrator } from './narrate.ts'
 import { commit, type Claim, type Referee, type Verdict } from './referee.ts'
@@ -127,6 +127,8 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     }),
   )
   const degraded: string[] = []
+  // 自我修订要等裁判给完签名才能定（30 §4）：认知阶段只暂存，不落 experience
+  const pendingSelf = new Map<EntId, string>()
   for (const t of thoughts) {
     if (!t.ok) {
       degraded.push(`认知失败（本拍沉默）：${t.ent}：${t.reason}`)
@@ -135,7 +137,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     claims.push({ id: `${t.ent}${clock}`, actor: t.ent, text: t.res.output.outward, kind: 'act' })
     let next = t.ch
     for (const e of t.res.experience) next = remember(next, e)
-    if (t.res.output.selfChange) next = remember(next, { t: clock, kind: 'thought', text: t.res.output.selfChange, w: 2 })
+    if (t.res.output.selfChange) pendingSelf.set(t.ent, t.res.output.selfChange)
     characters.set(t.ent, next)
   }
 
@@ -190,6 +192,18 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   for (const [ent, ch] of seen) characters.set(ent, ch)
   applyDriveHits(characters, out.driveHits)
 
+  // 成长闸：只追加 + 要签名 + 稀缺（30 §4）。场景 ≤ 12 拍，用“本场景内已有几条”近似“每 10 拍 ≤ 1”
+  // 签名看的是“账本真的变了”（40 §7）：裁判判 ok 但整条回滚的 claim 不算签名
+  const signed = out.verdicts.some((v) => isSigned(v) && (!v.ok || committedIds.has(v.claimId)))
+  for (const [ent, text] of pendingSelf) {
+    const ch = characters.get(ent)
+    if (!ch) continue
+    const selfInScene = ch.experience.filter((e) => e.kind === 'self' && e.t >= input.scene.openedAt).length
+    // 场景 ≤ 12 拍，用“本场景内已有几条”近似“每 10 拍 ≤ 1”
+    if (!canWriteSelf({ signed, recentSelf: selfInScene })) continue
+    characters.set(ent, remember(ch, { t: clock, kind: 'self', text, w: 3 }))
+  }
+
   const narratorEvents = claims.map((c) => {
     const v = out.verdicts.find((x) => x.claimId === c.id)
     return { actor: c.actor, name: input.names?.[c.actor] ?? c.actor, text: c.text, outcome: describe(v) }
@@ -223,7 +237,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     clock: clockAfter,
     tokens: Math.max(0, ...input.scene.participants.map(contextTokens)),
     texts,
-    signed: out.verdicts.some(isSigned),
+    signed,
   })
   // 本拍新增的记忆条目：人物状态不进账本，但必须进 journal，否则进程一停记忆就没了。
   const newExperience: Record<EntId, Experience[]> = {}

@@ -63,8 +63,8 @@ describe('remember：只追加，不改入参', () => {
 
 describe('canWriteSelf：成长闸', () => {
   it('未签名或最近 10 拍已有 self 都拒绝', () => {
-    expect(canWriteSelf({ signed: false, selfInLast10Beats: 0 })).toBe(false)
-    expect(canWriteSelf({ signed: true, selfInLast10Beats: 1 })).toBe(false)
-    expect(canWriteSelf({ signed: true, selfInLast10Beats: 0 })).toBe(true)
+    expect(canWriteSelf({ signed: false, recentSelf: 0 })).toBe(false)
+    expect(canWriteSelf({ signed: true, recentSelf: 1 })).toBe(false)
+    expect(canWriteSelf({ signed: true, recentSelf: 0 })).toBe(true)
   })
 })

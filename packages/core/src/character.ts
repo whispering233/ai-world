@@ -65,12 +65,13 @@ export function applyDriveHit(ch: Character, hit: { driveId: string; delta: numb
 }
 
 export interface SelfGateInput {
-  /** 本拍 referee 判了 ok 或 no，或时间流逝够长 */
+  /** 本拍 referee 判了 ok 且真的落了账，或判了 no，或时间流逝够长 */
   signed: boolean
-  /** 最近 10 拍里的 self 条数 */
-  selfInLast10Beats: number
+  /** 最近窗口内已有的 self 条数；当前窗口 = 本场景（场景 ≤ 12 拍） */
+  recentSelf: number
 }
 
+/** 成长闸（见 docs/design/30-cognition.md §4）：只追加 + 要签名 + 稀缺。 */
 export function canWriteSelf(input: SelfGateInput): boolean {
-  return input.signed && input.selfInLast10Beats < 1
+  return input.signed && input.recentSelf < 1
 }
