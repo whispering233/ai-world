@@ -18,7 +18,7 @@ export interface Scene {
   openedAt: number
   lastBeatAt: number
   beats: number
-  /** 当前上下文的累计估算 token，由调用方测量后传入 */
+  /** 当前**最长参与者上下文**的估算值（40 §2）；折场后由重开归零 */
   tokens: number
   participants: EntId[]
   /** 每人一条追加式上下文；只增不改，所以缓存前缀永远稳定 */
@@ -53,7 +53,7 @@ export function openScene(input: OpenSceneInput): Scene {
 
 export interface BeatAdd {
   clock: number
-  /** 本拍结束时上下文的累计 token（调用方测量） */
+  /** 本拍结束时最长参与者上下文的估算值（调用方测量） */
   tokens: number
   /** 每个参与者这一拍看到的末尾文本；缺省的人不追加 */
   texts: Record<EntId, string>
