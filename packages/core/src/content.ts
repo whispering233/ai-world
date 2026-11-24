@@ -44,12 +44,27 @@ function width(text: string): number {
   return [...text].length
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 /** 返回错误列表，空数组 = 通过；各条检查互不短路，一次报全。 */
 export function validatePack(pack: ContentPack): string[] {
   const errors: string[] = []
-  const at = pack.world.ledger.at
+  // 作者壳回传的是 JSON 原文：先确认最外层形状，否则后面每一行都是 TypeError
+  const ledger = pack?.world?.ledger
+  if (!isRecord(ledger) || !isRecord(ledger.at)) return ['world.ledger.at 缺失']
+  const at = ledger.at
+  if (!isRecord(ledger.holds)) errors.push('ledger.holds 必须是对象')
+  if (!isRecord(ledger.phys)) errors.push('ledger.phys 必须是对象')
+  if (!isRecord(ledger.rel)) errors.push('ledger.rel 必须是对象')
+  if (!isRecord(ledger.knows)) errors.push('ledger.knows 必须是对象')
 
-  if (pack.title.trim() === '') errors.push('title 为空')
+  if (typeof pack.title !== 'string' || pack.title.trim() === '') errors.push('title 为空')
+  if (!Array.isArray(pack.characters)) {
+    errors.push('characters 必须是数组')
+    return errors
+  }
 
   // at 是 Record，键天然唯一；实体 id 重复只可能出现在 characters 列表里。
   const ids = new Set<EntId>()
@@ -85,6 +100,35 @@ export function validatePack(pack: ContentPack): string[] {
         errors.push(`${ch.id} 的 drive ${drive.id} 的 heat 是 ${drive.heat}，要求 0..1`)
       }
     }
+  }
+
+  // 账本子对象也是作者可编辑输入：坏的那一份要在保存时就拒，不能等到第一次 op 把整拍打死
+  if (!Number.isFinite(ledger.clock) || ledger.clock < 0) errors.push(`ledger.clock 不合法：${String(ledger.clock)}`)
+  if (!isRecord(pack.world.places) || Object.keys(pack.world.places).length === 0) errors.push('places 为空')
+  for (const [ent, bag] of Object.entries(ledger.holds)) {
+    if (!(ent in at)) errors.push(`holds 里的实体 ${ent} 不在 ledger.at 里`)
+    for (const [item, n] of Object.entries(bag)) {
+      // schema 的取値域是 count ≥ 0；运行时不产生 0 值，但作者写了也不该直接拒
+      if (!Number.isInteger(n) || n < 0) errors.push(`${ent} 持有的 ${item} 数量是 ${String(n)}，要求非负整数`)
+    }
+  }
+  for (const [ent, row] of Object.entries(ledger.phys)) {
+    if (!(ent in at)) errors.push(`phys 里的实体 ${ent} 不在 ledger.at 里`)
+    for (const [key, value] of Object.entries(row)) {
+      const bad = typeof value === 'number' ? !Number.isFinite(value) : typeof value !== 'boolean'
+      if (bad) errors.push(`${ent} 的 phys.${key} 只能是有限数字或布尔`)
+    }
+  }
+  for (const [from, row] of Object.entries(ledger.rel)) {
+    if (!(from in at)) errors.push(`rel 里的实体 ${from} 不在 ledger.at 里`)
+    for (const [to, delta] of Object.entries(row)) {
+      if (!(to in at)) errors.push(`关系 ${from} → ${to}：对方不在 ledger.at 里`)
+      if (!Number.isFinite(delta)) errors.push(`关系 ${from} → ${to} 的值不是有限数`)
+    }
+  }
+  for (const [ent, ids] of Object.entries(ledger.knows)) {
+    if (!(ent in at)) errors.push(`knows 里的实体 ${ent} 不在 ledger.at 里`)
+    if (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string')) errors.push(`${ent} 的 knows 必须是字符串数组`)
   }
 
   if (pack.canon.length === 0) errors.push('canon 为空')

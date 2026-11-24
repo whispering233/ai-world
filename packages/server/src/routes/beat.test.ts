@@ -1,0 +1,116 @@
+/**
+ * `POST /api/beat` 的线上契约（docs/api/20-api-beat.md §2 §3）。
+ *
+ * 这些分支只在路由层存在：坏体、空输入、单飞是**开流之前**的 HTTP 语义（400/409），
+ * 帧序是开流之后的事。真断连需要真 socket，留给浏览器实测，不在单测里假装。
+ */
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { Hono } from 'hono'
+import { afterEach, describe, expect, it } from 'vitest'
+import type { ChatRequest, ChatResult, Llm } from '@ai-world/core'
+import { loadContentPack, STARTER_TOWN_PATH } from '@ai-world/content'
+import { createSession, type Session } from '../session.ts'
+import { beatRoutes } from './beat.ts'
+
+const dirs: string[] = []
+
+afterEach(() => {
+  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 })
+})
+
+function tmpDir(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'ai-world-route-'))
+  dirs.push(dir)
+  return dir
+}
+
+/** 用真实内容包开局：路由层只关心 HTTP 契约，不关心 fixture 人物的 core 有多长。 */
+function session(llm: Llm): Session {
+  const dir = tmpDir()
+  const { pack } = loadContentPack(STARTER_TOWN_PATH)
+  return createSession({ dir, contentPath: STARTER_TOWN_PATH, pack, llm })
+}
+
+const verdictFor = (claimId: string): string =>
+  JSON.stringify({
+    order: ['player'],
+    verdicts: [{ claimId, ok: true, duration: 1, deltas: [{ op: 'fact', text: '玩家进门了。' }] }],
+    observations: {},
+  })
+
+function stubLlm(options: { hang?: Promise<void>; fail?: boolean } = {}): Llm {
+  return {
+    async chat(req: ChatRequest): Promise<ChatResult> {
+      if (options.hang) await options.hang
+      if (options.fail) throw new Error('模型挂了')
+      const text =
+        req.role === 'referee' ? verdictFor('p0') : req.role === 'narration' ? '雨顺着门缝往里渗。' : JSON.stringify({ inner: '', outward: '她抬眼看了你一下。' })
+      return { text, toolCalls: [], inputTokens: 1, outputTokens: 1, model: `stub/${req.role}` }
+    },
+  }
+}
+
+function app(target: Session): Hono {
+  return new Hono().route('/', beatRoutes(target))
+}
+
+function post(target: Session, body: string): Promise<Response> {
+  return Promise.resolve(
+    app(target).request('/beat', { method: 'POST', body, headers: { 'content-type': 'application/json' } }),
+  )
+}
+
+/** 只取事件名，顺序即到达顺序。 */
+function events(sse: string): string[] {
+  return [...sse.matchAll(/^event: (.+)$/gm)].map((m) => m[1] ?? '')
+}
+
+describe('POST /beat：开流之前的 HTTP 语义', () => {
+  it('坏 JSON 与缺 text 都是 400 E_INVALID_BODY', async () => {
+    const target = session(stubLlm())
+    for (const body of ['不是 JSON', '{}', '{"text":1}']) {
+      const res = await post(target, body)
+      expect(res.status).toBe(400)
+      expect(await res.json()).toMatchObject({ code: 'E_INVALID_BODY' })
+    }
+  })
+
+  it('空输入是 400 E_EMPTY_INPUT', async () => {
+    const res = await post(session(stubLlm()), '{"text":"   "}')
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({ code: 'E_EMPTY_INPUT' })
+  })
+
+  it('结算中是 409，不是排队', async () => {
+    let open!: () => void
+    const hang = new Promise<void>((resolve) => {
+      open = resolve
+    })
+    const target = session(stubLlm({ hang }))
+    const pending = target.beat('我推门进去。', new AbortController().signal, () => {})
+
+    const res = await post(target, '{"text":"我又说了一句。"}')
+    expect(res.status).toBe(409)
+    expect(await res.json()).toMatchObject({ code: 'E_BEAT_IN_FLIGHT' })
+
+    open()
+    await pending
+  })
+})
+
+describe('POST /beat：SSE 帧', () => {
+  it('正常一拍按 passage → state → done 发帧', async () => {
+    const res = await post(session(stubLlm()), '{"text":"我推门进去。"}')
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('text/event-stream')
+    expect(events(await res.text())).toEqual(['passage', 'state', 'done'])
+  })
+
+  it('模型失败只发一帧 error，不发 passage', async () => {
+    const res = await post(session(stubLlm({ fail: true })), '{"text":"我推门进去。"}')
+    const frames = events(await res.text())
+    expect(frames).toEqual(['error'])
+  })
+})

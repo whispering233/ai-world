@@ -23,7 +23,8 @@ function fail(why: string): OpResult {
  * 这里**没有独立的审核阶段**：校验就是每个 op 自己的前置条件。
  *
  * 这个函数必须是**全函数**：模型送进来的 op 可能缺字段、类型不对、字段是字符串而不是数组。
- * 任何形状错误都返回 ok:false，绝不抛异常——一拍因为一条畸形 op 崩掉，等于世界被一句话杀死。
+ * 任何**op 形状**错误都返回 ok:false，绝不抛异常——一拍因为一条畸形 op 崩掉，等于世界被一句话杀死。
+ * （范围只到 op：world 本身的形状由 `validatePack` 与开局的 seed 保证，不在这里重查。）
  */
 export function apply(world: World, ops: readonly Op[]): { world: World; results: OpResult[] } {
   const next: World = structuredClone(world)
@@ -36,7 +37,7 @@ function exists(w: World, id: string): boolean {
 }
 
 function held(w: World, id: EntId, item: string): number {
-  return w.ledger.holds[id]?.[item] ?? 0
+  return w.ledger.holds?.[id]?.[item] ?? 0
 }
 
 function str(value: unknown): value is string {
@@ -172,6 +173,7 @@ function addItems(w: World, who: EntId, item: string, n: number): void {
 }
 
 function holdsOf(w: World, who: EntId): Record<string, number> {
+  w.ledger.holds ??= {}
   const existing = w.ledger.holds[who]
   if (existing) return existing
   const fresh: Record<string, number> = {}
@@ -180,6 +182,7 @@ function holdsOf(w: World, who: EntId): Record<string, number> {
 }
 
 function physOf(w: World, who: EntId): Record<string, number | boolean> {
+  w.ledger.phys ??= {}
   const existing = w.ledger.phys[who]
   if (existing) return existing
   const fresh: Record<string, number | boolean> = {}
@@ -188,6 +191,7 @@ function physOf(w: World, who: EntId): Record<string, number | boolean> {
 }
 
 function relOf(w: World, from: EntId): Record<string, number> {
+  w.ledger.rel ??= {}
   const existing = w.ledger.rel[from]
   if (existing) return existing
   const fresh: Record<string, number> = {}
@@ -196,6 +200,7 @@ function relOf(w: World, from: EntId): Record<string, number> {
 }
 
 function knowsOf(w: World, who: EntId): FactId[] {
+  w.ledger.knows ??= {}
   const existing = w.ledger.knows[who]
   if (existing) return existing
   const fresh: FactId[] = []
