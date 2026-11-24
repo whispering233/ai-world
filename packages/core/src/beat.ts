@@ -9,7 +9,7 @@ import { applyDriveHit, remember, type Character, type Experience } from './char
 import type { Cognition } from './cognition.ts'
 import { fallbackPassage, type Narrator } from './narrate.ts'
 import { commit, type Claim, type Referee, type Verdict } from './referee.ts'
-import { appendBeat, contextOf, fold, foldReason, type FoldMaterial, type Scene } from './scene.ts'
+import { appendBeat, contextOf, fold, foldReason, openScene, type FoldMaterial, type Scene } from './scene.ts'
 import type { BeatTelemetry, Store } from './store.ts'
 import type { EntId, World } from './world.ts'
 
@@ -214,9 +214,14 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   for (const e of narratorEvents) texts[e.actor] = `${e.actor}：${e.text} → ${e.outcome}`
   // appendBeat 会把 lastBeatAt 推到本拍结束；判断“本拍是否时间跳跃”必须用上一拍结束时刻。
   const previousLastBeatAt = input.scene.lastBeatAt
+  // 上下文预算取**最长那个人的上下文**（40 §2）：不是本拍增量，也不是所有人之和
+  const contextTokens = (ent: EntId): number => {
+    const lines = input.scene.context[ent] ?? []
+    return estimateTokens([...lines, ...(texts[ent] === undefined ? [] : [texts[ent]])].join('\n'))
+  }
   const scene = appendBeat(input.scene, {
     clock: clockAfter,
-    tokens: estimateTokens([input.sceneText, passage].join('\n')),
+    tokens: Math.max(0, ...input.scene.participants.map(contextTokens)),
     texts,
     signed: out.verdicts.some(isSigned),
   })
@@ -264,11 +269,14 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     notes: [...degraded, ...notes, ...narrationNotes],
   }
 
-  const reason = foldReason({ ...scene, lastBeatAt: previousLastBeatAt }, { place: result.world.ledger.at[input.player] ?? scene.place, clock: clockAfter, tokens: scene.tokens })
+  const place = result.world.ledger.at[input.player] ?? scene.place
+  const reason = foldReason({ ...scene, lastBeatAt: previousLastBeatAt }, { place, clock: clockAfter, tokens: scene.tokens })
   if (reason) {
-    deps.store.appendBeat({ type: 'scene/fold', scene: scene.id, clock: clockAfter, claims: [], order: [], verdicts: [], observations: {}, driveHits: [] })
+    const folded = deps.store.appendBeat({ type: 'scene/fold', scene: scene.id, clock: clockAfter, claims: [], order: [], verdicts: [], observations: {}, driveHits: [] })
     result.folded = fold(scene, reason)
     result.notes.push(`折场：${reason}`)
+    // 重开是结算的一部分：两份循环各记一次这条责任时，必然有一份会漏（40 §2）
+    result.scene = openScene({ id: `s${folded.seq}`, place, clock: clockAfter, participants: scene.participants })
   }
   return result
 }

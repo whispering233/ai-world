@@ -167,7 +167,6 @@ async function main(): Promise<void> {
 
     if (res.folded) {
       stdout.write(`\n【折场：${res.folded.reason}】\n`)
-      scene = openScene({ id: `s${priorBeats + i + 1}`, place: world.ledger.at[player] ?? 'saloon', clock: world.ledger.clock, participants })
     }
   }
   rl?.close()

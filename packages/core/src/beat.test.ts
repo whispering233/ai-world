@@ -55,6 +55,20 @@ function verdict(claimId: string, deltas: RefereeOutput['verdicts'][number]['del
   return { claimId, actor: 'ann', ok: true, deltas, duration }
 }
 
+/** 每拍都“成立但什么都没变”，且 claimId 跟着本拍的 claims 走。 */
+function okJudge(): Referee {
+  return {
+    async judge({ claims }) {
+      return {
+        order: ['player'],
+        verdicts: claims.map((c) => ({ claimId: c.id, actor: c.actor, ok: true, deltas: [], duration: 1 })),
+        observations: {},
+        driveHits: [],
+      }
+    },
+  }
+}
+
 function base(store: Store, referee: RefereeOutput[]): BeatInput {
   return {
     world: world(),
@@ -437,6 +451,67 @@ describe('runBeat：clock 只按已提交 claim 推进', () => {
     expect(r.world.ledger.clock).toBe(480)
     expect(Object.values(r.world.facts).find((f) => f.text === '他睡了一整夜')?.at).toBe(480)
     expect(r.folded?.reason).toBe('time')
+    // 折场即重开：返回的场景就是下一拍要用的场景
+    expect(r.scene.beats).toBe(0)
+    expect(r.scene.openedAt).toBe(480)
+    expect(r.scene.context['ann']).toEqual([])
+  })
+
+  it('地点变化折场后，新场景落在玩家落账后的位置', async () => {
+    const store = tmpStore()
+    const input = base(store, [
+      {
+        order: ['player'],
+        verdicts: [{ claimId: 'p0', actor: 'player', ok: true, deltas: [{ op: 'move', who: 'player', to: 'street' }], duration: 1 }],
+        observations: {},
+        driveHits: [],
+      },
+    ])
+    input.playerClaim = '我推门出去'
+    const r = await runBeat(input)
+
+    expect(r.folded?.reason).toBe('place')
+    expect(r.scene.place).toBe('street')
+    expect(r.scene.participants).toEqual(['player', 'ann', 'doc'])
+  })
+
+  it('12 拍只折一次，之后的拍落在新场景里', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.deps.referee = okJudge()
+    let world = input.world
+    let scene = input.scene
+    for (let i = 0; i < 13; i += 1) {
+      const r = await runBeat({ ...input, world, scene, playerClaim: `第 ${i} 句` })
+      world = r.world
+      scene = r.scene
+    }
+
+    const folds = store.readJournal().filter((e) => e.type === 'scene/fold')
+    expect(folds).toHaveLength(1)
+    // 折场在同一个结算内重开：第 13 拍已经落在新场景里
+    expect(scene.beats).toBe(1)
+    expect(scene.id).toBe(`s${folds[0]?.seq}`)
+    for (const lines of Object.values(scene.context)) expect(lines).toHaveLength(1)
+  })
+
+  it('上下文达到 16k 就折场，不等满 12 拍', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.deps.referee = okJudge()
+    // 每拍一句 7000 字：最长上下文三拍就过 16k（7000 × 0.9 × 3）
+    const long = '我'.repeat(7000)
+    let world = input.world
+    let scene = input.scene
+    const reasons: string[] = []
+    for (let i = 0; i < 3; i += 1) {
+      const r = await runBeat({ ...input, world, scene, playerClaim: long })
+      world = r.world
+      scene = r.scene
+      if (r.folded) reasons.push(r.folded.reason)
+    }
+
+    expect(reasons).toEqual(['tokens'])
   })
 
   it('拒绝的 480 不遮蔽合法 claim 的 5 分钟', async () => {

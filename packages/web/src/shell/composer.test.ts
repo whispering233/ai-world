@@ -48,6 +48,7 @@ async function mount(options: { draft: string; inFlight?: boolean }) {
   return { textarea, onSend, onStop, unmount }
 }
 
+// 慢的是 @ant-design/x 的样式注入（单跑约 4s），满负载并行时 5s 不够；断言本身是即时事件。
 describe('Composer 的键盘契约', () => {
   it('Enter 发送', async () => {
     const { textarea, onSend, unmount } = await mount({ draft: '我推门进去。' })
@@ -99,4 +100,4 @@ describe('Composer 的键盘契约', () => {
     expect(onStop).toHaveBeenCalledTimes(1)
     unmount()
   })
-})
+}, 15_000)
