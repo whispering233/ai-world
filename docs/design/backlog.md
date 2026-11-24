@@ -87,7 +87,8 @@
 | 世界事件与玩家主张的优先级 | 关键词避让已证伪，但"玩家动作被顶掉"仍没有规则 | [storylet-probe.md](../research/storylet-probe.md) §12 §14 |
 | `places`/`names` 进作者表单 | 显示名错一个字，正文就会漏 id | [api/30-api-author.md](../api/30-api-author.md) §3 |
 | 折场时压 experience | 上下文预算吃紧时 | `recall` 的检索权重 |
-| 成长闸与“被直接作用者”接线 | 决策 11 / 16 已定但没接：`canWriteSelf` 零调用、`self` 这个 kind 没有生产者、`runBeat` 的 `touched` 恒空（玩家动手时对方这拍不反应） | `character.ts` 的 `canWriteSelf`、`beat.ts` 的 `calledActors(... touched: [])` |
+| “被直接作用者”接线 | 决策 16 已定但没接：`runBeat` 的 `touched` 恒空，玩家动手时对方这拍不反应 | 口径未定：本拍谁被作用，只有裁判**之后**才知道；只能取上一拍的 deltas 或解析玩家原话 |
+| 折场时的成长入口 | `folded.perEnt` 现在无人消费（`FoldMaterial` 算出来了、没人用），`40 §7` 的“折场写 self”还没接线 | 长局手感变差或上下文吃紧时 |
 | `seq` 由「最大 seq + 1」推 | 现在用「可解析行数」推，中间行坏掉或两个进程同写 `data/` 时会重号，`/author/beat/:seq` 串拍 | `store.ts` 的 `prepare()` |
 | 每拍全量重读 journal/passage | 长局 O(n²)：`session.beat` 每拍整份 `JSON.parse`，`routes/beat.ts` 为一个 `clockText` 建整份 view，`GET /api/session` 全量下发历史 | 当前几十拍无感，上百拍再动 |
 | 缓存 A/B | 有 before/after 需求时 | 同条件换前缀顺序各跑 6 拍 |
