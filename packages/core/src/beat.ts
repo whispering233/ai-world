@@ -193,12 +193,14 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   applyDriveHits(characters, out.driveHits)
 
   // 成长闸：只追加 + 要签名 + 稀缺（30 §4）。场景 ≤ 12 拍，用“本场景内已有几条”近似“每 10 拍 ≤ 1”
-  const signed = out.verdicts.some(isSigned)
+  // 签名看的是“账本真的变了”（40 §7）：裁判判 ok 但整条回滚的 claim 不算签名
+  const signed = out.verdicts.some((v) => isSigned(v) && (!v.ok || committedIds.has(v.claimId)))
   for (const [ent, text] of pendingSelf) {
     const ch = characters.get(ent)
     if (!ch) continue
     const selfInScene = ch.experience.filter((e) => e.kind === 'self' && e.t >= input.scene.openedAt).length
-    if (!canWriteSelf({ signed, selfInLast10Beats: selfInScene })) continue
+    // 场景 ≤ 12 拍，用“本场景内已有几条”近似“每 10 拍 ≤ 1”
+    if (!canWriteSelf({ signed, recentSelf: selfInScene })) continue
     characters.set(ent, remember(ch, { t: clock, kind: 'self', text, w: 3 }))
   }
 

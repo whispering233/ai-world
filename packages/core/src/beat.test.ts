@@ -704,6 +704,23 @@ describe('runBeat：成长闸', () => {
     expect((r.characters.get('ann')?.experience ?? []).some((e) => e.kind === 'thought')).toBe(false)
   })
 
+  it('整条回滚不算签名：自我修订不落', async () => {
+    const store = tmpStore()
+    const input = base(store, [
+      {
+        order: ['ann'],
+        verdicts: [{ claimId: 'ann0', actor: 'ann', ok: true, deltas: [{ op: 'consume', from: 'ann', item: 'ghost', n: 1 }], duration: 1 }],
+        observations: {},
+        driveHits: [],
+      },
+    ])
+    input.deps.cognition = createStubCognition([withSelf('我不再指望他替我说话'), say('doc 抬头看了一眼')])
+    const r = await runBeat(input)
+
+    expect(r.committedClaims).toEqual([])
+    expect(selves(r.characters.get('ann'))).toHaveLength(0)
+  })
+
   it('同一场景只长一条：第二个签名拍的自我修订被稀缺闸挡住', async () => {
     const store = tmpStore()
     const input = base(store, [signedBeat])
