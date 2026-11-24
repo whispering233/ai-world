@@ -17,6 +17,11 @@
 - `docs/design/backlog.md` §6：组件迁移之后的两条 UI 待办（对话与场景分层、等待反馈），各自卡在一条没定的语义契约上。
 
 ### Fixed
+- 折场在服务端是空操作：`runBeat` 现在在同一次结算内装配下一场景并返回，12 拍之后不再每拍重复写 `scene/fold`，场景上下文不再无限增长。
+- `scene.tokens` 口径修正为「最长参与者上下文」：原来的本拍增量让 16k 折场永不触发（现在它是保险丝，正常内容仍由 12 拍先折）。
+- 一拍总时限 180s：provider 挂死时不再永久占锁，超时按 `E_MODEL_CALL` 降级，世界不动。
+- 停止后前端重取 `GET /api/session`（等锁释放再套用），补回已落账但界面未显示的那一拍；迟到的 `passage` 帧不再重复落进正文。
+- 玩家壳源码扫描在 Windows 上路径分隔符不归一化，四条隔离守卫一条也没扫到；`composer` 用例补了并行负载下的时间预算。
 - antd 6 的三处改名（`Alert.title` / `Drawer.size` / `Divider.orientation`）：写错时界面正常、只有 `console.error`。
 
 ### Removed
