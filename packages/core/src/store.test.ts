@@ -133,6 +133,20 @@ describe('replay：重放即真相', () => {
     expect(replay([...readBack].reverse(), world())).toEqual(played)
   })
 
+  it('中间行坏掉也不回退序号：新记录取已有最大 seq + 1', () => {
+    const dir = tmp()
+    const path = join(dir, 'journal.jsonl')
+    const line = (seq: number) =>
+      `${JSON.stringify({ seq, type: 'scene/fold', scene: 's1', clock: 0, claims: [], order: [], verdicts: [], observations: {}, driveHits: [] })}\n`
+    appendFileSync(path, line(1))
+    appendFileSync(path, '{"seq":2,"type":"be\n')
+    appendFileSync(path, line(3))
+    appendFileSync(path, line(3))
+
+    // 可解析行数是 2，最大 seq 是 3：旧口径会给出 3 与新记录撞号
+    expect(openStore(dir).appendBeat(beat(10, move)).seq).toBe(4)
+  })
+
   it('结构化的 actor/kind 也随 journal 重放', () => {
     const dir = tmp()
     const s = openStore(dir)

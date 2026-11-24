@@ -92,12 +92,12 @@ export function openStore(dir: string): Store {
   }
 }
 
-/** seq 从文件里已有的合法行数推出，因此重开进程后仍连续。 */
+/** seq 取文件里已有的最大值：坏行占位不回退序号，两个进程追加也不会撞号。 */
 function prepare(path: string): number {
   const text = readText(path)
   // 尾部撕裂后直接追加会和半行粘成一条；补一个换行让它独立成行被丢弃
   if (text !== '' && !text.endsWith('\n')) appendFileSync(path, '\n')
-  return parseLines<unknown>(text).length
+  return parseLines<{ seq?: unknown }>(text).reduce((max, e) => Math.max(max, Number(e.seq) || 0), 0)
 }
 
 function readText(path: string): string {
