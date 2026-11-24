@@ -12,6 +12,7 @@
 - 作者视图也能发拍：两壳共用同一个 `Composer` 节点（`AuthorApp` 只多一个 `composer: ReactNode`），发送后作者投影跟着 `beats.length` 刷新。
 
 ### Changed
+- 作者壳改成**按需加载**（`lazy` + `Suspense`）：玩家壳的首屏脚本从 1.12 MB / gzip 354 kB 降到 **1.03 MB / gzip 326 kB**，作者壳那 94.8 kB（gzip 31 kB）只在切过去时才下载。玩家壳隔离守卫也跟着认动态 `import()`。
 - 阅读面：上滚看旧文时新拍到达会浮出「有新的 N 拍」，点了回底并恢复跟随；首屏不再直接扔到末尾（最后一拍短于一屏时从它开头读起）。
 - 「此刻」抽屉：窄于 1024px 改成全屏 sheet（原来 390px 视口里只占 360px）；「你知道什么」改用 `Timeline`。
 - 作者壳拍列表改用 `@ant-design/x` 的 `Conversations`：编号按**拍序**（不再是 journal `seq`，不会再出现“20 拍编到 #22”）、按 `clockText` 分组；右栏的体检默认展开。
