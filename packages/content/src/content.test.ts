@@ -39,7 +39,15 @@ describe('validatePack', () => {
       ],
       world: {
         ...pack.world,
-        ledger: { ...pack.world.ledger, at: { player: 'saloon', ann: 'saloon', lamp: 'saloon' } },
+        ledger: {
+          ...pack.world.ledger,
+          // 子对象一起清空：这条例子只验证“三处各报一条”，不要被引用完整性挡住
+          at: { player: 'saloon', ann: 'saloon', lamp: 'saloon' },
+          holds: {},
+          phys: {},
+          rel: {},
+          knows: {},
+        },
       },
     }
 
@@ -53,6 +61,11 @@ describe('validatePack', () => {
 })
 
 describe('validatePack：账本子对象', () => {
+  it('最外层形状就不对时返回错误而不是抛异常', () => {
+    expect(validatePack({} as ContentPack)).toEqual(['world.ledger.at 缺失'])
+    expect(validatePack({ world: { ledger: { at: [] } } } as unknown as ContentPack)).toEqual(['world.ledger.at 缺失'])
+  })
+
   it('坏掉的 clock / holds / phys / rel / knows 各报一条', () => {
     const broken: ContentPack = {
       ...pack,
@@ -61,7 +74,7 @@ describe('validatePack：账本子对象', () => {
         ledger: {
           ...pack.world.ledger,
           clock: Number.NaN,
-          holds: { ...pack.world.ledger.holds, ann: { whiskey: 0 } },
+          holds: { ...pack.world.ledger.holds, ann: { whiskey: -1 } },
           phys: { ...pack.world.ledger.phys, door: { closed: 'yes' as unknown as boolean } },
           rel: { ...pack.world.ledger.rel, ann: { doc: Number.NaN } },
           knows: { ...pack.world.ledger.knows, ann: 'f0' as unknown as string[] },
@@ -71,7 +84,7 @@ describe('validatePack：账本子对象', () => {
 
     const text = validatePack(broken).join('\n')
     expect(text).toContain('ledger.clock')
-    expect(text).toContain('要求正整数')
+    expect(text).toContain('要求非负整数')
     expect(text).toContain('phys.closed')
     expect(text).toContain('关系 ann → doc 的值不是有限数')
     expect(text).toContain('knows 必须是字符串数组')

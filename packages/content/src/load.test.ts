@@ -6,7 +6,7 @@ import type { ContentPack } from '@ai-world/core'
 import { loadContentPack, STARTER_TOWN_PATH } from './load.ts'
 
 const dir = mkdtempSync(join(tmpdir(), 'ai-world-content-'))
-afterAll(() => rmSync(dir, { recursive: true, force: true }))
+afterAll(() => rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 }))
 
 let seq = 0
 /** 写一份被改坏的包，返回路径。 */

@@ -92,7 +92,7 @@ export function openStore(dir: string): Store {
   }
 }
 
-/** seq 取文件里已有的最大值：坏行占位不回退序号，两个进程追加也不会撞号。 */
+/** seq 取文件里已有的最大值：坏行占位不回退序号。并发写没有加锁，别让两个进程同时写同一个 `data/`。 */
 function prepare(path: string): number {
   const text = readText(path)
   // 尾部撕裂后直接追加会和半行粘成一条；补一个换行让它独立成行被丢弃

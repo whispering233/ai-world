@@ -23,7 +23,8 @@ function fail(why: string): OpResult {
  * 这里**没有独立的审核阶段**：校验就是每个 op 自己的前置条件。
  *
  * 这个函数必须是**全函数**：模型送进来的 op 可能缺字段、类型不对、字段是字符串而不是数组。
- * 任何形状错误都返回 ok:false，绝不抛异常——一拍因为一条畸形 op 崩掉，等于世界被一句话杀死。
+ * 任何**op 形状**错误都返回 ok:false，绝不抛异常——一拍因为一条畸形 op 崩掉，等于世界被一句话杀死。
+ * （范围只到 op：world 本身的形状由 `validatePack` 与开局的 seed 保证，不在这里重查。）
  */
 export function apply(world: World, ops: readonly Op[]): { world: World; results: OpResult[] } {
   const next: World = structuredClone(world)

@@ -183,7 +183,13 @@ export function createSession(opts: SessionOptions): Session {
     } catch {
       throw coded('E_INVALID_BODY', '内容不是合法 JSON')
     }
-    const errors = validatePack(next)
+    let errors: string[]
+    try {
+      errors = validatePack(next)
+    } catch (error) {
+      // 校验器自己崩了也算“内容不合法”：这里绝不把 500 抛给作者壳
+      errors = [`内容结构无法校验：${(error as Error).message}`]
+    }
     // 校验不过就不碰磁盘：写坏的内容会让下一次启动直接失败
     if (errors.length > 0) {
       throw Object.assign(coded('E_INVALID_CONTENT', `内容校验失败：${errors.join('；')}`), { errors })

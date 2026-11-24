@@ -61,7 +61,7 @@ function tmpDir(): string {
 }
 
 afterEach(() => {
-  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true })
+  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 })
 })
 
 function makeSession(dir: string, llm: Llm, contentPath = writePack(dir)): Session {
