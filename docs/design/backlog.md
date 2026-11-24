@@ -99,7 +99,9 @@
 
 ### 6.0 已否决：用 `CodeHighlighter` 替 `<pre>`
 
-量过了：只换 `LedgerView` 的 JSON 与 `BeatDetail` 的两处 prompt，构建产物从 **1.12 MB / gzip 354 kB** 涨到 **1.79 MB / gzip 592 kB**（+667 kB raw、+238 kB gzip）。换来的只是一个复制按钮与 JSON 上色，而它是**玩家壳也要下载的同一个 chunk**。要做得先把作者壳懒加载，否则不做。
+量过了：只换 `LedgerView` 的 JSON 与 `BeatDetail` 的两处 prompt，构建产物从 **1.12 MB / gzip 354 kB** 涨到 **1.79 MB / gzip 592 kB**（+667 kB raw、+238 kB gzip）。换来的只是一个复制按钮与 JSON 上色，而当时它是**玩家壳也要下载的同一个 chunk**。
+
+**前提已变**：作者壳现在是懒加载的（`AuthorApp` 单独 94.8 kB / gzip 31 kB），这 +238 kB 会落进作者 chunk，只在打开作者视图时下载。要做得重新量一次那个 chunk 的收益，别拿旧数字否掉。
 
 两条都不是样式活：各自卡在一条没定的语义契约上，契约定了才能切卡。
 
@@ -117,8 +119,8 @@
 
 ### 6.2 等待与思考过程反馈
 
-**现状**：服务端每 1s 只发 `{elapsedMs, clockText}`（`progress` 帧兼作心跳）；`llm.chat()` 非流式，拿不到 token 速度；UI 只有「世界在回应… 00:12 ▍」。
+**现状**：第一档已落地——服务端每 1s 仍只发 `{elapsedMs, clockText}`（`progress` 帧兼作心跳），UI 是「世界在回应… 00:12 ▍」+ 玩家那句话下面的三条骨架（`aria-hidden`，reduced-motion 时停动画）。`llm.chat()` 仍是非流式，拿不到 token 速度。
 
 **卡点**：显示到哪一档。`ui/DESIGN.md` §4 现在明文禁止「认知/裁判/渲染」这类阶段名（玩家是读者，不是操作台用户）。要显示阶段就得先改这条契约。
 
-三档代价递增：① 计时 + 骨架（现在就差骨架）；② 阶段步骤条（要改契约、要服务端发阶段事件）；③ token 流（`llm.chat()` 要换流式接口，影响 `cognition`/`referee`/`narrate` 三条链路与降级逻辑）。
+三档代价递增：① ~~计时 + 骨架~~（已落地）；② 阶段步骤条（要改契约、要服务端发阶段事件）；③ token 流（`llm.chat()` 要换流式接口，影响 `cognition`/`referee`/`narrate` 三条链路与降级逻辑）。

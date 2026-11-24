@@ -4,7 +4,7 @@
 
 ## [Unreleased]
 ### Added
-- `packages/web`：chrome 换成 `antd` 6 + `@ant-design/x` 2（`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Menu` `Dropdown` `Divider` `Empty` `Segmented` + `Sender`），图标走 `@ant-design/icons`；`@ant-design/cssinjs` 钉在 `2.2.0`（与 antd 内部读同一实例，否则 `<StyleProvider layer>` 静默失效）。
+- `packages/web`：chrome 换成 `antd` 6 + `@ant-design/x` 2（`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Empty` `Segmented` + `Sender`），图标走 `@ant-design/icons`；`@ant-design/cssinjs` 钉在 `2.2.0`（与 antd 内部读同一实例，否则 `<StyleProvider layer>` 静默失效）。
 - `packages/web/src/theme/AntdProvider.tsx`：色板唯一事实源（浅 `defaultAlgorithm` / 深 `darkAlgorithm`、antd 默认色板、`cssVar.key` = `<html class="ai-world-theme">`），`<StyleProvider layer>` 把 antd 运行时样式放进 `@layer antd`。
 - `packages/web/src/theme/layers.test.ts`：层序必须含 `antdx` 且在 `@import "tailwindcss"` 之前；红线是 `Sender` 的工具类漏了会被静默压掉。
 - `packages/web/src/shell/composer.test.ts`：`Sender` 的 Enter 发送 / Shift+Enter 换行 / 流式期间不可重复发送。

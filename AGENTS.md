@@ -46,7 +46,8 @@
 - `<html class="ai-world-theme">` 与 `AntdProvider` 的 `cssVar.key` 必须同字面量：antd 6 不把 `--ant-*` 注入 `:root`，不同步会让全站语义色静默变透明。
 - `@ant-design/cssinjs` 必须与 antd 内部读的同一实例（当前 2.2.0），否则 `<StyleProvider layer>` 静默失效（只有图标进层）。
 - 色值不许进组件：色板只在 `theme/AntdProvider.tsx`（浅 `defaultAlgorithm` / 深 `darkAlgorithm`，不自定 seed），组件里只用 `paper` / `paper-2` / `ink` / `ink-soft` / `rule` / `accent` 这几个映射名。
-- antd 6 改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` 用 `orientation`。写错只 `console.error`，界面照常。
+- antd 6 改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` 用 `orientation`、`Timeline` 用 `title`/`content`。写错只 `console.error`，界面照常。
+- `@ant-design/x` 的 `CodeHighlighter` 会给产物加 **+238 kB gzip**（`react-syntax-highlighter` + `mermaid`）：只用得着它的复制按钮就不值，除非代码只在已懒加载的作者壳里。
 - 正文档位（17px / 1.85 / 段距 24px / 列宽 40rem）在 `tokens.css`；jsdom 不算布局也不算层叠，UI 卡必须跑真浏览器。
 
 ## 发布
@@ -60,8 +61,11 @@
 讨论与返工风险 → 更新 `docs/` → 切 `docs/design/tasks.md` 任务卡 → 临时 worktree + 分支执行 → 独立验证 → 清卡 → 合并。
 
 一次只做一张卡；每张卡独立 commit，可单独回滚。测试前清掉 `PI_MODEL`，否则环境变量会覆盖 settings，config 用例会假红。
+测试文件名只用 `.test.ts`：`vitest.config.ts` 的 `include` 不认 `.tsx`，组件测试用 `createElement` 写（`.tsx` 会被静默跳过，看着“全绿”其实一条没跑）。
+`scripts/play.ts` 与服务端共用 `data/<world>`，**没有锁**：跑试玩器前先确认服务没在跑，否则两边各自算 seq。
 
 - UI 卡改完必须跑一次**浏览器实测**：类型检查与单测全绿也会漏掉抽屉常开、`/` 返回 octet-stream、按钮被遮这类缺陷。
+- 临时 worktree 用完 `git worktree remove --force` 后，Windows 上常留一个被句柄占着的**空目录**：`git worktree prune` + 删分支就算收口，物理目录重启后再删。
 - 并行卡都往 `packages/core/src/index.ts` 加导出时**按字母序插入**，否则合并必撞同一行。
 
 ## 别做的事

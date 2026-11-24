@@ -128,10 +128,11 @@ packages/web      ← shared：React SPA（拿不到 core，边界由 pnpm 严�
 | 主题 | `theme/AntdProvider.tsx`：`ConfigProvider` + `<StyleProvider layer>`，浅 `defaultAlgorithm` / 深 `darkAlgorithm`，antd 默认色板（不写自定义 seed）；`cssVar.key` = `<html class="ai-world-theme">` |
 | 层叠 | `tokens.css` 先写 `@layer theme, base, antd, antdx, components, utilities` 再 `@import "tailwindcss"`；漏写 `antdx` 时 x 组件的工具类会被静默压掉 |
 | tokens | `tokens.css` 只做两件事：把 `--ant-*` 映射成既有 class 名（`paper`/`paper-2`/`ink`/`ink-soft`/`rule`/`accent`），以及放排版 token（正文 17px / 1.85 / 段距 24px / 列宽 40rem） |
-| 组件 | `Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Menu` `Dropdown` `Divider` `Empty` `Segmented` + x 的 `Sender`；图标走 `@ant-design/icons` |
+| 组件 | `Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Empty` `Segmented` `Timeline` `Skeleton` + x 的 `Sender` `Conversations`；图标走 `@ant-design/icons` |
 | `ui/` 自有件 | 只剩 `ModeSwitch`（`Segmented` 薄壳，两壳共用）；就地的小排版包装留在调用文件里，不进 `ui/` |
 | 玩家壳 | `TopBar` `ReadingStream` `PlayerLine` `BeatDivider` `Composer` `StateDrawer` `EmptyState` `ErrorNotice` |
 | 作者壳 | `AuthorApp` `BeatList` `BeatDetail` `LedgerView` `HealthPanel` `ContentEditor` `SaveDialog`；两壳共用同一个 `Composer` 节点，作者壳也能发拍 |
+| 懒加载 | `AuthorApp` 走 `lazy` + `Suspense`（玩家壳首屏从 1.12 MB / gzip 354 kB 降到 1.03 MB / gzip 326 kB）；隔离守卫 `discipline.test.ts` 同时认静态与动态 `import()` |
 | 状态 | 一个 `useReducer`；`mode` 与滚动位置进 localStorage |
 
 层叠与 cssVar 的两个陷阱（都会静默失效、测试全绿）：`@ant-design/cssinjs` 必须与 antd 内部读同一实例；`zeroRuntime` 路线不可用（x 不发 CSS）。详见 [ui/DESIGN.md](../ui/DESIGN.md) §0。

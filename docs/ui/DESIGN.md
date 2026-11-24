@@ -88,7 +88,7 @@ v1 只读；打开抽屉不改变阅读位置。
 ## 4. 等待与失败
 
 - **发送即回显**：玩家那一句立刻进正文（引文块），不等服务端。
-- 一拍约 50 秒；结算期间显示“世界在回应… 00:12”，**不显示“认知/裁判/渲染”**，也不显示任何阶段名。
+- 一拍约 50–60 秒（真机 20 拍实测均 60.8s）；结算期间显示“世界在回应… 00:12”与玩家那句话下面的三条骨架，**不显示“认知/裁判/渲染”**，也不显示任何阶段名。
 - **旁白不流式**：一次成型后整段进入正文。`runBeat` 在调旁白之前就已落 journal，流出来的文本没有“草稿”身份；假 draft 比等待更糟。
 - 两种失败必须分开说：
   - 裁判失败（`error` 帧）：世界没有变。显示“这一拍没有发生”，不留任何正文。
@@ -178,7 +178,7 @@ chrome 全部用 antd 6 / `@ant-design/x` 2，见 §13；壳层的自有组件�
 
 | 层 | 内容 |
 | :--- | :--- |
-| chrome | 全部用 antd 6 / `@ant-design/x` 2 组件：`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Menu` `Dropdown` `Divider` `Empty` `Sender` `Segmented` |
+| chrome | 全部用 antd 6 / `@ant-design/x` 2 组件：`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Empty` `Segmented` `Timeline` `Skeleton`，加 `@ant-design/x` 的 `Sender` `Conversations` |
 | `ui/` 下的自有件（1） | `ModeSwitch`（antd `Segmented` 的薄壳，壳切换的两处共用） |
 | 玩家壳（8） | `TopBar` `ReadingStream` `PlayerLine` `BeatDivider` `Composer` `StateDrawer` `EmptyState` `ErrorNotice` |
 | 作者壳（7） | `AuthorApp` `BeatList` `BeatDetail` `LedgerView` `HealthPanel` `ContentEditor` `SaveDialog` |
