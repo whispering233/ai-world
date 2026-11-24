@@ -127,6 +127,7 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame, compose
             <Collapse
               ghost
               size="small"
+              defaultActiveKey={['health']}
               items={[
                 {
                   key: 'health',
