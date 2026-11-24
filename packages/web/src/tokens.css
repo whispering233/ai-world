@@ -79,6 +79,7 @@
 }
 
 :root[data-motion="reduced"] .blink,
-:root[data-motion="reduced"] .fade-in {
+:root[data-motion="reduced"] .fade-in,
+:root[data-motion="reduced"] .ant-skeleton * {
   animation: none;
 }
