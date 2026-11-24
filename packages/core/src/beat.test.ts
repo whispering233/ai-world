@@ -75,6 +75,7 @@ function base(store: Store, referee: RefereeOutput[]): BeatInput {
     scene: openScene({ id: 's1', place: 'saloon', clock: 0, participants: ['player', 'ann', 'doc'] }),
     characters: characters(),
     player: 'player',
+    beatIndex: 1,
     sceneText: '雨夜的酒馆，灯快没了。',
     canon: ['这家酒馆欠着银行的债'],
     deps: {
@@ -721,6 +722,24 @@ describe('runBeat：成长闸', () => {
     expect(selves(r.characters.get('ann'))).toHaveLength(0)
   })
 
+  it('隔过窗口就能再长一条：窗口按拍号算，不按场景', async () => {
+    const store = tmpStore()
+    const input = base(store, [signedBeat])
+    input.deps.cognition = createStubCognition([
+      withSelf('第一条'),
+      say('doc 抬头看了一眼'),
+      withSelf('第二条'),
+      say('doc 又看了一眼'),
+    ])
+    const first = await runBeat({ ...input, beatIndex: 1 })
+    // 第 11 拍：还在同一个场景里，但第一条已经出了 10 拍窗口
+    const second = await runBeat({ ...input, world: first.world, scene: first.scene, characters: first.characters, beatIndex: 11 })
+
+    expect(second.folded).toBeUndefined()
+    expect(selves(second.characters.get('ann')).map((e) => e.text)).toEqual(['第一条', '第二条'])
+    expect(selves(second.characters.get('ann')).map((e) => e.ref)).toEqual([1, 11])
+  })
+
   it('同一场景只长一条：第二个签名拍的自我修订被稀缺闸挡住', async () => {
     const store = tmpStore()
     const input = base(store, [signedBeat])
@@ -731,7 +750,7 @@ describe('runBeat：成长闸', () => {
       say('doc 又看了一眼'),
     ])
     const first = await runBeat(input)
-    const second = await runBeat({ ...input, world: first.world, scene: first.scene, characters: first.characters })
+    const second = await runBeat({ ...input, world: first.world, scene: first.scene, characters: first.characters, beatIndex: 2 })
 
     const list = selves(second.characters.get('ann'))
     expect(list).toHaveLength(1)

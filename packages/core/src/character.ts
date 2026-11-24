@@ -67,8 +67,21 @@ export function applyDriveHit(ch: Character, hit: { driveId: string; delta: numb
 export interface SelfGateInput {
   /** 本拍 referee 判了 ok 且真的落了账，或判了 no，或时间流逝够长 */
   signed: boolean
-  /** 最近窗口内已有的 self 条数；当前窗口 = 本场景（场景 ≤ 12 拍） */
+  /** 最近窗口内已有的 self 条数（用 `selfInWindow` 算，窗口 = `SELF_WINDOW_BEATS` 拍） */
   recentSelf: number
+}
+
+/** 稀缺窗口：最近多少拍内至多 1 条 self（30 §4）。 */
+export const SELF_WINDOW_BEATS = 10
+
+/**
+ * 窗口按**拍号**算，不按场景：场景长度不受控（一次长睡折场只剩 1 拍），按场景算会让稀缺闸松掉一个数量级。
+ * `self` 条目用已有的 `ref` 存拍号；旧 journal 的 self 没有 `ref`，视为很久以前，不占窗口。
+ */
+export function selfInWindow(ch: Character, beatIndex: number): number {
+  return ch.experience.filter(
+    (e) => e.kind === 'self' && (e.ref ?? Number.NEGATIVE_INFINITY) > beatIndex - SELF_WINDOW_BEATS,
+  ).length
 }
 
 /** 成长闸（见 docs/design/30-cognition.md §4）：只追加 + 要签名 + 稀缺。 */

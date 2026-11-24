@@ -5,7 +5,7 @@
  * 这一层是唯一知道"顺序"的地方，下面每一块都保持纯函数或单一职责。
  */
 import { calledActors, fmt } from './clock.ts'
-import { applyDriveHit, canWriteSelf, remember, type Character, type Experience } from './character.ts'
+import { applyDriveHit, canWriteSelf, remember, selfInWindow, type Character, type Experience } from './character.ts'
 import type { Cognition } from './cognition.ts'
 import { fallbackPassage, type Narrator } from './narrate.ts'
 import { commit, type Claim, type Referee, type Verdict } from './referee.ts'
@@ -39,6 +39,8 @@ export interface BeatInput {
   scene: Scene
   characters: Map<EntId, Character>
   player: EntId
+  /** 本拍是这一局的第几拍（1 起）；只用于成长闸的稀缺窗口 */
+  beatIndex: number
   /** 场景的静态描述（装配时拼好的那一段） */
   sceneText: string
   canon: readonly string[]
@@ -192,16 +194,14 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   for (const [ent, ch] of seen) characters.set(ent, ch)
   applyDriveHits(characters, out.driveHits)
 
-  // 成长闸：只追加 + 要签名 + 稀缺（30 §4）。场景 ≤ 12 拍，用“本场景内已有几条”近似“每 10 拍 ≤ 1”
+  // 成长闸：只追加 + 要签名 + 稀缺（30 §4）。窗口按拍号算：场景长度不受控，按场景算会把闸放松一个数量级
   // 签名看的是“账本真的变了”（40 §7）：裁判判 ok 但整条回滚的 claim 不算签名
   const signed = out.verdicts.some((v) => isSigned(v) && (!v.ok || committedIds.has(v.claimId)))
   for (const [ent, text] of pendingSelf) {
     const ch = characters.get(ent)
     if (!ch) continue
-    const selfInScene = ch.experience.filter((e) => e.kind === 'self' && e.t >= input.scene.openedAt).length
-    // 场景 ≤ 12 拍，用“本场景内已有几条”近似“每 10 拍 ≤ 1”
-    if (!canWriteSelf({ signed, recentSelf: selfInScene })) continue
-    characters.set(ent, remember(ch, { t: clock, kind: 'self', text, w: 3 }))
+    if (!canWriteSelf({ signed, recentSelf: selfInWindow(ch, input.beatIndex) })) continue
+    characters.set(ent, remember(ch, { t: clock, kind: 'self', text, w: 3, ref: input.beatIndex }))
   }
 
   const narratorEvents = claims.map((c) => {
