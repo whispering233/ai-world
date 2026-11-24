@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canWriteSelf, recall, remember, score, type Character, type Experience } from './character.ts'
+import { canWriteSelf, recall, remember, score, selfInWindow, type Character, type Experience } from './character.ts'
 
 function ch(experience: Experience[] = []): Character {
   return {
@@ -58,6 +58,17 @@ describe('remember：只追加，不改入参', () => {
     expect(next.experience.map((e) => e.text)).toEqual(['旧事', '我不再指望他替我说话'])
     expect(next.core).toBe(snapshot.core)
     expect(next.voice).toBe(snapshot.voice)
+  })
+})
+
+describe('selfInWindow：稀缺窗口按拍号', () => {
+  const self = (ref?: number): Experience => ({ t: 0, kind: 'self', text: 'x', w: 3, ...(ref === undefined ? {} : { ref }) })
+
+  it('只数窗口内的条目；窗口外与没有拍号的旧条目都不算', () => {
+    const ann = ch([self(3), self(9), self(12), self()])
+    expect(selfInWindow(ann, 12)).toBe(3)
+    expect(selfInWindow(ann, 20)).toBe(1)
+    expect(selfInWindow(ch([self()]), 20)).toBe(0)
   })
 })
 

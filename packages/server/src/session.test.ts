@@ -175,6 +175,75 @@ describe('createSession', () => {
     await expect(session.beat('我推门进去。', new AbortController().signal, noProgress)).resolves.toMatchObject({ seq: 1 })
   })
 
+  /** 每拍都提一条自我修订：用来撞稀缺闸。 */
+  function echoSelf(): ChatResult {
+    return {
+      text: JSON.stringify({ inner: '', outward: '安看了你一眼。', selfChange: '决定不再等' }),
+      toolCalls: [],
+      inputTokens: 1,
+      outputTokens: 1,
+      model: 'stub/cognition',
+    }
+  }
+
+  /** 把裁判 prompt 里出现的 claimId 全部判成“成立且改了账本”：让每一拍都有世界签名。 */
+  function echoSigned(req: ChatRequest): ChatResult {
+    const prompt = req.messages[0]?.content ?? ''
+    const ids = [...prompt.matchAll(/"claimId":\s*"([^"]+)"/g)].map((m) => m[1] ?? '')
+    const verdicts = ids.map((claimId) => ({ claimId, ok: true, duration: 1, deltas: [{ op: 'fact', text: '发生了点事' }] }))
+    return { text: JSON.stringify({ order: [], verdicts, observations: {} }), toolCalls: [], inputTokens: 1, outputTokens: 1, model: 'stub/referee' }
+  }
+
+  it('成长窗口按拍号：折场不重置，13 拍只长两次', async () => {
+    const dir = tmpDir()
+    const session = makeSession(
+      dir,
+      // 裁判把 prompt 里真实出现的 claimId 全部判成“成立并改了账本”，否则每一拍都没有签名；
+      // 人物侧每拍都给一条自我修订，才会真的去撞稀缺闸
+      stubLlm({ referee: async (req) => echoSigned(req), cognition: async () => echoSelf() }),
+    )
+    for (let i = 1; i <= 13; i += 1) await session.beat(`第 ${i} 句`, new AbortController().signal, noProgress)
+
+    const journal = openStore(dir).readJournal()
+    expect(journal.filter((e) => e.type === 'scene/fold')).toHaveLength(1)
+    const refs = journal.flatMap((e) => e.experience?.['ann'] ?? []).filter((e) => e.kind === 'self').map((e) => e.ref)
+    // 第 1 与第 11 拍：折场（第 12 拍末）不重置窗口
+    expect(refs).toEqual([1, 11])
+  })
+
+  it('失败的一拍不占拍号', async () => {
+    const dir = tmpDir()
+    let fail = true
+    const session = makeSession(
+      dir,
+      stubLlm({
+        referee: async () => {
+          if (fail) {
+            fail = false
+            throw new Error('模型挂了')
+          }
+          return { text: verdictFor('p0'), toolCalls: [], inputTokens: 0, outputTokens: 0, model: 'stub/referee' }
+        },
+        cognition: async () => ({
+          text: JSON.stringify({ inner: '', outward: '安看了你一眼。', selfChange: '决定不再等' }),
+          toolCalls: [],
+          inputTokens: 1,
+          outputTokens: 1,
+          model: 'stub/cognition',
+        }),
+      }),
+    )
+
+    await expect(session.beat('第一句', new AbortController().signal, noProgress)).rejects.toMatchObject({ code: 'E_MODEL_CALL' })
+    await session.beat('第二句', new AbortController().signal, noProgress)
+
+    const self = openStore(dir)
+      .readJournal()
+      .flatMap((e) => e.experience?.['ann'] ?? [])
+      .filter((e) => e.kind === 'self')
+    expect(self.map((e) => e.ref)).toEqual([1])
+  })
+
   it('reset()：clock 归 0、journal 清空', async () => {
     const dir = tmpDir()
     const session = makeSession(dir, stubLlm())

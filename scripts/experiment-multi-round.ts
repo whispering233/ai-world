@@ -780,6 +780,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         scene,
         characters,
         player,
+        beatIndex: beat,
         sceneText: describeScene(world),
         canon: pack.canon,
         names: pack.names,

@@ -147,6 +147,7 @@ async function main(): Promise<void> {
       scene,
       characters,
       player,
+      beatIndex: priorBeats + i,
       sceneText: describeScene(world),
       canon: pack.canon,
       names: pack.names,

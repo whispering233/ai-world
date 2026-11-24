@@ -231,6 +231,7 @@ async function runOne(): Promise<void> {
       scene,
       characters,
       player,
+      beatIndex: i + 1,
       sceneText: sceneText(world),
       canon: pack.canon,
       names: pack.names,

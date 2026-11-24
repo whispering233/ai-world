@@ -258,6 +258,8 @@ export function createSession(opts: SessionOptions): Session {
         scene: state.scene,
         characters: state.characters,
         player: pack.player,
+        // 稀缺窗口用拍号：journal 里已有的拍数 + 1（本拍失败则不落盘，计数自然不前进）
+        beatIndex: state.journal.filter((e) => e.type === 'beat').length + 1,
         sceneText: sceneText(pack, state.world),
         canon: pack.canon,
         names: pack.names,
