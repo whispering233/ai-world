@@ -1,6 +1,6 @@
+import { Conversations } from '@ant-design/x'
+import type { ConversationItemType } from '@ant-design/x'
 import type { BeatView } from '@ai-world/shared'
-import { Menu } from 'antd'
-import type { MenuProps } from 'antd'
 
 export interface BeatListProps {
   beats: BeatView[]
@@ -8,29 +8,34 @@ export interface BeatListProps {
   onSelect: (seq: number) => void
 }
 
-/** 一拍一行：时刻 + 玩家原话首句。点一行只换右侧详情，不动中间的阅读流。 */
+/**
+ * 一拍一行：时刻 + 玩家原话首句。点一行只换右侧详情，不动中间的阅读流。
+ *
+ * 编号用**拍序**（1 起），不用 journal 的 `seq`：折场也占一条 journal，直接显示 seq 会出现
+ * “20 拍却编到 #22、中间缺 #19”这种跳号。分组用 `clockText`，长局里至少能按时间折叠着找。
+ */
 export function BeatList({ beats, selected, onSelect }: BeatListProps) {
   if (beats.length === 0) return <p className="p-4 text-meta text-ink-soft">还没有拍。</p>
-  // 新的在上；两行 label 自己排版，`Menu` 只负责选中态与上下键
-  const items: MenuProps['items'] = [...beats].reverse().map((beat) => ({
+
+  // 新的在上；倒序后第 i 项的拍序是 length - i
+  const items: ConversationItemType[] = [...beats].reverse().map((beat, index) => ({
     key: String(beat.seq),
+    group: beat.clockText,
     label: (
-      <div className="flex flex-col gap-1 py-1">
-        <span className="text-meta text-ink-soft">
-          #{beat.seq} {beat.clockText}
-        </span>
-        <span className="truncate text-ink">{summaryOf(beat)}</span>
+      <div className="flex flex-col gap-1">
+        <span className="truncate">{summaryOf(beat)}</span>
+        <span className="text-meta text-ink-soft">第 {beats.length - index} 拍</span>
       </div>
     ),
   }))
+
   return (
-    <Menu
-      mode="inline"
+    <Conversations
       items={items}
-      selectedKeys={selected === null ? [] : [String(selected)]}
-      onClick={({ key }) => onSelect(Number(key))}
-      classNames={{ item: 'h-auto' }}
-      className="border-e-0 bg-transparent"
+      groupable
+      activeKey={selected === null ? undefined : String(selected)}
+      onActiveChange={(key) => onSelect(Number(key))}
+      className="bg-transparent"
     />
   )
 }
