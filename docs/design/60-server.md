@@ -58,6 +58,10 @@ POST /api/beat
 
 实现：每拍一个 `AbortController`；`Llm` 用一个薄包装把 `signal` 注入每次 `chat()`，并把底层调用与 `signal` 做 `Promise.race`（不指望 provider 老实看 signal）。断连检测三路都接：`stream.onAbort`、`c.req.raw.signal`、`close`。
 
+**总时限**：一拍把客户端 signal 与一个总时限合成同一个 signal（缺省 180s）。只等客户端断开是不够的——标签页挂在后台、连接还在、provider 挂死时，`busy` 会永远为真，之后所有 `/api/beat` 全 409，只能重启进程。超时走与模型失败同一条降级路径（`E_MODEL_CALL`，世界不动）。
+
+**停止 = 停止等待，不撤销已提交的那一拍**。界面上的 `停止` 只断连接；已经提交的拍仍然落 journal（下一行规则）。因此前端在停止之后必须重取 `GET /api/session`，把服务端已经落下、界面还没显示的那一拍补回来——否则用户重打一遍，就把同一个动作落了两次账。
+
 单拍互斥在**开流之前**判（HTTP 409）：流一旦开了就只能发 `error` 帧，用不了状态码。
 
 ## 5. 内容生命周期
