@@ -76,7 +76,7 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 | :--- | :--- | :--- | :--- | :--- |
 | t | 是 | number | | 发生的 clock |
 | kind | 是 | enum | `seen` \| `self` \| `thought` | `self` = 身份修订；`thought` = 没说出口的话，不进裁判 |
-| ref | 否 | number | | 指向 journal.seq，正文不重复存 |
+| ref | 否 | number | | `self` 条目存**拍号**（成长窗口用它数「最近 10 拍」）；其余条目可存 journal.seq；正文不重复存 |
 | text | 是 | string | | 私人解读（`seen` 时是"它理解成什么"） |
 | w | 是 | number | 1 ~ 3 | 权重，参与检索打分 |
 
