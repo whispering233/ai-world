@@ -665,3 +665,61 @@ describe('runBeat：世界事件（claim 第三来源）', () => {
     expect(r.world.facts['f0']).toBeDefined()
   })
 })
+
+describe('runBeat：成长闸', () => {
+  const signedBeat: RefereeOutput = {
+    order: ['ann'],
+    verdicts: [{ claimId: 'ann0', actor: 'ann', ok: true, deltas: [{ op: 'fact', text: '安把杯子推过去' }], duration: 1 }],
+    observations: {},
+    driveHits: [],
+  }
+  const quietBeat: RefereeOutput = {
+    order: ['ann'],
+    verdicts: [{ claimId: 'ann0', actor: 'ann', ok: true, deltas: [], duration: 1 }],
+    observations: {},
+    driveHits: [],
+  }
+  const withSelf = (text: string): string => JSON.stringify({ inner: '忍住', outward: '安把杯子推过去。', selfChange: text })
+  const selves = (ch?: Character) => (ch?.experience ?? []).filter((e) => e.kind === 'self')
+
+  it('签名的一拍：自我修订落成 kind:self，未开闸的修订不降级成普通记忆', async () => {
+    const store = tmpStore()
+    const input = base(store, [signedBeat])
+    input.deps.cognition = createStubCognition([withSelf('我不再指望他替我说话'), say('doc 抬头看了一眼')])
+    const r = await runBeat(input)
+
+    const list = selves(r.characters.get('ann'))
+    expect(list).toHaveLength(1)
+    expect(list[0]).toMatchObject({ kind: 'self', text: '我不再指望他替我说话', w: 3 })
+    expect((r.characters.get('ann')?.experience ?? []).some((e) => e.kind === 'thought')).toBe(false)
+  })
+
+  it('没有签名的一拍：自我修订直接丢弃', async () => {
+    const store = tmpStore()
+    const input = base(store, [quietBeat])
+    input.deps.cognition = createStubCognition([withSelf('我不再指望他替我说话'), say('doc 抬头看了一眼')])
+    const r = await runBeat(input)
+
+    expect(selves(r.characters.get('ann'))).toHaveLength(0)
+    expect((r.characters.get('ann')?.experience ?? []).some((e) => e.kind === 'thought')).toBe(false)
+  })
+
+  it('同一场景只长一条：第二个签名拍的自我修订被稀缺闸挡住', async () => {
+    const store = tmpStore()
+    const input = base(store, [signedBeat])
+    input.deps.cognition = createStubCognition([
+      withSelf('第一条'),
+      say('doc 抬头看了一眼'),
+      withSelf('第二条'),
+      say('doc 又看了一眼'),
+    ])
+    const first = await runBeat(input)
+    const second = await runBeat({ ...input, world: first.world, scene: first.scene, characters: first.characters })
+
+    const list = selves(second.characters.get('ann'))
+    expect(list).toHaveLength(1)
+    expect(list[0]?.text).toBe('第一条')
+    expect(second.folded).toBeUndefined()
+    expect(store.readJournal()[1]?.experience?.['ann']?.some((e) => e.kind === 'self')).toBe(false)
+  })
+})
