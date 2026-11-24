@@ -1,5 +1,5 @@
 import { ArrowDownOutlined } from '@ant-design/icons'
-import { Button } from 'antd'
+import { Button, Skeleton } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import type { BeatView } from '@ai-world/shared'
 import { BeatDivider } from './BeatDivider.tsx'
@@ -112,6 +112,10 @@ export function ReadingStream({ beats, pendingText }: ReadingStreamProps) {
           {pendingText !== null && (
             <article className="mb-8">
               <PlayerLine text={pendingText} />
+              {/* 等待中的骨架：只表示“这一拍在生成”，不出现阶段名（ui/DESIGN §4） */}
+              <div className="mt-4" aria-hidden="true">
+                <Skeleton active title={false} paragraph={{ rows: 3, width: ['100%', '96%', '62%'] }} />
+              </div>
             </article>
           )}
         </div>
