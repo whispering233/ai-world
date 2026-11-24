@@ -63,6 +63,8 @@ function applyFrame(state: AppState, frame: BeatFrame): AppState {
     case 'progress':
       return { ...state, elapsedMs: frame.data.elapsedMs }
     case 'passage':
+      // 停止之后迟到的帧不能落进正文：那一拍由重取的 session 权威给出
+      if (!state.inFlight) return state
       return { ...state, beats: [...state.beats, frame.data], pendingText: null }
     case 'state':
       if (state.session === null) return state
@@ -134,6 +136,23 @@ function reducer(state: AppState, action: Action): AppState {
   }
 }
 
+/**
+ * 等锁释放之后再取一次会话：停止之后用它补齐，避免漏拍或卡在“结算中”。
+ * 服务端 `busy` 在 `finally` 才释放，取太快会拿到 `inFlight:true`，而 SSE 已经断了。
+ */
+async function settle(): Promise<SessionView | null> {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      const session = await fetchSession()
+      if (!session.inFlight) return session
+    } catch {
+      return null
+    }
+    await new Promise((resolve) => setTimeout(resolve, 400))
+  }
+  return null
+}
+
 export function App() {
   const [state, dispatch] = useReducer(reducer, undefined, initialState)
   const inFlightRequest = useRef<AbortController | null>(null)
@@ -168,6 +187,12 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [state.mode])
 
+  /** 停止之后把已落账、界面没显示的那一拍补回来；读不到就保持现状，不抹掉已有正文 */
+  async function reload() {
+    const session = await settle()
+    if (session !== null) dispatch({ type: 'loaded', session })
+  }
+
   async function send() {
     const text = state.draft.trim()
     if (text === '' || state.inFlight) return
@@ -178,7 +203,10 @@ export function App() {
       await postBeat(text, { signal: controller.signal, onFrame: (frame) => dispatch({ type: 'frame', frame }) })
       dispatch({ type: 'end' })
     } catch {
-      dispatch({ type: controller.signal.aborted ? 'stop' : 'failed' })
+      const aborted = controller.signal.aborted
+      dispatch({ type: aborted ? 'stop' : 'failed' })
+      // 停止只停止等待：服务端可能已经把这一拍落了账，重取一次把它补回来
+      if (aborted) void reload()
     } finally {
       inFlightRequest.current = null
     }

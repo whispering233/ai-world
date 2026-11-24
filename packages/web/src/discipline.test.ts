@@ -5,7 +5,7 @@
  * 每条规则都喂违规样例与合法样例，防止正则写歪了还"全绿"。
  */
 import { readdirSync, readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
@@ -62,10 +62,14 @@ const RULES: Rule[] = [
 ]
 
 function sourceFiles(): SourceFile[] {
-  return readdirSync(SOURCE_DIR, { recursive: true, encoding: 'utf8' })
-    .filter((name) => /\.tsx?$/.test(name) && !name.endsWith('.test.ts'))
-    .sort()
-    .map((name) => ({ name, lines: readFileSync(join(SOURCE_DIR, name), 'utf8').split('\n') }))
+  return (
+    readdirSync(SOURCE_DIR, { recursive: true, encoding: 'utf8' })
+      // Windows 的 recursive readdir 返回反斜杠；不归一化的话 `shell/` 前缀一条也匹配不上
+      .map((name) => name.split(sep).join('/'))
+      .filter((name) => /\.tsx?$/.test(name) && !name.endsWith('.test.ts'))
+      .sort()
+      .map((name) => ({ name, lines: readFileSync(join(SOURCE_DIR, name), 'utf8').split('\n') }))
+  )
 }
 
 function isComment(line: string): boolean {
@@ -99,6 +103,8 @@ describe('玩家壳纪律', () => {
 
     it('玩家壳范围在扫描结果里真的存在，且不含 author/', () => {
       expect(PLAYER_FILES.length).toBeGreaterThan(5)
+      // 路径归一化的回归锁：不归一化时这一条在 Windows 上必红，四条守卫也一条没扫到
+      expect(PLAYER_FILES.map((file) => file.name)).toContain('shell/Composer.tsx')
       expect(PLAYER_FILES.some((file) => file.name === 'api.ts')).toBe(true)
       expect(PLAYER_SCOPE.some((prefix) => prefix.startsWith('author/'))).toBe(false)
       expect(PLAYER_FILES.some((file) => file.name.startsWith('author/'))).toBe(false)
