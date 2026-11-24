@@ -50,6 +50,8 @@ export interface SessionOptions {
   contentPath: string
   pack: ContentPack
   llm: Llm
+  /** 一拍从拿锁到出结果的总时限，缺省 180s（见 60-server.md §4）；测试与慢机器的旋钮 */
+  timeoutMs?: number
 }
 
 export interface BeatOutcome {
@@ -90,6 +92,8 @@ const ROLES: ModelRoleName[] = ['cognition', 'referee', 'narration']
 /** journal.jsonl / passage.jsonl 是 schema 里的存储契约（docs/db/schema.md §3 §4） */
 const JOURNAL = 'journal.jsonl'
 const PASSAGE = 'passage.jsonl'
+/** 一拍总时限：只等客户端断开不够，provider 挂死会永远占着锁（60 §4） */
+const BEAT_TIMEOUT_MS = 180_000
 
 interface State {
   world: World
@@ -221,12 +225,15 @@ export function createSession(opts: SessionOptions): Session {
 
   async function beat(
     text: string,
-    signal: AbortSignal,
+    clientSignal: AbortSignal,
     onProgress: (elapsedMs: number) => void,
   ): Promise<BeatOutcome> {
     if (busy) throw coded('E_BEAT_IN_FLIGHT', '上一拍还在结算')
     busy = true
     const startedAt = performance.now()
+    // 客户端断开与总时限合成一个 signal：超时走与模型失败同一条降级路径，世界不动
+    const deadline = AbortSignal.timeout(opts.timeoutMs ?? BEAT_TIMEOUT_MS)
+    const signal = AbortSignal.any([clientSignal, deadline])
     // progress 兼作心跳：每秒一帧，从拿锁起算
     const timer = setInterval(() => onProgress(Math.round(performance.now() - startedAt)), 1000)
     timer.unref()
@@ -260,7 +267,10 @@ export function createSession(opts: SessionOptions): Session {
         },
       })
       // journalSeq === 0 = 这一拍没有发生（裁决失败）：世界不动，只有注记
-      if (res.journalSeq === 0) throw coded('E_MODEL_CALL', res.notes.join('；') || '模型调用失败')
+      if (res.journalSeq === 0) {
+        const head = deadline.aborted && !clientSignal.aborted ? `本拍超过 ${Math.ceil((opts.timeoutMs ?? BEAT_TIMEOUT_MS) / 1000)} 秒未结算` : ''
+        throw coded('E_MODEL_CALL', [head, ...res.notes].filter((s) => s !== '').join('；') || '模型调用失败')
+      }
 
       state.world = res.world
       state.characters = res.characters

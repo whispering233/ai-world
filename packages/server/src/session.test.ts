@@ -152,6 +152,29 @@ describe('createSession', () => {
     expect(session.view().beats).toHaveLength(0)
   })
 
+  it('总时限：provider 挂死时超时放锁，journal 不落，下一拍仍能发', async () => {
+    const dir = tmpDir()
+    let hang = true
+    const llm = stubLlm({
+      referee: async () => {
+        if (hang) {
+          hang = false
+          await new Promise<never>(() => {})
+        }
+        return { text: verdictFor('p0'), toolCalls: [], inputTokens: 0, outputTokens: 0, model: 'stub/referee' }
+      },
+    })
+    const session = createSession({ dir, contentPath: writePack(dir), pack: pack(), llm, timeoutMs: 20 })
+
+    const failure = await session.beat('我推门进去。', new AbortController().signal, noProgress).catch((error: Error) => error)
+    expect(failure).toMatchObject({ code: 'E_MODEL_CALL' })
+    expect((failure as Error).message).toContain('未结算')
+    expect(session.inFlight()).toBe(false)
+    expect(openStore(dir).readJournal()).toHaveLength(0)
+    // 超时不得把世界锁死
+    await expect(session.beat('我推门进去。', new AbortController().signal, noProgress)).resolves.toMatchObject({ seq: 1 })
+  })
+
   it('reset()：clock 归 0、journal 清空', async () => {
     const dir = tmpDir()
     const session = makeSession(dir, stubLlm())
