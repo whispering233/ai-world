@@ -186,6 +186,17 @@ describe('apply：畸形 op 不得抛异常', () => {
     expect(results[0]?.ok).toBe(false)
   })
 
+  it('缺 ledger 子对象的 world 不抛：就地补空并逐条给结果', () => {
+    const bare = { ledger: { clock: 0, at: { ann: 'saloon' } }, facts: {}, places: { saloon: '酒馆' } } as unknown as World
+    const { results } = apply(bare, [
+      { op: 'rel', from: 'ann', to: 'ann', delta: 1 },
+      { op: 'phys', who: 'ann', key: 'wet', value: true },
+      { op: 'know', who: 'ann', fact: '下雨了' },
+      { op: 'transfer', from: 'ann', to: 'ann', item: 'coin', n: 1 },
+    ] as Op[])
+    expect(results.map((r) => r.ok)).toEqual([true, true, true, false])
+  })
+
   it('缺 to 的 move 被拒且不抛', () => {
     const { world: w, results } = apply(world(), [{ op: 'move', who: 'ann' } as unknown as { op: 'move'; who: string; to: string }])
     expect(results[0]?.ok).toBe(false)

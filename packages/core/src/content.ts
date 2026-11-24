@@ -87,6 +87,30 @@ export function validatePack(pack: ContentPack): string[] {
     }
   }
 
+  // 账本子对象也是作者可编辑输入：坏的那一份要在保存时就拒，不能等到第一次 op 把整拍打死
+  const ledger = pack.world.ledger
+  if (!Number.isFinite(ledger.clock) || ledger.clock < 0) errors.push(`ledger.clock 不合法：${String(ledger.clock)}`)
+  if (Object.keys(pack.world.places).length === 0) errors.push('places 为空')
+  for (const [ent, bag] of Object.entries(ledger.holds ?? {})) {
+    for (const [item, n] of Object.entries(bag)) {
+      if (!Number.isInteger(n) || n <= 0) errors.push(`${ent} 持有的 ${item} 数量是 ${String(n)}，要求正整数`)
+    }
+  }
+  for (const [ent, row] of Object.entries(ledger.phys ?? {})) {
+    for (const [key, value] of Object.entries(row)) {
+      const bad = typeof value === 'number' ? !Number.isFinite(value) : typeof value !== 'boolean'
+      if (bad) errors.push(`${ent} 的 phys.${key} 只能是有限数字或布尔`)
+    }
+  }
+  for (const [from, row] of Object.entries(ledger.rel ?? {})) {
+    for (const [to, delta] of Object.entries(row)) {
+      if (!Number.isFinite(delta)) errors.push(`关系 ${from} → ${to} 的值不是有限数`)
+    }
+  }
+  for (const [ent, ids] of Object.entries(ledger.knows ?? {})) {
+    if (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string')) errors.push(`${ent} 的 knows 必须是字符串数组`)
+  }
+
   if (pack.canon.length === 0) errors.push('canon 为空')
   pack.canon.forEach((line, i) => {
     const canonWidth = width(line.trim())

@@ -36,7 +36,7 @@ function exists(w: World, id: string): boolean {
 }
 
 function held(w: World, id: EntId, item: string): number {
-  return w.ledger.holds[id]?.[item] ?? 0
+  return w.ledger.holds?.[id]?.[item] ?? 0
 }
 
 function str(value: unknown): value is string {
@@ -172,6 +172,7 @@ function addItems(w: World, who: EntId, item: string, n: number): void {
 }
 
 function holdsOf(w: World, who: EntId): Record<string, number> {
+  w.ledger.holds ??= {}
   const existing = w.ledger.holds[who]
   if (existing) return existing
   const fresh: Record<string, number> = {}
@@ -180,6 +181,7 @@ function holdsOf(w: World, who: EntId): Record<string, number> {
 }
 
 function physOf(w: World, who: EntId): Record<string, number | boolean> {
+  w.ledger.phys ??= {}
   const existing = w.ledger.phys[who]
   if (existing) return existing
   const fresh: Record<string, number | boolean> = {}
@@ -188,6 +190,7 @@ function physOf(w: World, who: EntId): Record<string, number | boolean> {
 }
 
 function relOf(w: World, from: EntId): Record<string, number> {
+  w.ledger.rel ??= {}
   const existing = w.ledger.rel[from]
   if (existing) return existing
   const fresh: Record<string, number> = {}
@@ -196,6 +199,7 @@ function relOf(w: World, from: EntId): Record<string, number> {
 }
 
 function knowsOf(w: World, who: EntId): FactId[] {
+  w.ledger.knows ??= {}
   const existing = w.ledger.knows[who]
   if (existing) return existing
   const fresh: FactId[] = []
