@@ -230,7 +230,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
 
   // 动作提示与旁白并行（50 §2）：输入只有玩家可见的东西，失败只丢提示，不影响正文与账本。
   // 先发起再 await 旁白，两者才真的同时跑；等旁白写完才开始就会白等一遍模型。
-  const suggested = deps.suggester === undefined ? undefined : suggestHints(deps.suggester, suggestInput(input, world, out), leakIds(input))
+  const suggested = deps.suggester === undefined ? undefined : suggestHints(deps.suggester, suggestInput(input, world, out), leakIds(input, world))
 
   let passage = ''
   let narrationFailed = false
@@ -387,8 +387,8 @@ function knownTexts(world: World, player: EntId): string[] {
 /** 提示里出现 id 或引擎词就把这一条丢掉：玩家界面不能因此泄漏账本。 */
 const ENGINE_WORDS = ['claim', 'verdict', 'delta', 'phys', 'ledger', 'token', 'cost', 'heat', 'rel', 'drives', 'beliefs']
 
-function leakIds(input: BeatInput): string[] {
-  return [...Object.keys(input.names ?? {}), ...Object.keys(input.items ?? {})]
+function leakIds(input: BeatInput, world: World): string[] {
+  return [...Object.keys(input.names ?? {}), ...Object.keys(input.items ?? {}), ...Object.keys(world.places)]
 }
 
 function leaks(hint: string, ids: readonly string[]): boolean {
@@ -402,9 +402,9 @@ async function suggestHints(
   ids: readonly string[],
 ): Promise<{ hints: string[]; notes: string[] }> {
   try {
-    const { hints } = await suggester.suggest(input)
+    const { hints, notes: modelNotes = [] } = await suggester.suggest(input)
     const kept: string[] = []
-    const notes: string[] = []
+    const notes: string[] = [...modelNotes]
     for (const hint of hints) {
       // 过滤是降级，不是静默：丢掉的写进 notes，才能事后看出模型在泄漏什么
       if (leaks(hint, ids)) notes.push(`动作提示被丢弃（含 id 或引擎词）：${hint}`)

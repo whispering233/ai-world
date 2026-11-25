@@ -34,8 +34,14 @@ export interface SuggestInput {
   observation?: string
 }
 
+export interface SuggestResult {
+  hints: string[]
+  /** 模型有输出但没产出合法提示时的降级原因；调用方负责并进 notes */
+  notes?: string[]
+}
+
 export interface Suggester {
-  suggest(input: SuggestInput): Promise<{ hints: string[] }>
+  suggest(input: SuggestInput): Promise<SuggestResult>
 }
 
 export const SUGGEST_SYSTEM = `你是这个世界的动作提示器。你只做一件事：给玩家 3 句他现在就能输入的短动作。
@@ -100,7 +106,11 @@ export function createSuggester(llm: Llm): Suggester {
         system: SUGGEST_SYSTEM,
         messages: [{ role: 'user', content: buildPrompt(input) }],
       })
-      return { hints: parseHints(res.text) }
+      const hints = parseHints(res.text)
+      if (hints.length > 0) return { hints }
+      const raw = res.text.trim()
+      // 空文本与格式不符都是降级，必须留痕（AGENTS：降级不许静默吞掉）
+      return { hints, notes: [`动作提示未产出：${raw === '' ? '空文本' : raw.slice(0, 40)}`] }
     },
   }
 }

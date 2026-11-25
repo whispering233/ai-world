@@ -81,8 +81,9 @@ describe('createSuggester：prompt 只含玩家可见的东西', () => {
     expect(res.hints).toEqual(['看一眼地窖门', '问安账本的事'])
   })
 
-  it('模型胡说时给空数组，调用方只需要按“没提示”处理', async () => {
+  it('模型胡说时给空数组并留下降级原因', async () => {
     const res = await createSuggester(createFauxLlm(['我觉得你应该做点什么。'])).suggest(INPUT)
     expect(res.hints).toEqual([])
+    expect(res.notes?.[0]).toContain('动作提示未产出')
   })
 })

@@ -1168,6 +1168,22 @@ describe('runBeat：动作提示', () => {
     expect(r.notes.filter((n) => n.includes('动作提示被丢弃'))).toHaveLength(2)
   })
 
+  it('地点 id 也算 id：提示里出现 saloon 会被丢掉', async () => {
+    const store = tmpStore()
+    const input = base(store, [settled])
+    input.playerClaim = '我把银元放在柜台上。'
+    const hints = ['回 saloon 去看看', '问 ann 账本的事', '看一眼地窖门']
+    const r = await runBeat({
+      ...input,
+      names: { player: '你', ann: '安' },
+      items: { 'silver-dollar': '银元' },
+      deps: { ...input.deps, suggester: createStubSuggester([JSON.stringify({ hints })]) },
+    })
+
+    expect(r.hints).toEqual(['看一眼地窖门'])
+    expect(r.notes.filter((n) => n.includes('动作提示被丢弃'))).toHaveLength(2)
+  })
+
   it('输入只有玩家可见的数据：没有别人的原话、没有感知以外的东西', async () => {
     const store = tmpStore()
     const input = base(store, [
