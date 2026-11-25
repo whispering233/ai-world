@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { commit, createStubReferee, noRate, parseRefereeOutput, type Claim, type RefereeOutput } from './referee.ts'
+import { commit, createStubReferee, noRate, parseRefereeOutput, refereePrompt, type Claim, type RefereeOutput } from './referee.ts'
 import type { World } from './world.ts'
 
 const claims: Claim[] = [
@@ -79,6 +79,18 @@ describe('parseRefereeOutput：信封校验', () => {
 
   it('非对象输入不会抛异常', () => {
     expect(parseRefereeOutput('nope', claims).output.verdicts).toHaveLength(2)
+  })
+})
+
+describe('refereePrompt：世界设定', () => {
+  it('canon 渲染成世界设定块', () => {
+    const prompt = refereePrompt({ clock: 10, claims, context: '现场', canon: ['这家酒馆欠着银行的债', '安不卖赊账'] })
+    expect(prompt).toContain('世界设定：\n- 这家酒馆欠着银行的债\n- 安不卖赊账')
+    expect(prompt).toContain('待裁决的主张：')
+  })
+
+  it('没有 canon 时不出世界设定块', () => {
+    expect(refereePrompt({ clock: 10, claims, context: '现场' })).not.toContain('世界设定')
   })
 })
 

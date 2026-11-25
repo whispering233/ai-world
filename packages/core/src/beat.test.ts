@@ -141,6 +141,123 @@ describe('runBeat：玩家输入可见', () => {
   })
 })
 
+describe('runBeat：人物与裁判同一份现场（决策 #42）', () => {
+  const recording = (slices: { id: string; sceneText: string }[]) => ({
+    think: (req: { character: { id: string }; sceneText: string }) => {
+      slices.push({ id: req.character.id, sceneText: req.sceneText })
+      return Promise.resolve({ output: { inner: '看着', outward: '点了下头' }, experience: [] })
+    },
+  })
+
+  it('人物的账本切片含本场景物件的 phys：门不再对人隐身', async () => {
+    const store = tmpStore()
+    const input = base(store, [
+      { order: ['ann'], verdicts: [verdict('a0', [], 1), verdict('d0', [], 1)], observations: {}, driveHits: [] },
+    ])
+    input.world = {
+      ...input.world,
+      ledger: {
+        ...input.world.ledger,
+        at: { ...input.world.ledger.at, door: 'saloon' },
+        phys: { door: { closed: true } },
+      },
+    }
+    const slices: { id: string; sceneText: string }[] = []
+    await runBeat({ ...input, names: { door: '铁门' }, deps: { ...input.deps, cognition: recording(slices) } })
+
+    expect(slices).toHaveLength(2)
+    expect(slices.every((s) => s.sceneText.includes('铁门') && s.sceneText.includes('closed=true'))).toBe(true)
+  })
+
+  it('裁判给本人的感知摘要进下一拍的上下文', async () => {
+    const store = tmpStore()
+    const input = base(store, [
+      {
+        order: ['ann'],
+        verdicts: [verdict('a0', [], 1), verdict('d0', [], 1)],
+        observations: { doc: { claimIds: ['a0'], summary: '你看见安把杯子推了过来' } },
+        driveHits: [],
+      },
+    ])
+    const first = await runBeat(input)
+    const slices: { id: string; sceneText: string }[] = []
+    await runBeat({
+      ...input,
+      world: first.world,
+      scene: first.scene,
+      characters: first.characters,
+      deps: { ...input.deps, cognition: recording(slices) },
+    })
+
+    const sliceOf = (id: string) => slices.find((s) => s.id === id)?.sceneText ?? ''
+    expect(sliceOf('doc')).toContain('我感知到的：你看见安把杯子推了过来')
+    // 没被写进 observations 的人看不到别人的感知
+    expect(sliceOf('ann')).not.toContain('你看见安把杯子推了过来')
+  })
+
+  it('缺 observation 时不广播别人的 claim，并记 notes', async () => {
+    const store = tmpStore()
+    const input = base(store, [
+      { order: ['ann'], verdicts: [verdict('p0', [], 1), verdict('a0', [], 1), verdict('d0', [], 1)], observations: {}, driveHits: [] },
+    ])
+    input.playerClaim = '我把银元放在柜台上'
+    const r = await runBeat(input)
+
+    const ann = r.scene.context['ann']?.join('\n') ?? ''
+    expect(ann).toContain('把杯子推过去')
+    expect(ann).not.toContain('我把银元放在柜台上')
+    expect(r.notes.some((n) => n.includes('无感知摘要') && n.includes('ann'))).toBe(true)
+  })
+
+  it('上下文行用显示名，不出现实体 id', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.deps.cognition = createStubCognition(['把杯子推了过去', '抬头看了一眼'])
+    input.deps.referee = {
+      async judge({ claims }) {
+        return {
+          order: [],
+          verdicts: claims.map((c) => ({ claimId: c.id, actor: c.actor, ok: true, deltas: [], duration: 1 })),
+          observations: {
+            ann: { claimIds: [], summary: '你看见柜台上的银元被收走了' },
+            doc: { claimIds: [], summary: '你听见有人推门进来' },
+          },
+          driveHits: [],
+        }
+      },
+    }
+    input.playerClaim = '我把银元放在柜台上'
+    const r = await runBeat({ ...input, names: { player: '你', ann: '安', doc: '医生' } })
+
+    const lines = r.scene.participants.flatMap((ent) => r.scene.context[ent] ?? [])
+    const joined = lines.join('\n')
+    expect(joined).toContain('安：')
+    expect(joined).toContain('我感知到的：')
+    for (const id of ['player', 'ann', 'doc']) expect(joined).not.toContain(id)
+  })
+
+  it('canon 进裁判输入', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.playerClaim = '我推门进去'
+    let canon: readonly string[] | undefined
+    const referee: Referee = {
+      async judge(req: RefereeInput) {
+        canon = req.canon
+        return {
+          order: [],
+          verdicts: req.claims.map((c) => ({ claimId: c.id, actor: c.actor, ok: true, deltas: [], duration: 1 })),
+          observations: {},
+          driveHits: [],
+        }
+      },
+    }
+    await runBeat({ ...input, deps: { ...input.deps, referee } })
+
+    expect(canon).toEqual(['这家酒馆欠着银行的债'])
+  })
+})
+
 describe('runBeat：降级', () => {
   it('一个人物的认知抛错时，其余人照常结算，拍不会丢', async () => {
     const store = tmpStore()

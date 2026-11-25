@@ -55,6 +55,8 @@ export interface RefereeInput {
   claims: readonly Claim[]
   /** 场景装配好的现场文本（由调度层拼），裁判不自己检索 */
   context: string
+  /** 世界设定：与本拍相关的固定事实，判定时不得与之矛盾 */
+  canon?: readonly string[]
 }
 
 export interface Referee {
@@ -259,6 +261,7 @@ export const REFEREE_SYSTEM = `你是这个世界的裁判，不是叙述者。�
 11. **phys 的键必须能被一句物理描述解释**（closed / broken / lit / wounded）；不要用它记「他有药包」这类身份状态。
 12. **item 必须填上下文括号里的 id**（如 whiskey），不能填显示名（如 威士忌）；填错会被账本拒绝。
 13. **duration 是动作本身的耗时，不是当前 clock**：不要用“从进门到现在才过了几分钟”拒绝睡一整夜、等到天亮或远行。只要动作在当前场景可行，就按实际耗时给 duration；clock 由已提交的 duration 推进。
+14. **observations 是每个人的感知**：summary 固定用**第二人称**写给该实体（“你看见…”），只写他自己感知到的内容，不用“他/她/名字”指代本人；claimIds 是感知白名单，没列出的 claim 等于这个人没看见，下一拍他的上下文里也不会出现。
 
 调用 submit_verdict 工具给出判定；不要输出解释文字。字段形状如下（供参考）：
 {"order":["实体id",...],"verdicts":[{"claimId":"...","actor":"...","ok":true,"reason":"...","deltas":[{"op":"move","who":"...","to":"..."}],"duration":1}],"observations":{"实体id":{"claimIds":["..."],"summary":"一句他实际感知到的结果"}},"driveHits":[{"ent":"...","driveId":"...","delta":0.2}]}
@@ -272,7 +275,8 @@ deltas 只能使用这些 op：move{who,to} / transfer{from,to,item,n} / consume
 /** 裁判的用户消息（工具调用与纯文本回退共用同一段，便于对照测速） */
 export function refereePrompt(input: RefereeInput): string {
   const claims = input.claims.map((c) => ({ claimId: c.id, actor: c.actor, kind: c.kind, text: c.text }))
-  return `当前时刻（分钟）：${input.clock}\n\n现场：\n${input.context}\n\n待裁决的主张：\n${JSON.stringify(claims, null, 2)}`
+  const canon = input.canon?.length ? `世界设定：\n${input.canon.map((c) => `- ${c}`).join('\n')}\n\n` : ''
+  return `${canon}当前时刻（分钟）：${input.clock}\n\n现场：\n${input.context}\n\n待裁决的主张：\n${JSON.stringify(claims, null, 2)}`
 }
 
 export function createLlmReferee(llm: Llm): Referee {
