@@ -139,6 +139,14 @@ const HEALTH: HealthView = {
 
 const CONTENT: ContentStatusView = { path: 'content/starter-town.json', activeHash: 'aaa', diskHash: 'bbb', changed: true }
 
+/** 把某一拍的玩家 claim 改成“对某人说”；不改原 fixture，旧日志那几条仍然没有 to。 */
+function withPlayerTo(journal: JournalEntry[], to: string): JournalEntry[] {
+  return journal.map((entry) => ({
+    ...entry,
+    claims: entry.claims.map((claim) => (claim.actor === 'guest' ? { ...claim, to } : claim)),
+  }))
+}
+
 const PLAYER_INPUT: PlayerViewInput = {
   title: '雨夜酒馆',
   player: 'guest',
@@ -229,6 +237,34 @@ describe('playerView', () => {
     expect(beats[0]?.hints).toEqual(['问安账本的事', '看一眼地窖门'])
     // 旧日志：字段整个不出现，不是空数组
     expect(beats[1]).not.toHaveProperty('hints')
+  })
+
+  it('玩家 claim 的 to 映射成显示名，不泄漏实体 id', () => {
+    const journal = withPlayerTo(JOURNAL, 'ann')
+    const beats = beatViews({ journal, passages: PASSAGES, player: 'guest', names: NAMES })
+
+    expect(beats[0]?.playerTo).toBe('安')
+    expect(JSON.stringify(beats)).not.toContain('ann')
+  })
+
+  it('缺 names 时 playerTo 整个省略，绝不回退成 id', () => {
+    const beats = beatViews({ journal: withPlayerTo(JOURNAL, 'ann'), passages: PASSAGES, player: 'guest' })
+    expect(beats[0]).not.toHaveProperty('playerTo')
+  })
+
+  it('缺 names 项的目标也省略：宁可没有前缀，也不显示 id', () => {
+    const beats = beatViews({ journal: withPlayerTo(JOURNAL, 'ghost'), passages: PASSAGES, player: 'guest', names: NAMES })
+    expect(beats[0]).not.toHaveProperty('playerTo')
+  })
+
+  it('旧 journal 没有 to：BeatView 没有 playerTo', () => {
+    const beats = beatViews({ journal: JOURNAL, passages: PASSAGES, player: 'guest', names: NAMES })
+    expect(beats[0]).not.toHaveProperty('playerTo')
+  })
+
+  it('playerView 把 to 一路带到 BeatView.playerTo', () => {
+    const view = playerView({ ...PLAYER_INPUT, journal: withPlayerTo(JOURNAL, 'ann') })
+    expect(view.beats[0]?.playerTo).toBe('安')
   })
 
   it('journal 乱序时 beat 仍按 seq 升序', () => {

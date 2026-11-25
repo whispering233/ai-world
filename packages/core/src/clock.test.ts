@@ -170,3 +170,63 @@ describe('calledActors：heat 边界', () => {
     ).toEqual(['ann'])
   })
 })
+
+describe('calledActors：聚焦（对谁说）', () => {
+  it('目标在场时只叫玩家 + 目标，其他热人物和 touched 都不参与', () => {
+    expect(
+      calledActors({
+        present: ['ann', 'bob', 'cid'],
+        heat: { ann: [0.1], bob: [0.9], cid: [0.9] },
+        touched: ['cid'],
+        player: 'ann',
+        focus: 'bob',
+      }),
+    ).toEqual(['ann', 'bob'])
+  })
+
+  it('聚焦不看 heat：目标冷到 0 也被叫到', () => {
+    expect(
+      calledActors({
+        present: ['bob', 'cid'],
+        heat: { bob: [], cid: [1] },
+        touched: [],
+        player: 'ann',
+        focus: 'bob',
+      }),
+    ).toEqual(['ann', 'bob'])
+  })
+
+  it('focus 是玩家自己时只有玩家', () => {
+    expect(
+      calledActors({
+        present: ['ann', 'bob'],
+        heat: { bob: [1] },
+        touched: [],
+        player: 'ann',
+        focus: 'ann',
+      }),
+    ).toEqual(['ann'])
+  })
+
+  it('目标不在场时退回 heat / touched 逻辑', () => {
+    expect(
+      calledActors({
+        present: ['bob', 'cid'],
+        heat: { bob: [0.9], cid: [0.1] },
+        touched: [],
+        player: 'ann',
+        focus: 'dan',
+      }),
+    ).toEqual(['ann', 'bob'])
+  })
+
+  it('不传 focus 时与原来一致', () => {
+    const withoutFocus = calledActors({
+      present: ['ann', 'bob', 'cid'],
+      heat: { ann: [0.2], bob: [0.9], cid: [0.6] },
+      touched: ['cid'],
+      player: 'ann',
+    })
+    expect(withoutFocus).toEqual(['ann', 'bob', 'cid'])
+  })
+})

@@ -37,6 +37,8 @@ export interface BeatView {
   clockText: string
   /** 玩家本拍输入原文；缺省表示本拍没有玩家发言 */
   player?: string
+  /** 本拍玩家说话对象的显示名；缺省表示对所有人/无目标 */
+  playerTo?: string
   /** 旁白正文；缺省表示 passage 落盘失败 */
   passage?: string
   /** true = 旁白失败，passage 是事实摘要兜底 */

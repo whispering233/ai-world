@@ -55,6 +55,11 @@ export interface BeatInput {
   aliases?: Record<EntId, string[]>
   /** 玩家自由输入原文；为空表示玩家这拍不发言 */
   playerClaim?: string
+  /**
+   * 玩家这拍对谁说（实体 id，由服务端按显示名解析）；不在本场时按“所有人”结算并留 note。
+   * 聚焦只影响“谁被叫到”，不改裁判与旁白的 op（决策 #48）。
+   */
+  playerTo?: EntId
   /** 世界事件来源（storylet 抽卡）：可选，缺省时一拍只有玩家与人物 */
   claimSource?: ClaimSource
   /**
@@ -99,18 +104,51 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   const heat: Record<EntId, number[]> = {}
   for (const ent of inScene) heat[ent] = (characters.get(ent)?.drives ?? []).map((d) => d.heat)
 
-  const called = calledActors({ present: inScene, heat, touched: [], player: input.player })
+  // 聚焦（决策 #48）：目标不在本场就退回“所有人”，并留一条注记，不静默改变调度。
+  // 玩家自己不是聚焦目标：那等于“对所有人”，写在 claims 里只会让显示名映射多一条废数据。
+  const focus =
+    input.playerTo !== undefined && input.playerTo !== input.player && inScene.includes(input.playerTo)
+      ? input.playerTo
+      : undefined
+  const focusNotes: string[] =
+    input.playerTo === undefined || focus !== undefined
+      ? []
+      : [
+          input.playerTo === input.player
+            ? '聚焦目标是你自己（本拍按所有人结算）'
+            : `聚焦目标不在场（本拍按所有人结算）：${input.playerTo}`,
+        ]
+
+  const called = calledActors({
+    present: inScene,
+    heat,
+    touched: [],
+    player: input.player,
+    ...(focus === undefined ? {} : { focus }),
+  })
 
   const claims: Claim[] = []
   if (input.playerClaim) {
-    claims.push({ id: `p${clock}`, actor: input.player, text: input.playerClaim, kind: 'act' })
+    claims.push({
+      id: `p${clock}`,
+      actor: input.player,
+      text: input.playerClaim,
+      kind: 'act',
+      ...(focus === undefined ? {} : { to: focus }),
+    })
   }
   // 玩家输入是未裁决主张（30 §7）：人物看到的是“他提出”，不是“已经发生”。
-  const playerLine = input.playerClaim ? `玩家这一拍提出（尚未裁决）：${input.playerClaim}` : ''
+  // 被聚焦的那人看到的是“对你说”：本拍只有他和玩家被叫到。
+  const playerLine = (ent: EntId): string => {
+    if (!input.playerClaim) return ''
+    return ent === focus
+      ? `玩家这一拍对你说（尚未裁决）：${input.playerClaim}`
+      : `玩家这一拍提出（尚未裁决）：${input.playerClaim}`
+  }
   // 人物与裁判看同一份现场（决策 #42）：切片取场景内全部实体（含门/灯），不是本场原班人马，
   // 否则裁判按已变化的 phys 驳回，而物件的状态人物从未看见。
   const sceneFor = (ent: EntId): string =>
-    [input.sceneText, playerLine, describeLedger(input.world, present, { names: input.names, items: input.items, aliases: input.aliases }), contextOf(input.scene, ent)]
+    [input.sceneText, playerLine(ent), describeLedger(input.world, present, { names: input.names, items: input.items, aliases: input.aliases }), contextOf(input.scene, ent)]
       .filter(Boolean)
       .join('\n')
   // 同一拍内多个 actor 的认知互不依赖：并发跑，但按人位顺序落 claims（结算顺序仍由裁判给）。
@@ -137,7 +175,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
       }
     }),
   )
-  const degraded: string[] = []
+  const degraded: string[] = [...focusNotes]
   // 自我修订要等裁判给完签名才能定（30 §4）：认知阶段只暂存，不落 experience
   const pendingSelf = new Map<EntId, string>()
   for (const t of thoughts) {

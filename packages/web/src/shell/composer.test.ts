@@ -52,6 +52,8 @@ async function mount(options: {
   inFlight?: boolean
   settled?: boolean
   state?: PlayerStateView
+  /** “对谁说”的当前目标；`null` = 所有人 */
+  target?: string | null
   hints?: string[]
 }) {
   const { Composer } = await import('./Composer.tsx')
@@ -59,6 +61,7 @@ async function mount(options: {
   const onStop = vi.fn()
   const onWait = vi.fn()
   const onDraftChange = vi.fn()
+  const onTargetChange = vi.fn()
   const { container, unmount } = render(
     createElement(Composer, {
       draft: options.draft,
@@ -70,12 +73,14 @@ async function mount(options: {
       settled: options.settled ?? false,
       elapsedMs: 0,
       state: options.state,
+      target: options.target ?? null,
+      onTargetChange,
       ...(options.hints === undefined ? {} : { hints: options.hints }),
     }),
   )
   const textarea = container.querySelector('textarea')
   if (textarea === null) throw new Error('Sender 没有渲染出 textarea')
-  return { container, textarea, onSend, onStop, onWait, onDraftChange, unmount }
+  return { container, textarea, onSend, onStop, onWait, onDraftChange, onTargetChange, unmount }
 }
 
 function waitButton(container: HTMLElement): HTMLButtonElement | undefined {
@@ -241,6 +246,69 @@ describe('Composer 的选项区', () => {
   it('没有提示时不渲染空选项区', async () => {
     const { container, unmount } = await mount({ draft: '' })
     expect(container.querySelector('.ant-prompts')).toBeNull()
+    unmount()
+  })
+}, 15_000)
+
+/** 目标 chips：只改状态，不发送（ui/DESIGN §3） */
+describe('Composer 的目标 chips', () => {
+  function chipOf(container: HTMLElement, label: string): HTMLElement | undefined {
+    return Array.from(container.querySelectorAll<HTMLElement>('.ant-tag-checkable')).find(
+      (tag) => tag.textContent === label,
+    )
+  }
+
+  it('状态行右侧是「所有人」+ 在场者显示名', async () => {
+    const { container, unmount } = await mount({ draft: '', state: { ...playerState, here: ['安', '道森医生'] } })
+    for (const label of ['所有人', '安', '道森医生']) expect(chipOf(container, label)).toBeDefined()
+    // 每个人只是一个 chip，不多出“你”自己
+    expect(container.querySelectorAll('.ant-tag-checkable')).toHaveLength(3)
+    unmount()
+  })
+
+  it('没人在场时只剩「所有人」', async () => {
+    const { container, unmount } = await mount({ draft: '', state: { ...playerState, here: [] } })
+    expect(chipOf(container, '所有人')).toBeDefined()
+    expect(container.querySelectorAll('.ant-tag-checkable')).toHaveLength(1)
+    unmount()
+  })
+
+  it('点在场者只调用 onTargetChange，绝不直接发送', async () => {
+    const { container, onTargetChange, onSend, unmount } = await mount({ draft: '我推门进去。', state: playerState })
+    fireEvent.click(chipOf(container, '安')!)
+    expect(onTargetChange).toHaveBeenCalledWith('安')
+    expect(onSend).not.toHaveBeenCalled()
+    unmount()
+  })
+
+  it('点「所有人」回到 null', async () => {
+    const { container, onTargetChange, onSend, unmount } = await mount({ draft: '我推门进去。', state: playerState, target: '安' })
+    fireEvent.click(chipOf(container, '所有人')!)
+    expect(onTargetChange).toHaveBeenCalledWith(null)
+    expect(onSend).not.toHaveBeenCalled()
+    unmount()
+  })
+
+  it('选中态跟着 target 走', async () => {
+    const { container, unmount } = await mount({ draft: '', state: playerState, target: '安' })
+    expect(chipOf(container, '安')?.className).toContain('ant-tag-checkable-checked')
+    expect(chipOf(container, '所有人')?.className).not.toContain('ant-tag-checkable-checked')
+    unmount()
+  })
+
+  it('还没读到会话时不渲染 chips', async () => {
+    const { container, unmount } = await mount({ draft: '' })
+    expect(container.querySelectorAll('.ant-tag-checkable')).toHaveLength(0)
+    unmount()
+  })
+
+  it('等待中 chips 仍然可改（目标只影响发送时），也不会触发发送', async () => {
+    const { container, onTargetChange, onSend, unmount } = await mount({ draft: '', state: playerState, inFlight: true })
+    const chip = chipOf(container, '安')
+    expect(chip).toBeDefined()
+    fireEvent.click(chip!)
+    expect(onTargetChange).toHaveBeenCalledWith('安')
+    expect(onSend).not.toHaveBeenCalled()
     unmount()
   })
 }, 15_000)

@@ -52,7 +52,7 @@ export function playerView(input: PlayerViewInput): SessionView {
     clock,
     clockText: fmt(clock),
     state: playerState(input),
-    beats: beatViews({ journal: input.journal, passages: input.passages, player: input.player }),
+    beats: beatViews({ journal: input.journal, passages: input.passages, player: input.player, names: input.names }),
     inFlight: input.inFlight,
   }
 }
@@ -90,6 +90,11 @@ export interface BeatJoinInput {
   journal: readonly JournalEntry[]
   passages: readonly PassageEntry[]
   player: EntId
+  /**
+   * 人物显示名：id → 名字；`playerTo` 只出显示名，缺这一份就整个省略。
+   * 绝不回退成实体 id：客户端不持有 id。
+   */
+  names?: Record<EntId, string>
 }
 
 export function beatViews(input: BeatJoinInput): BeatView[] {
@@ -119,7 +124,11 @@ export function beatViews(input: BeatJoinInput): BeatView[] {
       clockText: fmt(entry.clock),
       fallback: passage?.source === 'fallback',
     }
-    if (line !== undefined) view.player = line.text
+    if (line !== undefined) {
+      view.player = line.text
+      const to = line.to === undefined ? undefined : input.names?.[line.to]
+      if (to !== undefined) view.playerTo = to
+    }
     if (passage !== undefined) view.passage = passage.text
     if (passage?.hints !== undefined) view.hints = passage.hints
     views.push(view)

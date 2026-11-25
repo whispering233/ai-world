@@ -85,6 +85,8 @@ export interface Session {
     text: string,
     signal: AbortSignal,
     onProgress: (elapsedMs: number, phase?: 'settled') => void,
+    /** 对谁说：在场者的显示名；空串/缺省 = 所有人（docs/api/20-api-beat.md §1） */
+    to?: string,
   ): Promise<BeatOutcome>
   reset(): void
   inFlight(): boolean
@@ -164,6 +166,24 @@ export function createSession(opts: SessionOptions): Session {
     })
   }
 
+  /**
+   * 聚焦解析（决策 #48）：只按显示名在「玩家当前地点的人物」里唯一匹配。
+   * 客户端不持有实体 id，所以对不上就退回所有人并留一条注记——不猜、也不阻挠这一拍。
+   */
+  function resolveFocus(to: string | undefined): { focus?: EntId; note?: string } {
+    const name = (to ?? '').trim()
+    if (name === '') return {}
+    const failed = (why: string): { note: string } => ({ note: `聚焦失败（本拍按所有人结算）：${why}` })
+    if (name === pack.names[pack.player]) return failed('目标是玩家自己')
+    const place = state.world.ledger.at[pack.player] ?? ''
+    const hits = roster(pack).filter(
+      (ent) => ent !== pack.player && (state.world.ledger.at[ent] ?? '') === place && pack.names[ent] === name,
+    )
+    const only = hits[0]
+    if (hits.length === 1 && only !== undefined) return { focus: only }
+    return hits.length === 0 ? failed(`当前地点没有叫「${name}」的人`) : failed(`「${name}」重名，无法唯一匹配`)
+  }
+
   function content(): ContentStatusView {
     const disk = diskHash()
     return { path: opts.contentPath, activeHash, diskHash: disk, changed: activeHash !== disk }
@@ -240,9 +260,12 @@ export function createSession(opts: SessionOptions): Session {
     text: string,
     clientSignal: AbortSignal,
     onProgress: (elapsedMs: number, phase?: 'settled') => void,
+    to?: string,
   ): Promise<BeatOutcome> {
     if (busy) throw coded('E_BEAT_IN_FLIGHT', '上一拍还在结算')
     busy = true
+    // 聚焦先解析：对不上就退回所有人并留注记，不阻挠本拍（决策 #48）
+    const { focus, note: focusNote } = resolveFocus(to)
     const startedAt = performance.now()
     // 客户端断开与总时限合成一个 signal：超时走与模型失败同一条降级路径，世界不动
     const deadline = AbortSignal.timeout(opts.timeoutMs ?? BEAT_TIMEOUT_MS)
@@ -273,6 +296,7 @@ export function createSession(opts: SessionOptions): Session {
         items: pack.items,
         ...(pack.aliases === undefined ? {} : { aliases: pack.aliases }),
         playerClaim,
+        ...(focus === undefined ? {} : { playerTo: focus }),
         telemetry: sink.telemetry,
         // 账本落定 = 可证的中途状态（docs/api/20-api-beat.md §2）：裁判返回后立刻报一次
         onSettled: () => onProgress(Math.round(performance.now() - startedAt), 'settled'),
@@ -296,7 +320,11 @@ export function createSession(opts: SessionOptions): Session {
       // 折场会额外写一条 journal，整份重读比手工维护账目更省
       state.journal = store.readJournal()
       state.passages = store.readPassage()
-      notes.set(res.journalSeq, [...(playerClaim === text ? [] : [`玩家输入超过 ${PLAYER_TEXT_MAX} 字，已截断`]), ...res.notes])
+      notes.set(res.journalSeq, [
+        ...(playerClaim === text ? [] : [`玩家输入超过 ${PLAYER_TEXT_MAX} 字，已截断`]),
+        ...(focusNote === undefined ? [] : [focusNote]),
+        ...res.notes,
+      ])
       prompts.push({ seq: res.journalSeq, calls: sink.calls })
       if (prompts.length > PROMPT_BEATS) prompts.shift()
 

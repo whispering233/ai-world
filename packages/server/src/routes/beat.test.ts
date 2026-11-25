@@ -123,3 +123,27 @@ describe('POST /beat：SSE 帧', () => {
     expect(frames).toEqual(['error'])
   })
 })
+
+describe('POST /beat：对谁说（to）', () => {
+  it('body 的 to 一路到 passage 帧：客户端只看到显示名', async () => {
+    const res = await post(session(stubLlm()), '{"text":"我把两枚银元塞进安手里。","to":"安"}')
+    const passage = JSON.parse(dataOf(await res.text(), 'passage')[0] ?? '{}') as { playerTo?: string }
+    expect(passage.playerTo).toBe('安')
+  })
+
+  it('不定 to 或 to 是空白：都是所有人，passage 帧没有 playerTo', async () => {
+    for (const body of ['{"text":"我推门进去。"}', '{"text":"我推门进去。","to":"   "}']) {
+      const res = await post(session(stubLlm()), body)
+      const passage = JSON.parse(dataOf(await res.text(), 'passage')[0] ?? '{}') as { playerTo?: string }
+      expect(passage).not.toHaveProperty('playerTo')
+    }
+  })
+
+  it('to 不是字符串：400 E_INVALID_BODY', async () => {
+    for (const body of ['{"text":"我推门进去。","to":1}', '{"text":"我推门进去。","to":null}', '{"text":"我推门进去。","to":{}}']) {
+      const res = await post(session(stubLlm()), body)
+      expect(res.status).toBe(400)
+      expect(await res.json()).toMatchObject({ code: 'E_INVALID_BODY' })
+    }
+  })
+})

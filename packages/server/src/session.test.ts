@@ -49,6 +49,23 @@ function furnishedPack(): ContentPack {
   }
 }
 
+/**
+ * 两个人物的世界：安是聚焦目标，医生是不该被叫到的人。
+ * `names` 可换掉：重名与“目标是自己”都用它造。
+ */
+function twoPersonPack(names: Record<string, string> = { player: '你', ann: '安', doc: '医生' }): ContentPack {
+  const base = pack()
+  return {
+    ...base,
+    world: { ...base.world, ledger: { ...base.world.ledger, at: { ...base.world.ledger.at, doc: 'saloon' } } },
+    characters: [
+      ...base.characters,
+      { id: 'doc', core: CORE, voice: '慢，半句话', drives: [{ id: 'd1', text: '想早点打烊', heat: 0.8 }], beliefs: {} },
+    ],
+    names,
+  }
+}
+
 /** 玩家主张的 id 是 `p${clock}`；裁判只判它，人物主张由 parseRefereeOutput 按"无事发生"补齐。 */
 const verdictFor = (claimId: string): string =>
   JSON.stringify({
@@ -107,6 +124,11 @@ function writePack(dir: string, value: ContentPack = pack()): string {
   const path = join(dir, 'pack.json')
   writeFileSync(path, JSON.stringify(value, null, 2))
   return path
+}
+
+function makeFocusSession(dir: string, llm: Llm = stubLlm(), names?: Record<string, string>): Session {
+  const value = twoPersonPack(names)
+  return createSession({ dir, contentPath: writePack(dir, value), pack: value, llm })
 }
 
 const noProgress = (): void => {}
@@ -485,5 +507,76 @@ describe('内容保存', () => {
 
     held.open()
     await expect(pending).resolves.toMatchObject({ seq: 1 })
+  })
+})
+
+describe('聚焦（对谁说）', () => {
+  const signal = (): AbortSignal => new AbortController().signal
+
+  it('只叫玩家 + 目标：journal 存实体 id，SSE 帧里只有显示名', async () => {
+    const dir = tmpDir()
+    const session = makeFocusSession(dir)
+    const res = await session.beat('我把两枚银元塞进安手里。', signal(), noProgress, '安')
+
+    const journal = openStore(dir).readJournal()
+    // 医生也是热人物，但这一拍没叫他
+    expect(journal[0]?.claims.map((claim) => claim.actor)).toEqual(['player', 'ann'])
+    expect(journal[0]?.claims.find((claim) => claim.actor === 'player')?.to).toBe('ann')
+    // res.beat 就是 passage 帧数据：对客户端只出显示名
+    expect(res.beat.playerTo).toBe('安')
+    expect(JSON.stringify(session.view())).not.toContain('ann')
+    expect(session.authorBeat(res.seq)?.notes).toEqual([])
+  })
+
+  it('不传 to：默认全员调度，玩家 claim 没有 to', async () => {
+    const dir = tmpDir()
+    const session = makeFocusSession(dir)
+    const res = await session.beat('我推门进去。', signal(), noProgress)
+
+    expect(openStore(dir).readJournal()[0]?.claims.map((claim) => claim.actor)).toEqual(['player', 'ann', 'doc'])
+    expect(openStore(dir).readJournal()[0]?.claims.find((claim) => claim.actor === 'player')).not.toHaveProperty('to')
+    expect(res.beat).not.toHaveProperty('playerTo')
+  })
+
+  it('空串 to 与缺省同义：所有人', async () => {
+    const dir = tmpDir()
+    const session = makeFocusSession(dir)
+    const res = await session.beat('我推门进去。', signal(), noProgress, '')
+
+    expect(openStore(dir).readJournal()[0]?.claims).toHaveLength(3)
+    expect(res.beat).not.toHaveProperty('playerTo')
+  })
+
+  it('未知显示名：忽略聚焦、本拍仍全员，并在该拍 notes 留一条', async () => {
+    const dir = tmpDir()
+    const session = makeFocusSession(dir)
+    const res = await session.beat('我朝门口喊了一声。', signal(), noProgress, '科迪')
+
+    expect(openStore(dir).readJournal()[0]?.claims.map((claim) => claim.actor)).toEqual(['player', 'ann', 'doc'])
+    expect(res.beat).not.toHaveProperty('playerTo')
+    const notes = session.authorBeat(res.seq)?.notes ?? []
+    expect(notes.some((note) => note.includes('聚焦失败') && note.includes('科迪'))).toBe(true)
+  })
+
+  it('重名：无法唯一匹配，忽略聚焦并记 notes', async () => {
+    const dir = tmpDir()
+    const session = makeFocusSession(dir, stubLlm(), { player: '你', ann: '安', doc: '安' })
+    const res = await session.beat('我把银元推过去。', signal(), noProgress, '安')
+
+    expect(openStore(dir).readJournal()[0]?.claims).toHaveLength(3)
+    expect(res.beat).not.toHaveProperty('playerTo')
+    const notes = session.authorBeat(res.seq)?.notes ?? []
+    expect(notes.some((note) => note.includes('聚焦失败') && note.includes('重名'))).toBe(true)
+  })
+
+  it('目标是玩家自己：忽略聚焦并记 notes', async () => {
+    const dir = tmpDir()
+    const session = makeFocusSession(dir)
+    const res = await session.beat('我自言自语。', signal(), noProgress, '你')
+
+    expect(openStore(dir).readJournal()[0]?.claims).toHaveLength(3)
+    expect(res.beat).not.toHaveProperty('playerTo')
+    const notes = session.authorBeat(res.seq)?.notes ?? []
+    expect(notes.some((note) => note.includes('聚焦失败') && note.includes('玩家自己'))).toBe(true)
   })
 })

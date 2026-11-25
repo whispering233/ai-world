@@ -15,6 +15,8 @@ const STICK_PX = 32
 export interface ReadingStreamProps {
   beats: BeatView[]
   pendingText: string | null
+  /** 在途那一拍选定的目标显示名：已经发出、还没收到 passage 时也要显示 */
+  pendingTo?: string
   /** 首屏散文：作者写了就一直在最上方，不随拍增长 */
   opening?: string
   /** 场景卡素材：没有 opening 且还没有拍时用它；缺省表示还没读到会话 */
@@ -36,7 +38,7 @@ function prose(text: string) {
  * 贴底与“回到最新”是两件事：读者上滚看旧文时不抢滚动位置，但新拍到达要有个能点的去处，
  * 否则只能靠猜“上面是不是又多了一段”。
  */
-export function ReadingStream({ beats, pendingText, opening, scene }: ReadingStreamProps) {
+export function ReadingStream({ beats, pendingText, pendingTo, opening, scene }: ReadingStreamProps) {
   const hasOpening = opening !== undefined && opening.trim() !== ''
   /** 首屏：还没有拍、也没有在途输入。示例只在这一刻出现（决策 #46） */
   const idle = beats.length === 0 && pendingText === null
@@ -116,7 +118,7 @@ export function ReadingStream({ beats, pendingText, opening, scene }: ReadingStr
                 {(previousBeat === undefined || previousBeat.clockText !== beat.clockText) && (
                   <BeatDivider clockText={beat.clockText} />
                 )}
-                {beat.player !== undefined && <PlayerLine text={beat.player} />}
+                {beat.player !== undefined && <PlayerLine text={beat.player} {...(beat.playerTo === undefined ? {} : { to: beat.playerTo })} />}
                 {/* `space-y-6` 给 24px：段间距必须大于行高，否则一整段看不出分断 */}
                 {beat.passage !== undefined && <div className="mt-4 space-y-6">{prose(beat.passage)}</div>}
                 {beat.fallback && <ErrorNotice kind="fallback" />}
@@ -126,7 +128,7 @@ export function ReadingStream({ beats, pendingText, opening, scene }: ReadingStr
           })}
           {pendingText !== null && (
             <article className="mb-8">
-              <PlayerLine text={pendingText} />
+              <PlayerLine text={pendingText} {...(pendingTo === undefined ? {} : { to: pendingTo })} />
               {/* 等待中的骨架：只表示“这一拍在生成”，不出现阶段名（ui/DESIGN §4） */}
               <div className="mt-4" aria-hidden="true">
                 <Skeleton active title={false} paragraph={{ rows: 3, width: ['100%', '96%', '62%'] }} />

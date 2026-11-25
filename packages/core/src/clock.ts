@@ -41,6 +41,8 @@ export interface CalledInput {
   heat: Record<EntId, number[]>
   touched: readonly EntId[]
   player: EntId
+  /** 玩家选定的说话对象；在场时本拍只叫玩家 + 目标，不看 heat（40 §4 的聚焦例外） */
+  focus?: EntId
 }
 
 const HEAT_THRESHOLD = 0.5
@@ -71,9 +73,12 @@ export function fmt(clock: number): string {
 /**
  * 一拍参与者 = 玩家 + 在场且有张力者 + 在场且本拍被直接作用者。
  * 人不在场就不叫到：位置不是唤醒条件，但不在场的脸不会被摆到这一拍里。
+ *
+ * 聚焦是唯一的例外：目标在场时只叫玩家 + 目标，其余人这一拍不产生 claim（决策 #48）。
  */
 export function calledActors(input: CalledInput): EntId[] {
-  const { present, heat, touched, player } = input
+  const { present, heat, touched, player, focus } = input
+  if (focus !== undefined && present.includes(focus)) return focus === player ? [player] : [player, focus]
   const touchedSet = new Set(touched)
   const called: EntId[] = [player]
   const seen = new Set<EntId>([player])
