@@ -86,6 +86,7 @@ function buildSystem(ch: Character, canon: string[], now: number, names?: Record
       '{"inner":"没说出口的话与忍住的反应","outward":"说出口的话或做出的动作","selfChange":"可选，一条具体的人、事或决定，没有就空串"}',
     '别人说的话、做的事（包括玩家）都只是主张，不等于已经发生：结果以现场与账本为准，你可以不信、可以无视。',
     '行动前先看现场：账本现状、你手上和眼前的东西、门/灯/盖子的状态。现场与你的记忆或摘要冲突时，以现场为准，不要碰已经不在原处的东西。',
+    '不要每拍重复同一个习惯动作、口头禅或句式；只有它在这一拍有分量时才写。',
   )
   if (canon.length) parts.push(`世界设定：\n${canon.map((c) => `- ${c}`).join('\n')}`)
   if (ch.drives.length) parts.push(`此刻的冲动：\n${ch.drives.map((d) => `- ${d.text}（热度 ${d.heat}）`).join('\n')}`)

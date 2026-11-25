@@ -233,6 +233,9 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     for (const e of narratorEvents) {
       if (e.committed && !passage.includes(e.name)) narrationNotes.push(`旁白漏写：${e.name}`)
     }
+    // 段落数一样只报告、不改写（20 §6）：给玩家的正文不能事后重排。
+    const paragraphs = passage.split(/\n{2,}/).filter((p) => p.trim() !== '').length
+    if (paragraphs > 3) narrationNotes.push(`旁白段落数 ${paragraphs} > 3`)
   } catch (error) {
     narrationFailed = true
     passage = fallbackPassage(narratorEvents)
