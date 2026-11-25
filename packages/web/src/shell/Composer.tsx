@@ -1,4 +1,4 @@
-import { Sender } from '@ant-design/x'
+import { Prompts, Sender } from '@ant-design/x'
 import { Button } from 'antd'
 import type { PlayerStateView } from '@ai-world/shared'
 import { READING_COLUMN } from './column.ts'
@@ -16,6 +16,8 @@ export interface ComposerProps {
   elapsedMs: number
   /** 同一份玩家投影：地点与持有，不显示 id / heat / rel（ui/DESIGN §3） */
   state?: PlayerStateView
+  /** 最近一拍生成的动作提示（≤3 条）：点选只填入输入框，不发送（ui/DESIGN §3） */
+  hints?: string[]
 }
 
 function mmss(ms: number): string {
@@ -29,11 +31,22 @@ function mmss(ms: number): string {
  * 等待期只给 `loading`（发送按钮换成停止），不用 `disabled`——那会把输入框一起锁灰，
  * 而设计只要求「不许重复发送」；重复发送在 `onSubmit` 入口再拦一道。
  */
-export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFlight, settled, elapsedMs, state }: ComposerProps) {
+export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFlight, settled, elapsedMs, state, hints }: ComposerProps) {
   const holds = state?.holds.map((item) => `${item.name}×${item.count}`).join('、') ?? ''
   return (
     <div className="shrink-0 border-t border-rule bg-paper">
       <div className={`${READING_COLUMN} py-3`}>
+        {/* 选项只填不送：自由输入永远是主入口；等待中不给选项（同一时刻只处理一条输入） */}
+        {!inFlight && hints !== undefined && hints.length > 0 && (
+          <div className="mb-2">
+            <Prompts
+              items={hints.map((hint) => ({ key: hint, label: hint }))}
+              vertical={false}
+              wrap
+              onItemClick={({ data }) => onDraftChange(data.key)}
+            />
+          </div>
+        )}
         {state !== undefined && (
           <p className="mb-2 text-meta text-ink-soft">
             {state.place} · 你身上：{holds === '' ? '空手' : holds}

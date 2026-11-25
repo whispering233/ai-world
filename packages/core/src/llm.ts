@@ -12,8 +12,11 @@ import {
   type ToolCall,
 } from '@earendil-works/pi-ai'
 
-/** 三个模型角色：cognition = 人物认知，referee = 裁判，narration = 渲染（见 docs/design/50-llm.md §2）。 */
-export type ModelRole = 'cognition' | 'referee' | 'narration'
+/**
+ * 四个模型角色：cognition = 人物认知，referee = 裁判，narration = 渲染，suggest = 动作提示
+ * （见 docs/design/50-llm.md §2）。
+ */
+export type ModelRole = 'cognition' | 'referee' | 'narration' | 'suggest'
 
 export interface ChatMessage {
   role: 'user' | 'assistant'

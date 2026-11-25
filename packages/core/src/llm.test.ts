@@ -19,7 +19,7 @@ describe('createFauxLlm：离线脚本', () => {
 
 describe('createLlm：缺配置在 chat() 时才报错', () => {
   it('未配置角色抛出的错误含 role 与 model 串', async () => {
-    const llm = createLlm({ models: { cognition: '', referee: 'deepseek/NOT_A_MODEL', narration: 'openai/gpt-4.1-mini' } })
+    const llm = createLlm({ models: { cognition: '', referee: 'deepseek/NOT_A_MODEL', narration: 'openai/gpt-4.1-mini', suggest: '' } })
     await expect(llm.chat({ role: 'cognition', messages: ask })).rejects.toThrow(/role=cognition model=\(空\)/)
     await expect(llm.chat({ role: 'referee', messages: ask })).rejects.toThrow(
       /role=referee model=deepseek\/NOT_A_MODEL/,

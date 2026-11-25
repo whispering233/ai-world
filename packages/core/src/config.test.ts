@@ -19,12 +19,13 @@ afterEach(() => {
 })
 
 describe('loadModelConfig', () => {
-  it('文件不存在时三个角色都指向传入的基准模型', () => {
+  it('文件不存在时四个角色都指向传入的基准模型', () => {
     const cfg = loadModelConfig(file(null), 'opencode-go/deepseek-v4.1-flash')
     expect(cfg.models).toEqual({
       cognition: 'opencode-go/deepseek-v4.1-flash',
       referee: 'opencode-go/deepseek-v4.1-flash',
       narration: 'opencode-go/deepseek-v4.1-flash',
+      suggest: 'opencode-go/deepseek-v4.1-flash',
     })
   })
 
@@ -36,6 +37,17 @@ describe('loadModelConfig', () => {
     const cfg = loadModelConfig(file(JSON.stringify({ models: { referee: 'deepseek/deepseek-v4-pro' } })), 'pi/base')
     expect(cfg.models.referee).toBe('deepseek/deepseek-v4-pro')
     expect(cfg.models.cognition).toBe('pi/base')
+  })
+
+  it('没写 models.suggest 时跟随 cognition（50 §2）', () => {
+    const cfg = loadModelConfig(file(JSON.stringify({ models: { cognition: 'cheap/fast' } })), 'pi/base')
+    expect(cfg.models.suggest).toBe('cheap/fast')
+  })
+
+  it('显式写了 models.suggest 就用自己的', () => {
+    const cfg = loadModelConfig(file(JSON.stringify({ models: { cognition: 'cheap/fast', suggest: 'other/tiny' } })), 'pi/base')
+    expect(cfg.models.suggest).toBe('other/tiny')
+    expect(cfg.models.cognition).toBe('cheap/fast')
   })
 
   it('角色写成空字符串时抛错，不静默降级', () => {

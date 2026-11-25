@@ -145,6 +145,7 @@ function zeroUsage(): Record<ModelRole, UsageTotals> {
     cognition: { calls: 0, input: 0, output: 0, ms: 0, retries: 0 },
     referee: { calls: 0, input: 0, output: 0, ms: 0, retries: 0 },
     narration: { calls: 0, input: 0, output: 0, ms: 0, retries: 0 },
+    suggest: { calls: 0, input: 0, output: 0, ms: 0, retries: 0 },
   }
 }
 

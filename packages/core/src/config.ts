@@ -10,7 +10,7 @@ import type { RetryPolicy } from '@earendil-works/pi-ai'
 import type { ModelRole } from './llm.ts'
 
 export interface ModelConfig {
-  /** 三个角色只是调用点标签；允许都指向同一个模型 */
+  /** 四个角色只是调用点标签；允许都指向同一个模型 */
   models: Record<ModelRole, string>
   /** opencode 用会话头做路由；前缀 + 随机后缀 */
   sessionIdPrefix?: string
@@ -45,12 +45,12 @@ export function readPiDefaultModel(agentDir: string): string | undefined {
 }
 
 export function defaultConfig(base: string = FALLBACK_MODEL): ModelConfig {
-  const models: Record<ModelRole, string> = { cognition: base, referee: base, narration: base }
+  const models: Record<ModelRole, string> = { cognition: base, referee: base, narration: base, suggest: base }
   return { models, sessionIdPrefix: 'play' }
 }
 
 
-const ROLES: ModelRole[] = ['cognition', 'referee', 'narration']
+const ROLES: ModelRole[] = ['cognition', 'referee', 'narration', 'suggest']
 
 /** 读配置。文件不存在 = 用默认值（不算错误）；文件存在但写坏了 = 抛错，不静默降级。 */
 export function loadModelConfig(path: string, base: string = FALLBACK_MODEL): ModelConfig {
@@ -64,7 +64,7 @@ export function loadModelConfig(path: string, base: string = FALLBACK_MODEL): Mo
   const parsed: unknown = JSON.parse(text)
   const raw = asRecord(parsed) ?? {}
   const models = asRecord(raw['models']) ?? {}
-  const resolved: Record<ModelRole, string> = { cognition: base, referee: base, narration: base }
+  const resolved: Record<ModelRole, string> = { cognition: base, referee: base, narration: base, suggest: base }
   for (const role of ROLES) {
     const value = models[role]
     if (value === undefined) continue
@@ -73,6 +73,8 @@ export function loadModelConfig(path: string, base: string = FALLBACK_MODEL): Mo
     }
     resolved[role] = value.trim()
   }
+  // 动作提示是旁白之后的一句短输出：没写就跟着 cognition 走，不另立一档（50 §2）
+  if (models['suggest'] === undefined) resolved.suggest = resolved.cognition
 
   const prefix = raw['sessionIdPrefix']
   const retry = asRecord(raw['retry'])

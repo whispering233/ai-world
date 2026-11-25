@@ -7,7 +7,7 @@
  * 领域类型一变，映射处编译不过，所以这里不必机械地跟随 `world.ts` / `referee.ts`。
  */
 
-export type ModelRoleName = 'cognition' | 'referee' | 'narration'
+export type ModelRoleName = 'cognition' | 'referee' | 'narration' | 'suggest'
 
 /* ── 玩家投影 ─────────────────────────────────────────── */
 
@@ -41,6 +41,8 @@ export interface BeatView {
   passage?: string
   /** true = 旁白失败，passage 是事实摘要兜底 */
   fallback: boolean
+  /** 本拍生成的动作提示（≤3 条）；失败时缺省，不影响正文 */
+  hints?: string[]
 }
 
 export interface SessionView {
@@ -249,6 +251,8 @@ export interface PassageView {
   clock: number
   text: string
   source: 'narrator' | 'player' | 'npc' | 'fallback'
+  /** 本拍生成的动作提示；旧日志没有这个字段 */
+  hints?: string[]
 }
 
 export interface AuthorBeatView {
