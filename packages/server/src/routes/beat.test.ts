@@ -67,6 +67,11 @@ function events(sse: string): string[] {
   return [...sse.matchAll(/^event: (.+)$/gm)].map((m) => m[1] ?? '')
 }
 
+/** 取某个事件名的全部 data 行。 */
+function dataOf(sse: string, name: string): string[] {
+  return [...sse.matchAll(/^event: (.+)\ndata: (.+)$/gm)].filter((m) => m[1] === name).map((m) => m[2] ?? '')
+}
+
 describe('POST /beat：开流之前的 HTTP 语义', () => {
   it('坏 JSON 与缺 text 都是 400 E_INVALID_BODY', async () => {
     const target = session(stubLlm())
@@ -101,11 +106,15 @@ describe('POST /beat：开流之前的 HTTP 语义', () => {
 })
 
 describe('POST /beat：SSE 帧', () => {
-  it('正常一拍按 passage → state → done 发帧', async () => {
+  it('正常一拍：落定帧先于 passage → state → done', async () => {
     const res = await post(session(stubLlm()), '{"text":"我推门进去。"}')
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toContain('text/event-stream')
-    expect(events(await res.text())).toEqual(['passage', 'state', 'done'])
+    const sse = await res.text()
+    expect(events(sse)).toEqual(['progress', 'passage', 'state', 'done'])
+    // settled 是唯一能证明“账本已定”的帧，必须在正文之前到达
+    expect(dataOf(sse, 'progress')[0]).toContain('"phase":"settled"')
+    expect(sse.indexOf('"phase":"settled"')).toBeLessThan(sse.indexOf('event: passage'))
   })
 
   it('模型失败只发一帧 error，不发 passage', async () => {

@@ -62,6 +62,8 @@ export type SseEventName = (typeof SSE_EVENTS)[number]
 export interface ProgressFrame {
   elapsedMs: number
   clockText: string
+  /** 只在裁判返回、账本在内存落定后出现一次；其余心跳帧没有这个字段 */
+  phase?: 'settled'
 }
 
 export interface StateFrame {
