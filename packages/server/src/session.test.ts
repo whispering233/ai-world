@@ -34,7 +34,11 @@ const verdictFor = (claimId: string): string =>
   JSON.stringify({
     order: ['player'],
     verdicts: [{ claimId, ok: true, duration: 3, deltas: [{ op: 'fact', text: '玩家进门了。', actor: 'player', kind: 'state' }] }],
-    observations: {},
+    // 感知摘要按实体写：缺一条就会在 notes 里留"无感知摘要"（决策 #42）
+    observations: {
+      player: { claimIds: [claimId], summary: '你推门进去了。' },
+      ann: { claimIds: [claimId], summary: '你看见有人推门进来。' },
+    },
   })
 
 const narration = '雨顺着门缝往里渗。'

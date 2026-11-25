@@ -100,8 +100,10 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   }
   // 人物本拍要能看见玩家刚说的话/做的事；只给公开输入，不给玩家的私有状态。
   const playerLine = input.playerClaim ? `玩家刚才说/做：${input.playerClaim}` : ''
+  // 人物与裁判看同一份现场（决策 #42）：切片取场景内全部实体（含门/灯），不是本场原班人马，
+  // 否则裁判按已变化的 phys 驳回，而物件的状态人物从未看见。
   const sceneFor = (ent: EntId): string =>
-    [input.sceneText, playerLine, describeLedger(input.world, inScene, { names: input.names, items: input.items, aliases: input.aliases }), contextOf(input.scene, ent)]
+    [input.sceneText, playerLine, describeLedger(input.world, present, { names: input.names, items: input.items, aliases: input.aliases }), contextOf(input.scene, ent)]
       .filter(Boolean)
       .join('\n')
   // 同一拍内多个 actor 的认知互不依赖：并发跑，但按人位顺序落 claims（结算顺序仍由裁判给）。
@@ -163,6 +165,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     out = await deps.referee.judge({
       clock,
       claims,
+      canon: input.canon,
       context: [input.sceneText, describeLedger(input.world, present, { names: input.names, items: input.items, aliases: input.aliases, withIds: true }), contextOf(input.scene, input.player)]
         .filter(Boolean)
         .join('\n'),
@@ -224,8 +227,21 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     narrationNotes.push(`旁白失败（事实摘要兜底）：${(error as Error).message}`)
   }
 
+  // 每个参与者只拿到自己的那句 + 裁判给本人的感知摘要（决策 #42）。绝不把别人的原话广播出去：
+  // 旁白看得到整拍，人物只看得到自己感知到的。
+  const own: Record<EntId, string> = {}
+  for (const e of narratorEvents) {
+    const line = `${e.name}：${e.text} → ${e.outcome}`
+    own[e.actor] = own[e.actor] === undefined ? line : `${own[e.actor]}\n${line}`
+  }
   const texts: Record<EntId, string> = {}
-  for (const e of narratorEvents) texts[e.actor] = `${e.actor}：${e.text} → ${e.outcome}`
+  const projectionNotes: string[] = []
+  for (const ent of input.scene.participants) {
+    const seen = out.observations[ent]?.summary.trim() ?? ''
+    if (own[ent] !== undefined && seen === '') projectionNotes.push(`无感知摘要（只留本人那句）：${ent}`)
+    const lines = [own[ent] ?? '', seen === '' ? '' : `我感知到的：${seen}`].filter((line) => line !== '')
+    if (lines.length > 0) texts[ent] = lines.join('\n')
+  }
   // appendBeat 会把 lastBeatAt 推到本拍结束；判断“本拍是否时间跳跃”必须用上一拍结束时刻。
   const previousLastBeatAt = input.scene.lastBeatAt
   // 上下文预算取**最长那个人的上下文**（40 §2）：不是本拍增量，也不是所有人之和
@@ -280,7 +296,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     passage,
     journalSeq: entry.seq,
     committedClaims: applied.filter((a) => a.committed).map((a) => a.claimId),
-    notes: [...degraded, ...notes, ...narrationNotes],
+    notes: [...degraded, ...notes, ...narrationNotes, ...projectionNotes],
   }
 
   const place = result.world.ledger.at[input.player] ?? scene.place
