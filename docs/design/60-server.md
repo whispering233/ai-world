@@ -75,6 +75,7 @@ POST /api/beat
 | 结构 | 只存作者字段：`title` / `world` / `characters`（`core`/`voice`/`drives`/`beliefs`）/ `canon` / `player` / `names` / `items` / `aliases` / `opening?` / `scene?`。`opening` 是首屏散文（只给玩家），`scene` 是一两句现场描述（进人物/裁判/旁白）；运行时字段（`experience`、`busyUntil`）由 `seedCharacters()` 补空 |
 | 校验 | `validatePack()`，与运行时同一份；服务端在加载与保存两处都调用。覆盖到 `ledger` 的子对象（`holds` 数量、`phys` 值类型、`rel` 指向、`knows` 形态）与 `clock` 是否有限 |
 | 生效 | **只在新局生效**。保存 = 写盘；本局继续用启动时加载的那一份 |
+| 闭合世界 | 运行时不创建 item/entity/place（决策 #50）；`ContentPack` 是唯一来源，`Op` 只有 move/transfer/consume/phys/rel/fact/know |
 | 哈希 | 保存与启动各算一次；`activeHash ≠ diskHash` 时作者壳顶栏常驻横幅「内容已变更，未生效」 |
 | 不热生效 | 热切换会静默清掉本局的 `drives[].heat` 与 `beliefs`（两者既是作者字段又是运行时状态），等于"保存成功"在偷偷改世界 |
 

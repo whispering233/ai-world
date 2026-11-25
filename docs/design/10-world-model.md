@@ -112,3 +112,11 @@
 - `fact` 的 `actor` 只填动作发出者，`kind` 只用规定枚举；kind 未知会被拒，不确定用 `other`。
 - `know` 只记听众**原本不知道**且以后会用的信息；在场记忆交给 `observations`；耳语只发给听见的人。
 - `know` 用文本新建 fact 时 `kind:'speech'`，不假装知道说话人。
+
+## 9. 闭合世界（v1）
+
+- 运行时不创建物品/实体/地点：`Op` 只有 `move` / `transfer` / `consume` / `phys` / `rel` / `fact` / `know`，没有 `create` / `spawn`。
+- `ContentPack` 是物品、实体、地点的唯一来源；`world` / `journal` 只重排、消耗、改状态、记事实。
+- 新内容只能由作者写 `content/<world>.json`，且下一局才生效（决策 #50）。
+- 运行时冒出的新 id 不会自动带显示名；`view` / `describeLedger` 会退回 id，这算缺陷，不算特性。
+- 升级为“运行时注册表”的触发条件：手写内容供给真的跟不上，且已经定好命名、校验、投影、旧档与防刷。
