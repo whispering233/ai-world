@@ -178,7 +178,7 @@ describe('apply：陈设（家具实体）', () => {
     expect(w.ledger.holds.ann?.whiskey).toBe(1)
   })
 
-  it('transfer 从人到柜台：杯子放回台面', () => {
+  it('transfer 从人到柜台：酒瓶放回台面', () => {
     const stocked = apply(furnished(), [{ op: 'transfer', from: 'counter', to: 'ann', item: 'whiskey', n: 1 }]).world
     const { world: w, results } = apply(stocked, [{ op: 'transfer', from: 'ann', to: 'counter', item: 'whiskey', n: 1 }])
     expect(results[0]?.ok).toBe(true)
