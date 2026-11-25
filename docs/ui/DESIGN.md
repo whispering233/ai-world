@@ -74,7 +74,7 @@ antd 6 的三处改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` �
 - 吸底，与正文同宽。
 - 上方一行状态：地点 + 持有（`text-meta text-ink-soft`），不显示 `heat`/`rel`/id。
 - 状态行右侧是目标 chips：`所有人` + 在场者显示名；目标不在场时自动回到“所有人”。
-- 状态行上方最多 3 条选项（x 的 `Suggestion`）；点选只填入 `draft`，不直接发送。
+- 状态行上方最多 3 条选项（x 的 `Prompts`；`Suggestion` 2.x 是下拉，不是固定列表）；点选只填入 `draft`，不直接发送。
 - `Enter` 发送，`Shift+Enter` 换行；placeholder 是“说点什么，或做什么…”。
 - 等待时禁止重复发送；显示已用时间与 `停止`；空闲时提供“等一会儿”按钮（发送预设等待文本，不改 API）。
 - 发送失败保留原文；发送成功清空。
@@ -117,7 +117,7 @@ chrome 全部用 antd 6 / `@ant-design/x` 2，见 §13；壳层的自有组件�
 
 `TopBar` · `ReadingStream` · `PlayerLine` · `BeatDivider` · `Composer` · `StateDrawer` · `EmptyState` · `ErrorNotice`
 
-状态行、目标 chips 与选项区都在 `Composer` 内，不新增文件；选项用 x 的 `Suggestion`。
+状态行、目标 chips 与选项区都在 `Composer` 内，不新增文件；选项用 x 的 `Prompts`。
 
 对话与旁白目前共用一段正文；把它们拆成「气泡 + 场景块」需要先定说话人契约，见 [backlog.md](../design/backlog.md) §6.1。
 
@@ -186,7 +186,7 @@ chrome 全部用 antd 6 / `@ant-design/x` 2，见 §13；壳层的自有组件�
 
 | 层 | 内容 |
 | :--- | :--- |
-| chrome | 全部用 antd 6 / `@ant-design/x` 2 组件：`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Empty` `Segmented` `Timeline` `Skeleton`，加 `@ant-design/x` 的 `Sender` `Conversations` `Suggestion` |
+| chrome | 全部用 antd 6 / `@ant-design/x` 2 组件：`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Empty` `Segmented` `Timeline` `Skeleton`，加 `@ant-design/x` 的 `Sender` `Conversations` `Prompts` |
 | `ui/` 下的自有件（1） | `ModeSwitch`（antd `Segmented` 的薄壳，壳切换的两处共用） |
 | 玩家壳（8） | `TopBar` `ReadingStream` `PlayerLine` `BeatDivider` `Composer` `StateDrawer` `EmptyState` `ErrorNotice` |
 | 作者壳（7） | `AuthorApp` `BeatList` `BeatDetail` `LedgerView` `HealthPanel` `ContentEditor` `SaveDialog` |
