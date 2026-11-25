@@ -30,11 +30,11 @@
 | type | 是 | enum | `beat` \| `scene/fold` | 折场亦记一条 |
 | scene | 是 | string | | 场景 id，场景边界由此推出 |
 | clock | 是 | number | | 本拍时刻 |
-| claims | 是 | Claim[] | ≤ 4 | 本拍全部对外主张（折场记录为空） |
+| claims | 是 | Claim[] | 一拍一人一条 | 本拍全部对外主张（折场记录为空）。`Claim = {id, actor, text, kind, to?}`；`to` 只用于玩家 claim，表示这次发言的对象（实体 id，由服务端按显示名解析） |
 | order | 是 | EntId[] | | 结算顺序 |
 | verdicts | 是 | Verdict[] | | 含 ok/reason/deltas/duration |
 | driveHits | 否 | DriveHit[] | | 驱动热度增减 |
-| observations | 否 | Record<EntId, string> | | 可见性分发结果 |
+| observations | 否 | Record<EntId, {claimIds: string[], summary: string}> | | 可见性分发结果；`claimIds` 是感知白名单，`summary` 用第二人称写给该实体 |
 | experience | 否 | Record<EntId, Experience[]> | | 本拍每人新增的记忆条目（不是快照）；旧 journal 缺失时重放停在初始人物 |
 | telemetry | 否 | BeatTelemetry | | 本拍运行观测（模型串与用量），由服务端注入，`core` 只透传；旧 journal 缺失时作者视图显示“未记录” |
 | committed | 否 | string[] | | 本拍**真正落账**的 claim id；`verdicts` 是裁判原话，可能含 `ok` 但整条回滚的条目。旧 journal 缺失时体检口径退回「ok 且有 deltas」 |
@@ -43,7 +43,7 @@
 
 | 字段 | 是否必选 | 数据类型 | 备注 |
 | :--- | :--- | :--- | :--- |
-| models | 是 | `Record<ModelRole,string>` | 本拍三个角色实际使用的模型串 |
+| models | 是 | `Record<ModelRole,string>` | 本拍四个角色实际使用的模型串（cognition / referee / narration / suggest） |
 | usage | 是 | `Record<ModelRole,{input,output,cacheRead,cacheWrite,cost,ms,retries,calls}>` | 本拍各角色的累计用量；`cost` 缺失时按 0 显示，不推断 |
 
 telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它不影响账本。
@@ -57,6 +57,7 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 | text | 是 | string | | 只增不改 |
 | source | 是 | enum | `narrator` \| `player` \| `npc` \| `fallback` | `fallback` = 旁白失败后用事实摘要兜底 |
 | beatSeq | 否 | number | ≥1 | 对应 journal 的 seq，连接玩家原话与旁白的稳定键；旧日志缺失时按 `clock` 顺序回退匹配 |
+| hints | 否 | string[] | ≤3 条 | 本拍生成的动作提示；派生文本，不参与 replay；缺失表示提示失败或旧日志 |
 
 ## 5. `character`（人物）
 
@@ -75,10 +76,10 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 | 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
 | :--- | :--- | :--- | :--- | :--- |
 | t | 是 | number | | 发生的 clock |
-| kind | 是 | enum | `seen` \| `self` \| `thought` | `self` = 身份修订；`thought` = 没说出口的话，不进裁判 |
+| kind | 是 | enum | `seen` \| `self` \| `thought` | `self` = 身份修订；`thought` = 没说出口的话，不进裁判也不进旁白 |
 | ref | 否 | number | | `self` 条目存**拍号**（成长窗口用它数「最近 10 拍」）；其余条目可存 journal.seq；正文不重复存 |
 | text | 是 | string | | 私人解读（`seen` 时是"它理解成什么"） |
-| w | 是 | number | 1 ~ 3 | 权重，参与检索打分 |
+| w | 是 | number | 1 ~ 3 | 权重，参与检索打分；`thought` 建议 1，避免挤掉世界事件 |
 
 ## 7. `world`（世界根）
 
@@ -97,6 +98,8 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 | 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
 | :--- | :--- | :--- | :--- | :--- |
 | title | 是 | string | 非空 | 世界标题；玩家壳顶栏用它 |
+| opening | 否 | string | ≤600 字 | 首屏散文，只给玩家；缺失时前端回退场景卡 |
+| scene | 否 | string | ≤160 字 | 一两句现场描述，进人物/裁判/旁白上下文 |
 | characters | 是 | CharacterSeed[] | 每人 core 200–400 字、voice 非空、drive heat 0..1 | 只存作者字段 `id`/`core`/`voice`/`drives`/`beliefs`；运行时字段 `experience`、`busyUntil` 由 `seedCharacters()` 补空，不写进文件 |
 | names | 是 | Record<EntId, string> | | 人物/实体显示名：id → 人读的名字；覆盖 `ledger.at` 的全部实体 |
 | items | 是 | Record<ItemId, string> | | 物品显示名：id → 人读的名字；覆盖 `ledger.holds` 里出现的物品 |

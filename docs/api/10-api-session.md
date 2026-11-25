@@ -11,6 +11,7 @@
 | 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
 | :--- | :--- | :--- | :--- | :--- |
 | title | 是 | string | | 世界标题，来自 `ContentPack.title` |
+| opening | 否 | string | | 首屏散文，来自 `ContentPack.opening`；缺失时前端回退场景卡 |
 | clock | 是 | number | ≥0 | 当前世界时刻（分钟） |
 | clockText | 是 | string | | `fmt(clock)` 的结果，客户端不得自行格式化 |
 | state | 是 | PlayerState | | 见 §2.1 |
@@ -37,8 +38,10 @@
 | clock | 是 | number | | 本拍结束时刻 |
 | clockText | 是 | string | | 时间分隔条文案 |
 | player | 否 | string | | 玩家本拍输入原文；缺省表示本拍没有玩家发言 |
+| playerTo | 否 | string | | 本拍玩家说话对象的显示名；缺省表示对所有人/无目标 |
 | passage | 否 | string | | 旁白正文；缺省表示 passage 落盘失败 |
 | fallback | 是 | boolean | | `true` = 旁白失败，`passage` 是事实摘要兜底 |
+| hints | 否 | string[] | | 本拍生成的动作提示（≤3 条）；失败时缺省，不影响正文 |
 
 **数据来源**：`journal.jsonl`（取 `claims` 里 `actor === player` 的文本、`clock`）与 `passage.jsonl`（取 `text`、`source`）按 `PassageEntry.beatSeq` 连接；旧日志无 `beatSeq` 时按 `clock` 顺序回退匹配。
 
@@ -59,6 +62,7 @@
   "msg": "success",
   "data": {
     "title": "雨夜酒馆",
+    "opening": "雨把街灯打得只剩一团黄。你推门进来，门轴在身后自己合上。",
     "clock": 1450,
     "clockText": "第 2 天 · 夜",
     "state": {
@@ -76,8 +80,10 @@
         "clock": 1450,
         "clockText": "第 2 天 · 夜",
         "player": "我推门进去，找了个靠门的位子坐下。",
+        "playerTo": "安",
         "passage": "雨顺着门缝往里渗。安没有抬头，先把杯子收走，才开口。",
-        "fallback": false
+        "fallback": false,
+        "hints": ["问安账本的事", "把湿外套搭在椅背上", "看一眼地窖门"]
       }
     ],
     "inFlight": false

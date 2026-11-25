@@ -6,15 +6,16 @@
 
 **不写的东西**：provider 适配器、重试、流式协议解析、token 计数、成本计算、key 管理。
 
-## 2. 三个调用点，三个模型角色
+## 2. 四个调用点，四个模型角色
 
 | 调用点 | 频次 | 配置角色 | 需要结构化输出 |
 | :--- | :--- | :--- | :--- |
 | 人物认知 | 每拍 × 被叫到的人数 | `cognition`（便宜/快） | 否（自由文本，含 `inner` / `outward`） |
 | 裁判 referee | 每拍 1 次 | `referee`（**最强**） | 是（`order` / `verdicts` / `deltas` / `duration`） |
-| 渲染 narrate | 每拍 1 次 | `narration`（中） | 否（流式散文） |
+| 渲染 narrate | 每拍 1 次 | `narration`（中） | 否（一次成型散文） |
+| 动作提示 suggest | 每拍 1 次，与旁白并行 | `suggest`（默认跟 `cognition`） | 是（3 条短句） |
 
-三个角色用配置里的 `provider/model` 表达，**不硬编码**。不同角色的成本可以差一个数量级，这是唯一有效的降本手段。
+四个角色用配置里的 `provider/model` 表达，**不硬编码**。不同角色的成本可以差一个数量级，这是唯一有效的降本手段。
 
 ## 3. 真实 API 形状（源自 pi-ai 1.5.2 README，勿凭记忆改写）
 
@@ -50,6 +51,7 @@ Context = { systemPrompt, messages, tools }   可序列化
 | 裁判 | fixture：固定 verdict 序列注入；`core` 不依赖真实模型 |
 | 人物 | 只测契约（`inner`/`outward` 存在、长度上限、不越界），不测文风 |
 | 渲染 | 只测不越界（不写绝对时间、不写回账本） |
+| 提示器 | fixture：3 条短句、不含玩家 `knows` 之外的事实、失败不影响整拍 |
 | 整体 | `fauxProvider()` 跑 20 拍冒烟，验证循环不崩 |
 
 **`core` 四个服务都必须能替换为确定性桩**——这是 `50` 与 `00` 里那条纪律的唯一目的。
@@ -178,9 +180,9 @@ chat 应用必须压缩，因为 transcript 线性增长。本项目的上下文
 
 | 角色 | 模型 | 输入 $/M | 输出 $/M |
 | :--- | :--- | :--- | :--- |
-| `cognition` / `referee` / `narration` | `opencode-go/deepseek-v4.1-flash` | 0.15 | 0.60 |
+| `cognition` / `referee` / `narration` / `suggest` | `opencode-go/deepseek-v4.1-flash` | 0.15 | 0.60 |
 
-**测试与运行一律用这一个模型。** 三个角色（`cognition` / `referee` / `narration`）只是调用点标签与成本分桶，不预设换模型；等真的需要为裁判单独升级时再改一行配置。
+**测试与运行一律用这一个模型。** 四个角色（`cognition` / `referee` / `narration` / `suggest`）只是调用点标签与成本分桶，不预设换模型；等真的需要为裁判单独升级时再改一行配置。
 
 直连 `deepseek` 同样两个模型是 0.30/1.20 与 1.32/3.96——**订阅价大约是直连的一半**。
 凭据复用 pi CLI 的 `~/.pi/agent/auth.json`（只读），不另存 key；`sessionId` 每次运行一个，opencode 用它做路由与缓存亲和。

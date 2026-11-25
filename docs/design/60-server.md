@@ -37,10 +37,10 @@ POST /api/beat
   ├── 拿锁（已有拍 → 409 E_BEAT_IN_FLIGHT）
   ├── 起 SSE：每 1s 发 progress
   ├── runBeat(...)
-  │     ├── 认知并发（人物失败 → 本拍沉默，记 notes）
+  │     ├── 认知并发（焦点模式只叫玩家 + 目标；人物失败 → 本拍沉默，记 notes）
   │     ├── 裁判（失败 → 整拍无进展，发 error，世界不动）
-  │     ├── commit 账本
-  │     ├── 旁白（失败 → 事实摘要兜底，source=fallback）
+  │     ├── commit 账本 → 发 progress{phase:'settled'}
+  │     ├── 旁白 / 动作提示并行（旁白失败 → 事实摘要兜底；提示失败 → 无提示）
   │     └── appendBeat → appendPassage
   ├── 发 passage(BeatView) → state(PlayerState) → done
   └── 放锁
@@ -58,6 +58,8 @@ POST /api/beat
 
 实现：每拍一个 `AbortController`；`Llm` 用一个薄包装把 `signal` 注入每次 `chat()`，并把底层调用与 `signal` 做 `Promise.race`（不指望 provider 老实看 signal）。断连检测三路都接：`stream.onAbort`、`c.req.raw.signal`、`close`。
 
+**取消必须在写 journal 之前生效**：旁白阶段被中止时，不能用事实摘要兜底把一拍“补”成已提交。写 journal 之后断开才适用“服务端仍写完 passage”。
+
 **总时限**：一拍把客户端 signal 与一个总时限合成同一个 signal（缺省 180s）。只等客户端断开是不够的——标签页挂在后台、连接还在、provider 挂死时，`busy` 会永远为真，之后所有 `/api/beat` 全 409，只能重启进程。超时走与模型失败同一条降级路径（`E_MODEL_CALL`，世界不动）。
 
 **停止 = 停止等待，不撤销已提交的那一拍**。界面上的 `停止` 只断连接；已经提交的拍仍然落 journal（下一行规则）。因此前端在停止之后必须重取 `GET /api/session`，把服务端已经落下、界面还没显示的那一拍补回来——否则用户重打一遍，就把同一个动作落了两次账。
@@ -70,7 +72,7 @@ POST /api/beat
 | :--- | :--- |
 | 位置 | `content/<world>.json`，**git 跟踪**（放 `data/` 会被忽略，内容属于源码） |
 | 格式 | JSON。作者壳用表单编辑，用户从不直接面对 JSON 转义 |
-| 结构 | 只存作者字段：`title` / `world` / `characters`（`core`/`voice`/`drives`/`beliefs`）/ `canon` / `player` / `names` / `items` / `aliases`。运行时字段（`experience`、`busyUntil`）由 `seedCharacters()` 补空 |
+| 结构 | 只存作者字段：`title` / `world` / `characters`（`core`/`voice`/`drives`/`beliefs`）/ `canon` / `player` / `names` / `items` / `aliases` / `opening?` / `scene?`。`opening` 是首屏散文（只给玩家），`scene` 是一两句现场描述（进人物/裁判/旁白）；运行时字段（`experience`、`busyUntil`）由 `seedCharacters()` 补空 |
 | 校验 | `validatePack()`，与运行时同一份；服务端在加载与保存两处都调用。覆盖到 `ledger` 的子对象（`holds` 数量、`phys` 值类型、`rel` 指向、`knows` 形态）与 `clock` 是否有限 |
 | 生效 | **只在新局生效**。保存 = 写盘；本局继续用启动时加载的那一份 |
 | 哈希 | 保存与启动各算一次；`activeHash ≠ diskHash` 时作者壳顶栏常驻横幅「内容已变更，未生效」 |
@@ -128,7 +130,7 @@ packages/web      ← shared：React SPA（拿不到 core，边界由 pnpm 严�
 | 主题 | `theme/AntdProvider.tsx`：`ConfigProvider` + `<StyleProvider layer>`，浅 `defaultAlgorithm` / 深 `darkAlgorithm`，antd 默认色板（不写自定义 seed）；`cssVar.key` = `<html class="ai-world-theme">` |
 | 层叠 | `tokens.css` 先写 `@layer theme, base, antd, antdx, components, utilities` 再 `@import "tailwindcss"`；漏写 `antdx` 时 x 组件的工具类会被静默压掉 |
 | tokens | `tokens.css` 只做两件事：把 `--ant-*` 映射成既有 class 名（`paper`/`paper-2`/`ink`/`ink-soft`/`rule`/`accent`），以及放排版 token（正文 17px / 1.85 / 段距 24px / 列宽 40rem） |
-| 组件 | `Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Empty` `Segmented` `Timeline` `Skeleton` + x 的 `Sender` `Conversations`；图标走 `@ant-design/icons` |
+| 组件 | `Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Empty` `Segmented` `Timeline` `Skeleton` + x 的 `Sender` `Conversations` `Suggestion`；图标走 `@ant-design/icons` |
 | `ui/` 自有件 | 只剩 `ModeSwitch`（`Segmented` 薄壳，两壳共用）；就地的小排版包装留在调用文件里，不进 `ui/` |
 | 玩家壳 | `TopBar` `ReadingStream` `PlayerLine` `BeatDivider` `Composer` `StateDrawer` `EmptyState` `ErrorNotice` |
 | 作者壳 | `AuthorApp` `BeatList` `BeatDetail` `LedgerView` `HealthPanel` `ContentEditor` `SaveDialog`；两壳共用同一个 `Composer` 节点，作者壳也能发拍 |
@@ -150,7 +152,7 @@ packages/web      ← shared：React SPA（拿不到 core，边界由 pnpm 严�
 
 ## 10. 明确不做
 
-- 流式旁白（一拍 50s 里旁白只占约 10s；`runBeat` 在调旁白前已落 journal，所谓"草稿"没有可回滚的内容）
+- 流式旁白、每人物流、裁决层流（旁白在写 journal **之前**调用，token 没有“已发生”身份；裁判输出是 JSON；每人物流需要先有“每个人物一段文本”）
 - 服务端 `--author` 开关、独立作者入口、构建期移除
 - 内容热生效、内容版本回滚、内容编辑的 git 提交
 - 多世界切换、存档槽、离线推进

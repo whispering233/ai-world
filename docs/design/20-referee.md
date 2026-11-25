@@ -19,7 +19,7 @@ referee(本拍 claim[], 场景切片, 账本, 相关 canon) →
 | :--- | :--- |
 | `order` | 本拍 claim 的结算顺序，表达"谁的手快"。**只在拍内有效** |
 | `verdicts[]` | 每条 claim 的结果：`{ claimId, ok, reason?, deltas[], duration }` |
-| `observations` | 每个在场实体实际可感知的内容：被其感知的 `claimId` 列表 + 一句结果摘要（**结构化**，非自由文本） |
+| `observations` | 每个在场实体实际可感知的内容：被其感知的 `claimId` 列表 + 一句结果摘要（**结构化**，非自由文本）。`claimIds` 就是感知白名单：没列出的 claim 等于这个人没看见；`summary` 固定用**第二人称**写给该实体，只写他能感知到的内容，不用“他/她/名字”指代本人 |
 | `driveHits[]` | `{ entId, driveId, delta }`，驱动热度增减 |
 
 `verdict` 只有三种形态，全部合法：
@@ -48,7 +48,7 @@ referee(本拍 claim[], 场景切片, 账本, 相关 canon) →
 
 | 段 | 内容 | 上限 |
 | :--- | :--- | :--- |
-| claims | 本拍全部对外主张 | 4 条，超出顺延至下一拍 |
+| claims | 本拍全部对外主张 | 一拍一人一条；上限 = 玩家 + 被叫到的人数（当前内容包 5），不做截断/顺延 |
 | 场景切片 | 同一 `placeId` 的实体 + 相关账本字段 | 只给相关实体，不给全账本 |
 | canon | 与本拍主张相关的 fact | 8 条 |
 
@@ -89,6 +89,7 @@ no_rate = verdict:'no' 的次数 / claim 总数
 ### 7.1 口径
 
 - 体检只统计**已提交**的 claim 的 ops；回滚的 claim 不算世界变化。落账名单来自 `JournalEntry.committed`（[schema §3](../db/schema.md)）——不要用内存集合：进程重启后它是空的，会把有 deltas 的 journal 报成 0 次写操作。
+- `no_rate` 至少按**玩家 / NPC** 分桶：玩家侧与 NPC 侧的拒绝理由不同（现有 20 拍基线里整体 19%、玩家 45%）。不分桶会把“玩家看不到状态”误当成“裁判过严”。
 - 改世界之前先测量：用已提交 op / `duration` 分桶 / `know_rate` / `facts/beat` / `cacheRead` 定位，再决定改什么。
 - 体检口径只有一份实现（`packages/core/src/health.ts`），CLI 试玩器与作者壳共用。
 
@@ -99,3 +100,4 @@ no_rate = verdict:'no' 的次数 / claim 总数
 | 顺从性 | 什么都被允许 | 调整提示与分桶 `no_rate` |
 | 自相矛盾 | 同一事实两拍给出不同判定 | 喂 canon 切片；记录判定历史 |
 | 过度裁决 | 连买一杯酒也要裁决 | 允许无歧义 op 走直写窄通道（P2） |
+| **角色看到的世界比裁判少** | 人物提出“推门/接银元/拿杯子”，裁判按已变化的 `phys`/持有物驳回；理由里引用的状态人物从未看到 | 人物切片与裁判同源（本场景物件 + `phys`）；场景上下文追加裁判给本人的 `observations.summary`（决策 #42） |

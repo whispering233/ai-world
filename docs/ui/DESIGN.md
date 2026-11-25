@@ -48,6 +48,8 @@ antd 6 的三处改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` �
 
 - **没有左栏**：世界 / 存档 / 设置收进右上角菜单。
 - **没有常驻右栏**：`此刻` 是抽屉；桌面端覆盖式 360px，不挤压正文、不改变阅读位置；移动端全屏 sheet。
+- **输入区上方有一行安静的状态**：`酒馆 · 你身上：威士忌×1`，来自同一份玩家投影；不做常驻仪表盘。
+- **选项区固定在输入区上方**：最多 3 条，点一下只填入输入框；自由输入永远是主入口。
 - **正文列 38–42em 居中**：屏幕再宽也不铺满，保持书的行长。
 
 ## 3. 区域契约
@@ -60,7 +62,8 @@ antd 6 的三处改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` �
 
 ### ReadingStream
 
-- 玩家输入用安静的前缀或引文块，**不用气泡**。
+- 开篇散文（`opening`）在最上方，只读、不随拍增长；缺失时用“时间 · 地点 · 在场 · 你身上有什么”拼场景卡。
+- 玩家输入用安静的前缀或引文块，**不用气泡**；有目标时显示“你（对安）”，不显示实体 id。
 - 叙述是连续散文；段落间距大于行距；不使用聊天头像。
 - 时间分隔：`—— 第 4 天 · 拂晓 ——`，只从 `fmt(clock)` 取。
 - 滚动：只在用户贴底时跟随；用户上滚即停；新一轮发送时强制回底。
@@ -69,8 +72,11 @@ antd 6 的三处改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` �
 ### Composer
 
 - 吸底，与正文同宽。
-- `Enter` 发送，`Shift+Enter` 换行。
-- 等待时禁止重复发送；显示已用时间与 `停止`。
+- 上方一行状态：地点 + 持有（`text-meta text-ink-soft`），不显示 `heat`/`rel`/id。
+- 状态行右侧是目标 chips：`所有人` + 在场者显示名；目标不在场时自动回到“所有人”。
+- 状态行上方最多 3 条选项（x 的 `Suggestion`）；点选只填入 `draft`，不直接发送。
+- `Enter` 发送，`Shift+Enter` 换行；placeholder 是“说点什么，或做什么…”。
+- 等待时禁止重复发送；显示已用时间与 `停止`；空闲时提供“等一会儿”按钮（发送预设等待文本，不改 API）。
 - 发送失败保留原文；发送成功清空。
 
 ### StateDrawer「此刻」
@@ -88,8 +94,8 @@ v1 只读；打开抽屉不改变阅读位置。
 ## 4. 等待与失败
 
 - **发送即回显**：玩家那一句立刻进正文（引文块），不等服务端。
-- 一拍约 50–60 秒（真机 20 拍实测均 60.8s）；结算期间显示“世界在回应… 00:12”与玩家那句话下面的三条骨架，**不显示“认知/裁判/渲染”**，也不显示任何阶段名。
-- **旁白不流式**：一次成型后整段进入正文。`runBeat` 在调旁白之前就已落 journal，流出来的文本没有“草稿”身份；假 draft 比等待更糟。
+- 一拍约 50–60 秒（真机 20 拍实测均 60.8s）；结算期间显示“世界在回应… 00:12”与玩家那句话下面的三条骨架。裁判返回后换成“这一拍已经定了，正在落笔…”。**不显示“认知/裁判/渲染”等引擎阶段名**；只允许结果状态。
+- **旁白不流式**：一次成型后整段进入正文。旁白在写 journal **之前**调用，流出来的 token 没有“已发生”身份；假 draft 比等待更糟。也不做每人物流与裁决层流。
 - 两种失败必须分开说：
   - 裁判失败（`error` 帧）：世界没有变。显示“这一拍没有发生”，不留任何正文。
   - 旁白失败（`fallback: true`）：世界**已经**变了。显示事实摘要兜底正文，并标一句“这一拍的叙述没有生成”。
@@ -110,6 +116,8 @@ v1 只读；打开抽屉不改变阅读位置。
 chrome 全部用 antd 6 / `@ant-design/x` 2，见 §13；壳层的自有组件：
 
 `TopBar` · `ReadingStream` · `PlayerLine` · `BeatDivider` · `Composer` · `StateDrawer` · `EmptyState` · `ErrorNotice`
+
+状态行、目标 chips 与选项区都在 `Composer` 内，不新增文件；选项用 x 的 `Suggestion`。
 
 对话与旁白目前共用一段正文；把它们拆成「气泡 + 场景块」需要先定说话人契约，见 [backlog.md](../design/backlog.md) §6.1。
 
@@ -178,7 +186,7 @@ chrome 全部用 antd 6 / `@ant-design/x` 2，见 §13；壳层的自有组件�
 
 | 层 | 内容 |
 | :--- | :--- |
-| chrome | 全部用 antd 6 / `@ant-design/x` 2 组件：`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Empty` `Segmented` `Timeline` `Skeleton`，加 `@ant-design/x` 的 `Sender` `Conversations` |
+| chrome | 全部用 antd 6 / `@ant-design/x` 2 组件：`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Empty` `Segmented` `Timeline` `Skeleton`，加 `@ant-design/x` 的 `Sender` `Conversations` `Suggestion` |
 | `ui/` 下的自有件（1） | `ModeSwitch`（antd `Segmented` 的薄壳，壳切换的两处共用） |
 | 玩家壳（8） | `TopBar` `ReadingStream` `PlayerLine` `BeatDivider` `Composer` `StateDrawer` `EmptyState` `ErrorNotice` |
 | 作者壳（7） | `AuthorApp` `BeatList` `BeatDetail` `LedgerView` `HealthPanel` `ContentEditor` `SaveDialog` |

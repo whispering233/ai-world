@@ -4,7 +4,8 @@
 
 | 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
 | :--- | :--- | :--- | :--- | :--- |
-| text | 是 | string | 1–500 字 | 玩家本拍说的或做的；空串返回 `E_EMPTY_INPUT`，超长由服务端截断并在 `notes` 记一条 |
+| text | 是 | string | 1–500 字 | 玩家本拍说的或做的；空串返回 `E_EMPTY_INPUT`，超长由服务端截断并在 `notes` 记一条。“等一会儿”也是普通 text，没有单独字段 |
+| to | 否 | string | 在场者的**显示名** | “对谁说”；服务端按玩家所在地的在场者唯一匹配到实体。匹配不到/重名则忽略并记 `notes`；缺省 = 所有人。客户端不持有实体 id |
 
 ```json
 { "text": "我把两枚银元塞进安手里，要一杯威士忌。" }
@@ -20,7 +21,7 @@ progress*  →  (passage → state → done)  |  error
 
 | 帧名 | data 结构 | 何时发 |
 | :--- | :--- | :--- |
-| `progress` | `{elapsedMs, clockText}` | 每 1000ms 一次，兼作心跳；`clockText` 是本拍**开始前**的时刻 |
+| `progress` | `{elapsedMs, clockText, phase?}` | 每 1000ms 一次，兼作心跳；`clockText` 是本拍**开始前**的时刻；`phase:'settled'` 只在裁判返回、账本在内存落定后发一次 |
 | `passage` | `BeatView`（见 [10-api-session.md](10-api-session.md) §2.2） | 本拍已落 journal，且旁白已成型（含 fallback） |
 | `state` | `{clock, clockText, state}`，`state` 见 §2.1 | 紧接 `passage` |
 | `done` | `{seq}` | 帧流结束；`seq` 为本拍 journal 序号 |
@@ -53,6 +54,9 @@ data: {"elapsedMs":1000,"clockText":"第 2 天 · 夜"}
 
 event: progress
 data: {"elapsedMs":41000,"clockText":"第 2 天 · 夜"}
+
+event: progress
+data: {"elapsedMs":42000,"clockText":"第 2 天 · 夜","phase":"settled"}
 
 event: passage
 data: {"seq":7,"clock":1452,"clockText":"第 2 天 · 夜","player":"我把两枚银元塞进安手里，要一杯威士忌。","passage":"安把银元按在掌心里，拇指搓了两下才收进围裙。","fallback":false}
