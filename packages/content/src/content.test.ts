@@ -124,6 +124,28 @@ describe('validatePack：opening 与 scene', () => {
   })
 })
 
+describe('STARTER_TOWN：物品位置（陈设）', () => {
+  it('柜台 / 铁盒 / 桌子都在 saloon，各自承载的物品与锁态正确', () => {
+    const { ledger } = pack.world
+    expect([ledger.at['counter'], ledger.at['strongbox'], ledger.at['table']]).toEqual(['saloon', 'saloon', 'saloon'])
+    expect(ledger.holds['counter']).toEqual({ whiskey: 3, cup: 2 })
+    expect(ledger.holds['strongbox']).toEqual({ 'ledger-book': 1 })
+    expect(ledger.holds['table']).toEqual({ cup: 1 })
+    expect(ledger.phys['strongbox']).toEqual({ locked: true })
+    expect(pack.items['cup']).toBe('杯子')
+    expect(pack.names['counter']).toBe('柜台')
+    expect(pack.names['strongbox']).toBe('铁盒')
+    expect(pack.names['table']).toBe('桌子')
+  })
+
+  it('陈设不是人物：ann 手上只有一只杯子，账本与酒瓶已挪到陈设上', () => {
+    expect(pack.world.ledger.holds['ann']).toEqual({ cup: 1 })
+    const people = new Set(pack.characters.map((c) => c.id))
+    for (const fixture of ['counter', 'strongbox', 'table']) expect(people.has(fixture)).toBe(false)
+    expect(validatePack(pack)).toEqual([])
+  })
+})
+
 describe('两人的可区分性', () => {
   it('core 开头 12 字与 voice 都不相同', () => {
     const ann = seed('ann')

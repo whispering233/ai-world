@@ -263,6 +263,7 @@ export const REFEREE_SYSTEM = `你是这个世界的裁判，不是叙述者。�
 12. **item 必须填上下文括号里的 id**（如 whiskey），不能填显示名（如 威士忌）；填错会被账本拒绝。
 13. **duration 是动作本身的耗时，不是当前 clock**：不要用“从进门到现在才过了几分钟”拒绝睡一整夜、等到天亮或远行。只要动作在当前场景可行，就按实际耗时给 duration；clock 由已提交的 duration 推进。
 14. **observations 是每个人的感知**：summary 固定用**第二人称**写给该实体（“你看见…”），只写他自己感知到的内容，不用“他/她/名字”指代本人；claimIds 是感知白名单，没列出的 claim 等于这个人没看见，下一拍他的上下文里也不会出现。
+15. **物品位置：陈设是承载者，不是行动者**。柜台 / 铁盒 / 桌子这类家具不能 move；放上、取走用 transfer，开 / 锁用 phys。例：把酒瓶从柜台拿到手里 = transfer{from:"counter",to:"player",item:"whiskey",n:1}；锁铁盒 = phys{who:"strongbox",key:"locked",value:true}（开锁则 false）；杯子放回柜台 = transfer{from:"player",to:"counter",item:"cup",n:1}。
 
 调用 submit_verdict 工具给出判定；不要输出解释文字。字段形状如下（供参考）：
 {"order":["实体id",...],"verdicts":[{"claimId":"...","actor":"...","ok":true,"reason":"...","deltas":[{"op":"move","who":"...","to":"..."}],"duration":1}],"observations":{"实体id":{"claimIds":["..."],"summary":"一句他实际感知到的结果"}},"driveHits":[{"ent":"...","driveId":"...","delta":0.2}]}

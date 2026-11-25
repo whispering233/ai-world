@@ -156,6 +156,45 @@ describe('apply：前置条件与拒绝', () => {
   })
 })
 
+describe('apply：陈设（家具实体）', () => {
+  /** 与 content/starter-town.json 同形：陈设在 at 里，有 holds 与 phys，但不是人物。 */
+  function furnished(): World {
+    const base = world()
+    return {
+      ...base,
+      ledger: {
+        ...base.ledger,
+        at: { ...base.ledger.at, counter: 'saloon', strongbox: 'saloon' },
+        holds: { ...base.ledger.holds, counter: { whiskey: 3 } },
+        phys: { strongbox: { locked: true } },
+      },
+    }
+  }
+
+  it('transfer 从柜台到人：酒瓶离柜、到人手上', () => {
+    const { world: w, results } = apply(furnished(), [{ op: 'transfer', from: 'counter', to: 'ann', item: 'whiskey', n: 1 }])
+    expect(results[0]?.ok).toBe(true)
+    expect(w.ledger.holds.counter?.whiskey).toBe(2)
+    expect(w.ledger.holds.ann?.whiskey).toBe(1)
+  })
+
+  it('transfer 从人到柜台：杯子放回台面', () => {
+    const stocked = apply(furnished(), [{ op: 'transfer', from: 'counter', to: 'ann', item: 'whiskey', n: 1 }]).world
+    const { world: w, results } = apply(stocked, [{ op: 'transfer', from: 'ann', to: 'counter', item: 'whiskey', n: 1 }])
+    expect(results[0]?.ok).toBe(true)
+    expect(w.ledger.holds.counter?.whiskey).toBe(3)
+    expect(w.ledger.holds.ann?.whiskey).toBeUndefined()
+  })
+
+  it('phys 对铁盒改 locked：开锁落成账本状态，不用新 op', () => {
+    const { world: w, results } = apply(furnished(), [{ op: 'phys', who: 'strongbox', key: 'locked', value: false }])
+    expect(results[0]?.ok).toBe(true)
+    expect(w.ledger.phys.strongbox?.locked).toBe(false)
+    // 陈设仍在原位：phys 不碰 at
+    expect(w.ledger.at.strongbox).toBe('saloon')
+  })
+})
+
 describe('apply：纯函数与可回放', () => {
   it('不改入参', () => {
     const original = world()
