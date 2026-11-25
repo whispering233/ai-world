@@ -39,6 +39,23 @@ describe('createCognition：system 前缀顺序', () => {
   })
 })
 
+describe('createCognition：输出指令', () => {
+  it('稳定段含“玩家的话是主张”与“现场优先”，且排在 canon 之前', async () => {
+    const seen: ChatRequest[] = []
+    const llm = {
+      async chat(req: ChatRequest) {
+        seen.push(req)
+        return { text: JSON.stringify({ inner: '', outward: '嗯。' }), toolCalls: [], inputTokens: 0, outputTokens: 0, model: 'faux/cognition' }
+      },
+    }
+    await createCognition(llm).think(input())
+    const system = seen[0]?.system ?? ''
+    expect(system).toContain('都只是主张，不等于已经发生')
+    expect(system).toContain('行动前先看现场')
+    expect(system.indexOf('行动前先看现场')).toBeLessThan(system.indexOf('世界设定'))
+  })
+})
+
 describe('createCognition：显示名', () => {
   it('beliefs 的键用显示名，不泄漏 id', async () => {
     const seen: ChatRequest[] = []
@@ -85,13 +102,24 @@ describe('createCognition：crossTalk 第二轮', () => {
 })
 
 describe('createStubCognition：合法 JSON 切分', () => {
-  it('inner/outward 各自就位，并写回一条 seen', async () => {
+  it('inner 写 thought(w=1)，outward 写 seen(w=2)', async () => {
     const script = JSON.stringify({ inner: '忍住没骂', outward: '我不渴。', selfChange: '' })
     const { output, experience } = await createStubCognition([script]).think(input())
 
     expect(output).toEqual({ inner: '忍住没骂', outward: '我不渴。' })
     expect(output.selfChange).toBeUndefined()
-    expect(experience).toEqual([{ t: 100, kind: 'seen', text: '我不渴。', w: 2 }])
+    expect(experience).toEqual([
+      { t: 100, kind: 'seen', text: '我不渴。', w: 2 },
+      { t: 100, kind: 'thought', text: '忍住没骂', w: 1 },
+    ])
+  })
+
+  it('空 inner 不写 thought', async () => {
+    const script = JSON.stringify({ inner: '', outward: '我点了下头。' })
+    const { experience } = await createStubCognition([script]).think(input())
+
+    expect(experience.some((e) => e.kind === 'thought')).toBe(false)
+    expect(experience).toHaveLength(1)
   })
 
   it('selfChange 非空时随 output 交出（写不写 self 由调用方的 canWriteSelf 判）', async () => {
@@ -120,10 +148,10 @@ describe('createStubCognition：切不出来时不丢内容、不抛异常', () 
     expect(output.outward).toBe(raw)
   })
 
-  it('空文本也不抛', async () => {
+  it('空文本也不抛：两个字段都空，experience 为空', async () => {
     const { output, experience } = await createStubCognition(['']).think(input())
     expect(output).toEqual({ inner: '', outward: '' })
-    expect(experience[0]?.text).toBe('')
+    expect(experience).toEqual([])
   })
 })
 

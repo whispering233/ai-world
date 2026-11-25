@@ -98,8 +98,8 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   if (input.playerClaim) {
     claims.push({ id: `p${clock}`, actor: input.player, text: input.playerClaim, kind: 'act' })
   }
-  // 人物本拍要能看见玩家刚说的话/做的事；只给公开输入，不给玩家的私有状态。
-  const playerLine = input.playerClaim ? `玩家刚才说/做：${input.playerClaim}` : ''
+  // 玩家输入是未裁决主张（30 §7）：人物看到的是“他提出”，不是“已经发生”。
+  const playerLine = input.playerClaim ? `玩家这一拍提出（尚未裁决）：${input.playerClaim}` : ''
   // 人物与裁判看同一份现场（决策 #42）：切片取场景内全部实体（含门/灯），不是本场原班人马，
   // 否则裁判按已变化的 phys 驳回，而物件的状态人物从未看见。
   const sceneFor = (ent: EntId): string =>
@@ -138,7 +138,10 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
       degraded.push(`认知失败（本拍沉默）：${t.ent}：${t.reason}`)
       continue
     }
-    claims.push({ id: `${t.ent}${clock}`, actor: t.ent, text: t.res.output.outward, kind: 'act' })
+    // 没开口就不成 claim（30 §3）：空 outward 不占 claim id，也不进裁判。
+    if (t.res.output.outward.trim() !== '') {
+      claims.push({ id: `${t.ent}${clock}`, actor: t.ent, text: t.res.output.outward, kind: 'act' })
+    }
     let next = t.ch
     for (const e of t.res.experience) next = remember(next, e)
     if (t.res.output.selfChange) pendingSelf.set(t.ent, t.res.output.selfChange)

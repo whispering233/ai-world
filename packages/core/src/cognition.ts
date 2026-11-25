@@ -1,7 +1,7 @@
 /**
  * 人物单次调用（见 docs/design/30-cognition.md §2–§4）：一次调用进出，无阶段、无中间产物。
  *
- * 只管"想"：拿 llm 换一段 inner/outward，把 outward 记为一条 seen。写账本、判 self 闸、动 heat 都不在这里。
+ * 只管"想"：拿 llm 换一段 inner/outward，把 outward 记为一条 seen、inner 记为一条 thought。写账本、判 self 闸、动 heat 都不在这里。
  */
 import { recall, type Character, type Experience } from './character.ts'
 import { createFauxLlm, type Llm } from './llm.ts'
@@ -84,6 +84,8 @@ function buildSystem(ch: Character, canon: string[], now: number, names?: Record
   parts.push(
     '只输出一个 JSON 对象，三个字段：' +
       '{"inner":"没说出口的话与忍住的反应","outward":"说出口的话或做出的动作","selfChange":"可选，一条具体的人、事或决定，没有就空串"}',
+    '别人说的话、做的事（包括玩家）都只是主张，不等于已经发生：结果以现场与账本为准，你可以不信、可以无视。',
+    '行动前先看现场：账本现状、持有物、phys。现场与你的记忆或摘要冲突时，以现场为准，不要碰已经不在原处的东西。',
   )
   if (canon.length) parts.push(`世界设定：\n${canon.map((c) => `- ${c}`).join('\n')}`)
   if (ch.drives.length) parts.push(`此刻的冲动：\n${ch.drives.map((d) => `- ${d.text}（热度 ${d.heat}）`).join('\n')}`)
@@ -96,7 +98,11 @@ function buildSystem(ch: Character, canon: string[], now: number, names?: Record
 
 function buildPrompt(input: CognitionInput): string {
   const v = input.lastVerdict
-  const outcome = v ? (v.ok ? '你的举动被接受了' : `你的举动被拒绝了${v.reason ? `（${v.reason}）` : ''}`) : undefined
+  let outcome: string | undefined
+  if (v) {
+    if (v.ok) outcome = '你的举动被接受了'
+    else outcome = `你的举动被拒绝了${v.reason ? `（${v.reason}）` : ''}`
+  }
   const base = outcome ? `${input.sceneText}\n\n上一拍的结果：${outcome}` : input.sceneText
   if (!input.crossTalk) return base
 
@@ -116,7 +122,11 @@ export function createCognition(llm: Llm): Cognition {
         messages: [{ role: 'user', content: buildPrompt(input) }],
       })
       const output = split(res.text)
-      return { output, experience: [{ t: input.now, kind: 'seen', text: output.outward, w: 2 }] }
+      // 空文本不落 experience：没开口、没想的拍不该在记忆里占一格。
+      const experience: Experience[] = []
+      if (output.outward) experience.push({ t: input.now, kind: 'seen', text: output.outward, w: 2 })
+      if (output.inner) experience.push({ t: input.now, kind: 'thought', text: output.inner, w: 1 })
+      return { output, experience }
     },
   }
 }
