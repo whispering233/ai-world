@@ -210,10 +210,15 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     characters.set(ent, remember(ch, { t: clock, kind: 'self', text, w: 3, ref: input.beatIndex }))
   }
 
-  const narratorEvents = claims.map((c) => {
-    const v = out.verdicts.find((x) => x.claimId === c.id)
-    return { actor: c.actor, name: input.names?.[c.actor] ?? c.actor, text: c.text, outcome: describe(v) }
-  })
+  // 旁白按裁判给的结算顺序写（决策 #44）：order 里没列出的 claim 保持原顺序排在后面。
+  // claims 本身不动：journal 记的是收集顺序，不是叙述顺序。
+  const rank = new Map(out.order.map((ent, i) => [ent, i]))
+  const narratorEvents = [...claims]
+    .sort((a, b) => (rank.get(a.actor) ?? out.order.length) - (rank.get(b.actor) ?? out.order.length))
+    .map((c) => {
+      const v = out.verdicts.find((x) => x.claimId === c.id)
+      return { actor: c.actor, name: input.names?.[c.actor] ?? c.actor, text: c.text, outcome: describe(v), committed: committedIds.has(c.id) }
+    })
 
   let passage = ''
   let narrationFailed = false
@@ -224,6 +229,10 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     // 空文本和抛错同样是“没有旁白”：不能把空 passage 当成正常结果落盘。
     if (passage.trim() === '') throw new Error('旁白为空')
     narrationNotes.push(...narration.absoluteTime.map((t) => `叙述里出现绝对时间：${t}`))
+    // 漏写只报告、不改写（决策 #44）：文本已经发出去了，已落账的动作不能从叙事里悄悄消失。
+    for (const e of narratorEvents) {
+      if (e.committed && !passage.includes(e.name)) narrationNotes.push(`旁白漏写：${e.name}`)
+    }
   } catch (error) {
     narrationFailed = true
     passage = fallbackPassage(narratorEvents)

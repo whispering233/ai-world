@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { createStubNarrator, fallbackPassage, type NarrationInput } from './narrate.ts'
+import type { ChatRequest, Llm } from './llm.ts'
+import { createNarrator, createStubNarrator, fallbackPassage, type NarrationInput } from './narrate.ts'
+
+/** 记下发出去的 system 与 user：要检查的是提示词本身，不是模型输出。 */
+function capture(): { narrator: ReturnType<typeof createNarrator>; seen: ChatRequest[] } {
+  const seen: ChatRequest[] = []
+  const llm: Llm = {
+    async chat(req) {
+      seen.push(req)
+      return { text: '雨还没停。', toolCalls: [], inputTokens: 0, outputTokens: 0, model: 'test' }
+    },
+  }
+  return { narrator: createNarrator(llm), seen }
+}
 
 function input(): NarrationInput {
   return {
@@ -54,5 +67,30 @@ describe('渲染：只出文本，不写回', () => {
     const prose = '第三天一早，三月五日那天的事又被提起。'
     const out = await createStubNarrator([prose]).narrate(input())
     expect(out.absoluteTime).toEqual(['第三天', '三月五日'])
+  })
+})
+
+describe('渲染提示词：已落账 / 未成立', () => {
+  it('每个事件都标出是否已落账', async () => {
+    const { narrator, seen } = capture()
+    await narrator.narrate({
+      ...input(),
+      events: [
+        { actor: 'ann', name: '安', text: '我一脚踹开铁门', outcome: '门被踹开了', committed: true },
+        { actor: 'bob', name: '鲍勃', text: '我抓住那把枪', outcome: '被拒绝了：枪压在对方身下', committed: false },
+      ],
+    })
+    const user = seen[0]?.messages[0]?.content ?? ''
+    expect(user).toContain('[已落账] 安：我一脚踹开铁门')
+    expect(user).toContain('[未成立] 鲍勃：我抓住那把枪')
+  })
+
+  it('system 含三条编排规则', async () => {
+    const { narrator, seen } = capture()
+    await narrator.narrate(input())
+    const system = seen[0]?.system ?? ''
+    expect(system).toContain('独立人物段落最多两段')
+    expect(system).toContain('至少出现一次')
+    expect(system).toContain('不要一个动作一段')
   })
 })

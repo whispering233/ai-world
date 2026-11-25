@@ -14,6 +14,8 @@ export interface NarrationEvent {
   text: string
   /** 结果的简短描述，如“门被踹开了” / “被拒绝了：门是铸铁焊死的” */
   outcome: string
+  /** 裁判判定已落账；缺省表示调用方没给落账名单（旧脚本），prompt 里不标 */
+  committed?: boolean
 }
 
 export interface NarrationInput {
@@ -62,11 +64,20 @@ const NARRATOR_SYSTEM = `你是这个世界的叙述者。你把裁判已经判�
 1. 只能使用相对时间说法：“过了一会儿”“没多久”“天已经黑了”“几个小时后”。不得写出任何具体时刻、日期或第几天（不写“第3天”“上午10点”“14:30”这类说法）。
 2. 只写裁判给出的结果：不新增世界变化、不改结局、不编造谁得到了什么。
 3. 补光照、动作、语气可以；这些细节只是传闻，不是事实。
-4. 只输出散文本身，不要标题、不要 JSON、不要解释。`
+4. 只输出散文本身，不要标题、不要 JSON、不要解释。
+5. 一拍的独立人物段落最多两段；其余已落账的动作并进背景，不要一人一段。
+6. 每个 [已落账] 的动作都必须在正文里至少出现一次，哪怕只是一句背景。
+7. 按给出的顺序写，不要逐条复述：不要一个动作一段。`
+
+/** 落账标记：缺省不标，免得把已落账的动作说成未成立。 */
+function tag(e: NarrationEvent): string {
+  if (e.committed === undefined) return ''
+  return e.committed ? '[已落账] ' : '[未成立] '
+}
 
 function buildPrompt(input: NarrationInput): string {
   const elapsed = input.clockAfter - input.clockBefore
-  const events = input.events.map((e) => `- ${e.name ?? e.actor}：${e.text} → ${e.outcome}`).join('\n')
+  const events = input.events.map((e) => `- ${tag(e)}${e.name ?? e.actor}：${e.text} → ${e.outcome}`).join('\n')
   return `现场：\n${input.sceneText}\n\n这一拍过去的时间：${elapsed} 分钟（换算成相对说法，不要写出数字时刻）\n\n这一拍的结果：\n${events}`
 }
 
