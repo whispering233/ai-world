@@ -81,7 +81,7 @@
 
 | 候选 | 现在做它的理由 | 先看什么 |
 | :--- | :--- | :--- |
-| 世界层三项缺陷（物质流 / 知识通胀 / 时间钉死） | 阅读面已落地，浏览器里能直接看到"读了三拍什么也没发生"；T4/T5 smoke 里 51/60 是 `ok`+空 deltas，只有 7 条写操作。这是当前唯一能改善**阅读体验**的工作 | [world-baseline.md](../research/world-baseline.md)、[t4t5-smoke.md](../research/t4t5-smoke.md) §3 |
+| 世界层三项缺陷（物质流 / 知识通胀 / 时间钉死） | 阅读面已落地，浏览器里能直接看到"读了三拍什么也没发生"；T4/T5 与 D 两次 smoke 都是 47–51/60 空结果，写操作只有个位数。这是当前唯一能改善**阅读体验**的工作 | [world-baseline.md](../research/world-baseline.md)、[t4t5-smoke.md](../research/t4t5-smoke.md) §3、[d-detemplate-smoke.md](../research/d-detemplate-smoke.md) §3 |
 | 20 拍基线重跑 | §4 的取数在 R1（裁判规则 9b）之前，改过提示词之后不能当判据 | 本文 §4 |
 | storylet 骨架与账本状态的相容性（冻结中） | R1 后逐条核对：14 条拒绝里绝大多数有账本依据，瓶颈是骨架没把"闩着/完好/没受力"写进 `when` | [storylet-probe.md](../research/storylet-probe.md) §18 |
 | 世界事件与玩家主张的优先级 | 关键词避让已证伪，但"玩家动作被顶掉"仍没有规则 | [storylet-probe.md](../research/storylet-probe.md) §12 §14 |
@@ -90,8 +90,7 @@
 | “被直接作用者”接线 | 聚焦模式已用 `focus` 占住 `touched`（决策 #48）；**玩家动手但不选目标**时，对方仍不会被叫到 | 口径未定：本拍谁被作用只有裁判之后才知道；只能取上一拍 deltas 或解析玩家原话 |
 | 玩家看不到自己被拒绝的理由 | 拒绝理由只进 NPC experience 与作者视图；玩家只能从正文推断 | 半天；先定是否给一句“为什么没成”，且不能泄漏 NPC 私有状态 |
 | summary 同时进场景上下文与 experience | 决策 #42 的已知代价：下一拍可能同时从两处看到同一句 | 折场明显提前或 token 吃紧时，把经验写入改成“只由折场产生” |
-| 去模板化提示词 | 12 拍里 `清了清` 每拍一次；小动作来自人物输出，不是旁白 | 先量 `按了按/清了清/刮了两下` 的出现率，再改认知提示 |
-| 旁白段落上限的结构化保证 | T5 后仍有 4/12 拍是 4–5 段；提示词不是结构保证 | 再跑 3 次 12 拍；中位数 >3 再动 |
+| 旁白段落上限的结构化保证 | D 后仍有 3/12 拍是 5 段（9/12 ≤3）；段落检查只记 notes | 同条件跑 3 次；中位数 >3 再动 |
 | 折场时的成长入口 | `folded.perEnt` 现在无人消费（`FoldMaterial` 算出来了、没人用），`40 §7` 的“折场写 self”还没接线 | 长局手感变差或上下文吃紧时 |
 | 首屏体积 | 作者壳已拆出去（1.12 → 1.03 MB / gzip 354 → 326 kB），但主 chunk 仍整包带着 antd + `@ant-design/x` | 弱网下能感知白屏时；下一步只能按组件拆 vendor，代价大 |
 | 每拍全量重读 journal/passage | 长局 O(n²)：`session.beat` 每拍整份 `JSON.parse`，`routes/beat.ts` 为一个 `clockText` 建整份 view，`GET /api/session` 全量下发历史 | 当前几十拍无感，上百拍再动 |
