@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { commit, createStubReferee, noRate, parseRefereeOutput, refereePrompt, type Claim, type RefereeOutput } from './referee.ts'
+import { commit, createStubReferee, noRate, parseRefereeOutput, REFEREE_SYSTEM, refereePrompt, type Claim, type RefereeOutput } from './referee.ts'
 import type { World } from './world.ts'
 
 const claims: Claim[] = [
@@ -79,6 +79,14 @@ describe('parseRefereeOutput：信封校验', () => {
 
   it('非对象输入不会抛异常', () => {
     expect(parseRefereeOutput('nope', claims).output.verdicts).toHaveLength(2)
+  })
+})
+
+describe('REFEREE_SYSTEM：同一 phys 键的相反值', () => {
+  it('写明只能留一条成立、另一条 ok:false，不靠落地顺序', () => {
+    expect(REFEREE_SYSTEM).toContain('同一 phys 键')
+    expect(REFEREE_SYSTEM).toContain('相反值')
+    expect(REFEREE_SYSTEM).toContain('靠落地顺序')
   })
 })
 

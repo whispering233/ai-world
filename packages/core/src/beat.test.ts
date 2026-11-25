@@ -139,6 +139,92 @@ describe('runBeat：玩家输入可见', () => {
     expect(seen).toHaveLength(2)
     expect(seen.every((s) => s.includes('我把银元放在柜台上'))).toBe(true)
   })
+
+  it('玩家行是未裁决主张：含“未裁决”，不再含“刚才说/做”', async () => {
+    const store = tmpStore()
+    const seen: string[] = []
+    const input = base(store, [])
+    input.playerClaim = '我把银元放在柜台上'
+    const cognition = {
+      think: (req: { sceneText: string }) => {
+        seen.push(req.sceneText)
+        return Promise.resolve({ output: { inner: '看着', outward: '点了下头' }, experience: [] })
+      },
+    }
+    await runBeat({ ...input, deps: { ...input.deps, cognition } })
+
+    expect(seen.every((s) => s.includes('玩家这一拍提出（尚未裁决）：我把银元放在柜台上'))).toBe(true)
+    expect(seen.some((s) => s.includes('玩家刚才说/做'))).toBe(false)
+  })
+})
+
+describe('runBeat：没开口不成 claim', () => {
+  it('outward 为空的角色不进 claims，但有内容的人照常结算', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.playerClaim = '我把银元放在柜台上'
+    const judged: string[][] = []
+    input.deps.referee = {
+      async judge({ claims }) {
+        judged.push(claims.map((c) => c.id))
+        return {
+          order: [],
+          verdicts: claims.map((c) => ({ claimId: c.id, actor: c.actor, ok: true, deltas: [], duration: 1 })),
+          observations: {},
+          driveHits: [],
+        }
+      },
+    }
+    input.deps.cognition = createStubCognition([say('ann 把杯子推过去'), JSON.stringify({ inner: '不想搭话', outward: '   ' })])
+    const r = await runBeat(input)
+
+    // 安一条、医生空 outward 不占 claim id
+    expect(judged).toEqual([['p0', 'ann0']])
+    expect(r.committedClaims).toEqual(['p0', 'ann0'])
+  })
+
+  it('全场沉默且玩家没开口：本拍没有主张，不调裁判', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    let called = 0
+    input.deps.referee = {
+      async judge() {
+        called += 1
+        return { order: [], verdicts: [], observations: {}, driveHits: [] }
+      },
+    }
+    input.deps.cognition = createStubCognition(['', ''])
+    const r = await runBeat(input)
+
+    expect(called).toBe(0)
+    expect(r.journalSeq).toBe(0)
+    expect(r.notes).toContain('没有主张，本拍未发生')
+  })
+})
+
+describe('runBeat：内心话只落 thought', () => {
+  it('inner 进 experience 的 thought（w=1），不进 claim', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    const judged: string[] = []
+    input.deps.referee = {
+      async judge({ claims }) {
+        judged.push(...claims.map((c) => c.text))
+        return {
+          order: [],
+          verdicts: claims.map((c) => ({ claimId: c.id, actor: c.actor, ok: true, deltas: [], duration: 1 })),
+          observations: {},
+          driveHits: [],
+        }
+      },
+    }
+    input.deps.cognition = createStubCognition([say('ann 把杯子推过去'), say('doc 抬头看了一眼')])
+    const r = await runBeat(input)
+
+    const thoughts = (r.characters.get('ann')?.experience ?? []).filter((e) => e.kind === 'thought')
+    expect(thoughts).toEqual([{ t: 0, kind: 'thought', text: '想说话', w: 1 }])
+    expect(judged).not.toContain('想说话')
+  })
 })
 
 describe('runBeat：人物与裁判同一份现场（决策 #42）', () => {
@@ -809,7 +895,9 @@ describe('runBeat：成长闸', () => {
     const list = selves(r.characters.get('ann'))
     expect(list).toHaveLength(1)
     expect(list[0]).toMatchObject({ kind: 'self', text: '我不再指望他替我说话', w: 3 })
-    expect((r.characters.get('ann')?.experience ?? []).some((e) => e.kind === 'thought')).toBe(false)
+    // 未开闸的修订不得降级成普通记忆：内心话只留 thought，selfChange 原文不落
+    const thoughts = (r.characters.get('ann')?.experience ?? []).filter((e) => e.kind === 'thought')
+    expect(thoughts.map((e) => e.text)).toEqual(['忍住'])
   })
 
   it('没有签名的一拍：自我修订直接丢弃', async () => {
@@ -819,7 +907,8 @@ describe('runBeat：成长闸', () => {
     const r = await runBeat(input)
 
     expect(selves(r.characters.get('ann'))).toHaveLength(0)
-    expect((r.characters.get('ann')?.experience ?? []).some((e) => e.kind === 'thought')).toBe(false)
+    const thoughts = (r.characters.get('ann')?.experience ?? []).filter((e) => e.kind === 'thought')
+    expect(thoughts.map((e) => e.text)).toEqual(['忍住'])
   })
 
   it('整条回滚不算签名：自我修订不落', async () => {
