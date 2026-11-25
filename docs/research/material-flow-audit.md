@@ -56,3 +56,6 @@
 1. **家具/容器实体**：柜台、铁盒、桌子作为实体，加 `holds`/`phys`，用现有 `transfer` 搬。
 2. **账本地点物品表**：`placeItems` 或 `on: item → place`，改 schema/apply/replay/投影。
 3. **不表示位置**：只记所有权，接受物质流薄，或继续只写 `fact`。
+## 7. 后续（2026-11-26）
+
+决策 #51 选 **A：陈设作为非人实体承载物品**；M1 的 12 拍证据见 [m1-fixtures-smoke.md](m1-fixtures-smoke.md)。5/5 `transfer` 涉及柜台/桌子，空结果 66.7%，硬冲突 0；威士忌成交与铁盒解锁仍未在模型里跑通。

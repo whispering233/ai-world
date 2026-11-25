@@ -47,7 +47,7 @@
 | **phys 键漂移** | 同一状态多种键（`closed` / `bolted`），或键里塞了位置（`blocking_counter`） | 开放口袋 + 无登记；`apply` 不校验键名 |
 | **phys 键粘住** | 只写过 `true`、从没写回 `false`（`door.bolted`） | 键没有解除动作，账本也没有状态过期机制 |
 | **事实残留脏数据** | `facts/beat` 仍高于 1.0：动作细节、重复寒暄、主语归属错 | 已加可选 `actor`/`kind`，但字段覆盖不等于语义正确；旧 fact 仍靠文本，密度也尚未重测 |
-| **物质流薄** | 有 `transfer`/`consume`，但净持有变化很小，远少于 `know/fact` | 裁判倾向把一切写成"说"；来回 transfer 会虚增流动感 |
+| **物质流薄** | 有 `transfer`/`consume`，但净持有变化很小，远少于 `know/fact` | M1 后 12 拍 material 7、5/5 `transfer` 涉及陈设；仍缺酒水成交场景 |
 | **知识通胀** | `know` 占全部写操作七成以上 | 每次对话都同步一遍事实，等于把"谁知道"当"发生了什么" |
 | **时间钉死** | 20 拍只走几十分钟，`duration` 恒为 1–3 分钟 | 裁判没有长动作的动机；提示未给时长参照 |
 
@@ -82,7 +82,6 @@
 | 候选 | 现在做它的理由 | 先看什么 |
 | :--- | :--- | :--- |
 | 世界层三项缺陷（物质流 / 知识通胀 / 时间钉死） | 阅读面已落地，浏览器里能直接看到"读了三拍什么也没发生"；T4/T5 与 D 两次 smoke 都是 47–51/60 空结果，写操作只有个位数。这是当前唯一能改善**阅读体验**的工作 | [world-baseline.md](../research/world-baseline.md)、[t4t5-smoke.md](../research/t4t5-smoke.md) §3、[d-detemplate-smoke.md](../research/d-detemplate-smoke.md) §3 |
-| 物质流：物品位置不可表示 | 三份 smoke 的 transfer/consume 只涉及银元/威士忌；把酒瓶搁到柜面、账本收进铁盒、药包推回桌里都落不了 op。账本只有持有与 phys，没有“在某表面上” | 已定 A（决策 #51）：家具实体承载；M1 卡实施中，见 [tasks.md](tasks.md) |
 | 20 拍基线重跑 | §4 的取数在 R1（裁判规则 9b）之前，改过提示词之后不能当判据 | 本文 §4 |
 | storylet 骨架与账本状态的相容性（冻结中） | R1 后逐条核对：14 条拒绝里绝大多数有账本依据，瓶颈是骨架没把"闩着/完好/没受力"写进 `when` | [storylet-probe.md](../research/storylet-probe.md) §18 |
 | 世界事件与玩家主张的优先级 | 关键词避让已证伪，但"玩家动作被顶掉"仍没有规则 | [storylet-probe.md](../research/storylet-probe.md) §12 §14 |
