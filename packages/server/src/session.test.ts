@@ -64,14 +64,23 @@ const verdictFor = (claimId: string): string =>
 /** 两个显示名都在正文里：干净的一拍不该留下“旁白漏写”的 notes（T5）。 */
 const narration = '雨顺着门缝往里渗，安抬头看了你一眼。'
 
-/** 按角色分派的桩：referee 缺省给一条能落账的裁决，narration 缺省给一句话。 */
+/** 动作提示：service 侧只要求三条短句，内容与 fixture 现场无关。 */
+const hints = ['问安账本的事', '把杯子推回柜台', '看一眼地窖门']
+
+/** 按角色分派的桩：referee 缺省给一条能落账的裁决，narration 缺省给一句话，suggest 缺省给三条提示。 */
 function stubLlm(overrides: Partial<Record<ChatRequest['role'], (req: ChatRequest) => Promise<ChatResult>>> = {}): Llm {
   return {
     async chat(req) {
       const override = overrides[req.role]
       if (override) return override(req)
       const text =
-        req.role === 'referee' ? verdictFor('p0') : req.role === 'narration' ? narration : JSON.stringify({ inner: '', outward: '安看了你一眼。' })
+        req.role === 'referee'
+          ? verdictFor('p0')
+          : req.role === 'narration'
+            ? narration
+            : req.role === 'suggest'
+              ? JSON.stringify({ hints })
+              : JSON.stringify({ inner: '', outward: '安看了你一眼。' })
       return { text, toolCalls: [], inputTokens: 10, outputTokens: 5, model: `stub/${req.role}`, cost: 0.01, retries: 1 }
     },
   }
@@ -293,6 +302,31 @@ describe('createSession', () => {
     expect(res.beat.passage).toContain('这一拍的叙述没有生成')
   })
 
+  it('动作提示：passage 帧与 view() 的 beat 都带 hints，passage.jsonl 也落盘', async () => {
+    const dir = tmpDir()
+    const session = makeSession(dir, stubLlm())
+    const res = await session.beat('我把两枚银元塞进安手里。', new AbortController().signal, noProgress)
+
+    // res.beat 就是 SSE 的 passage 帧数据
+    expect(res.beat.hints).toEqual(hints)
+    expect(session.view().beats.at(-1)?.hints).toEqual(hints)
+    expect(openStore(dir).readPassage()[0]?.hints).toEqual(hints)
+    expect(session.authorBeat(res.seq)?.passage?.hints).toEqual(hints)
+  })
+
+  it('提示失败不影响这一拍：passage 照常落盘，notes 记下动作提示失败', async () => {
+    const dir = tmpDir()
+    const session = makeSession(
+      dir,
+      stubLlm({ suggest: async () => Promise.reject(new Error('ETIMEDOUT')) }),
+    )
+    const res = await session.beat('我推门进去。', new AbortController().signal, noProgress)
+
+    expect(res.beat.passage).toBe(narration)
+    expect(res.beat).not.toHaveProperty('hints')
+    expect(session.authorBeat(res.seq)?.notes.some((n) => n.includes('动作提示失败'))).toBe(true)
+  })
+
   it('view() 的 beats 里玩家原话来自本拍的 claim', async () => {
     const session = makeSession(tmpDir(), stubLlm())
     await session.beat('我把两枚银元塞进安手里。', new AbortController().signal, noProgress)
@@ -331,14 +365,15 @@ describe('createSession', () => {
     expect(view.usage.cognition.calls).toBe(1)
     expect(view.usage.referee.calls).toBe(1)
     expect(view.usage.narration.calls).toBe(1)
+    expect(view.usage.suggest.calls).toBe(1)
     expect(view.usage.referee.cost).toBeCloseTo(0.01)
     expect(view.prompts).toHaveLength(1)
-    expect(view.prompts[0]?.calls.map((call) => call.role).sort()).toEqual(['cognition', 'narration', 'referee'])
+    expect(view.prompts[0]?.calls.map((call) => call.role).sort()).toEqual(['cognition', 'narration', 'referee', 'suggest'])
 
     const detail = session.authorBeat(1)
     expect(detail?.entry.seq).toBe(1)
     expect(detail?.passage?.text).toBe(narration)
-    expect(detail?.prompts).toHaveLength(3)
+    expect(detail?.prompts).toHaveLength(4)
     expect(detail?.notes).toEqual([])
     expect(session.authorBeat(99)).toBeUndefined()
   })

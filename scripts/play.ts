@@ -73,6 +73,7 @@ async function main(): Promise<void> {
     cognition: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
     referee: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
     narration: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
+    suggest: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
   }
   // 默认模型跟着 pi 自己的设置走（settings.json / PI_MODEL），配置文件只做覆盖
   const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL
@@ -224,7 +225,7 @@ async function main(): Promise<void> {
   if (materialNotes.length) stdout.write(`回滚/降级 notes  ${materialNotes.slice(0, 8).join(' | ')}\n`)
   stdout.write(`每拍墙钟        ${health.beats === 0 ? 0 : Math.round(wallMs / health.beats)}ms（总 ${wallMs}ms）\n`)
   stdout.write(`结束时刻        ${fmt(world.ledger.clock)}\n`)
-  for (const role of ['cognition', 'referee', 'narration'] as const) {
+  for (const role of ['cognition', 'referee', 'narration', 'suggest'] as const) {
     const u = usage[role]
     const avg = u.calls === 0 ? 0 : Math.round(u.ms / u.calls)
     stdout.write(`tokens ${role.padEnd(9)} ${u.input} / ${u.output} | cache ${u.cacheRead} / ${u.cacheWrite} | 调用 ${u.calls} 次 均耗时 ${avg}ms 重试 ${u.retries}\n`)

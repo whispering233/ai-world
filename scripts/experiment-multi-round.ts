@@ -26,6 +26,7 @@ import { createCognition, type Cognition, type CognitionOutput } from '@ai-world
 import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
 import { createLlm, type ModelRole, type UsageSample } from '@ai-world/core'
 import { createNarrator, type NarrationEvent, type Narrator } from '@ai-world/core'
+import { createSuggester } from '@ai-world/core'
 import { readonlyPiCredentials } from '@ai-world/core'
 import {
   commit,
@@ -80,6 +81,7 @@ interface BeatMetrics {
   crossTalkEcho: number
   passageChars: number
   newFacts: string[]
+  hints: string[]
 }
 
 interface ArmResult {
@@ -96,6 +98,7 @@ interface ArmResult {
   crossTalkChanged: number
   crossTalkRefs: number
   crossTalkEcho: number
+  hints?: string[]
 }
 
 interface BeatSample {
@@ -145,6 +148,7 @@ function zeroUsage(): Record<ModelRole, UsageTotals> {
     cognition: { calls: 0, input: 0, output: 0, ms: 0, retries: 0 },
     referee: { calls: 0, input: 0, output: 0, ms: 0, retries: 0 },
     narration: { calls: 0, input: 0, output: 0, ms: 0, retries: 0 },
+    suggest: { calls: 0, input: 0, output: 0, ms: 0, retries: 0 },
   }
 }
 
@@ -589,6 +593,7 @@ function summaryOf(metrics: readonly BeatMetrics[]): {
   crossTalkChanged: number
   crossTalkRefs: number
   crossTalkEcho: number
+  hintBeats: number
 } {
   const usage = zeroUsage()
   const ops: Record<string, number> = {}
@@ -606,8 +611,10 @@ function summaryOf(metrics: readonly BeatMetrics[]): {
   let crossTalkRefs = 0
   let crossTalkEcho = 0
   let wallMs = 0
+  let hintBeats = 0
   for (const m of metrics) {
-    for (const role of ['cognition', 'referee', 'narration'] as const) {
+    if (m.hints.length > 0) hintBeats += 1
+    for (const role of ['cognition', 'referee', 'narration', 'suggest'] as const) {
       const u = usage[role]
       const v = m.usage[role]
       u.calls += v.calls
@@ -654,6 +661,7 @@ function summaryOf(metrics: readonly BeatMetrics[]): {
     crossTalkChanged,
     crossTalkRefs,
     crossTalkEcho,
+    hintBeats,
   }
 }
 
@@ -670,9 +678,10 @@ function report(
   lines.push(`# 多 Agent 交叉对话实验：${tag}`)
   lines.push('')
   lines.push(`- 拍数上限：${beats}`)
-  lines.push(`- 模型：${CFG.models.cognition} / ${CFG.models.referee} / ${CFG.models.narration}`)
+  lines.push(`- 模型：${CFG.models.cognition} / ${CFG.models.referee} / ${CFG.models.narration} / ${CFG.models.suggest}`)
   lines.push('- 说明：各臂不是同一轨迹的对照；LLM 非确定，比较的是每拍分布与总量。self-retry 是控制臂：同样两次认知，但第二轮看不到别人。')
   lines.push('')
+  if (arms.some((a) => a.arm !== 'baseline')) lines.push('- 动作提示只接在 baseline 臂；self-retry/cross-talk 臂没有 suggester。')
   lines.push('## 汇总')
   lines.push('')
   const headers = arms.map((a) => a.arm)
@@ -688,8 +697,11 @@ function report(
   row('认知调用', (s) => s.usage.cognition.calls)
   row('裁判调用', (s) => s.usage.referee.calls)
   row('渲染调用', (s) => s.usage.narration.calls)
-  row('输入 tokens', (s) => s.usage.cognition.input + s.usage.referee.input + s.usage.narration.input)
-  row('输出 tokens', (s) => s.usage.cognition.output + s.usage.referee.output + s.usage.narration.output)
+  row('动作提示调用', (s) => s.usage.suggest.calls)
+  row('动作提示拍数', (s) => `${s.hintBeats}/${s.beats}`)
+  row('动作提示率', (s) => pct(s.beats === 0 ? 0 : s.hintBeats / s.beats))
+  row('输入 tokens', (s) => s.usage.cognition.input + s.usage.referee.input + s.usage.narration.input + s.usage.suggest.input)
+  row('输出 tokens', (s) => s.usage.cognition.output + s.usage.referee.output + s.usage.narration.output + s.usage.suggest.output)
   row('裁决数', (s) => s.verdicts)
   row('no_rate', (s) => pct(s.noRate))
   row('空结果占比', (s) => pct(s.emptyRate))
@@ -757,6 +769,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
     referee: createLlmReferee(llm),
     cognition: createCognition(llm),
     narrator: createNarrator(llm),
+    suggester: createSuggester(llm),
     store,
   }
 
@@ -800,6 +813,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         journalSeq: r.journalSeq,
         ...(r.folded ? { folded: r.folded } : {}),
         notes: r.notes,
+        ...(r.hints === undefined ? {} : { hints: r.hints }),
         claims: entry?.claims ?? [],
         verdicts: entry?.verdicts ?? [],
         crossTalkCalls: 0,
@@ -854,6 +868,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
       crossTalkEcho: res.crossTalkEcho,
       passageChars: res.passage.length,
       newFacts: res.verdicts.filter((v) => v.ok).flatMap((v) => v.deltas.filter((d) => d.op === 'fact').map((d) => (d.op === 'fact' ? d.text : ''))),
+      hints: res.hints ?? [],
     }
     metrics.push(m)
     appendFileSync(join(dir, 'metrics.jsonl'), `${JSON.stringify(m)}\n`)
@@ -875,7 +890,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
       })
     }
 
-    const calls = beatUsage.cognition.calls + beatUsage.referee.calls + beatUsage.narration.calls
+    const calls = beatUsage.cognition.calls + beatUsage.referee.calls + beatUsage.narration.calls + beatUsage.suggest.calls
     console.log(
       `[${arm}] ${beat}/${BEATS} ${fmt(world.ledger.clock)} ${(wallMs / 1000).toFixed(1)}s calls=${calls}` +
         ` claims=${m.claims} no=${m.no} hard=${m.hardConflicts} xrefs=${m.crossTalkRefs}` +
@@ -904,7 +919,7 @@ async function main(): Promise<void> {
           : []
   if (wanted.length === 0) throw new Error(`--mode 只能是 baseline / self-retry / cross-talk / both / all（当前 ${MODE}）`)
   console.log(`实验 ${TAG}：${BEATS} 拍，${wanted.join(' + ')}`)
-  console.log(`模型：cognition=${CFG.models.cognition} referee=${CFG.models.referee} narration=${CFG.models.narration}`)
+  console.log(`模型：cognition=${CFG.models.cognition} referee=${CFG.models.referee} narration=${CFG.models.narration} suggest=${CFG.models.suggest}`)
   const arms = []
   for (const arm of wanted) {
     const result = await runArm(arm)

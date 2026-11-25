@@ -11,13 +11,16 @@ import { fallbackPassage, type Narrator } from './narrate.ts'
 import { commit, type Claim, type Referee, type RefereeOutput, type Verdict } from './referee.ts'
 import { appendBeat, contextOf, fold, foldReason, openScene, type FoldMaterial, type Scene } from './scene.ts'
 import type { BeatTelemetry, Store } from './store.ts'
-import type { EntId, World } from './world.ts'
+import type { SuggestInput, Suggester } from './suggest.ts'
+import type { EntId, Fact, World } from './world.ts'
 
 export interface BeatDeps {
   referee: Referee
   narrator: Narrator
   cognition: Cognition
   store: Store
+  /** 动作提示；旧调用点不传就跳过，也不算降级 */
+  suggester?: Suggester
 }
 
 export interface ClaimDrawInput {
@@ -72,6 +75,8 @@ export interface BeatResult {
   journalSeq: number
   /** 本拍所有 op 都通过、真正落账的 claim id */
   committedClaims: string[]
+  /** 本拍生成的动作提示；没传 suggester 或提示失败时缺省 */
+  hints?: string[]
   folded?: FoldMaterial
   notes: string[]
 }
@@ -223,6 +228,10 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
       return { actor: c.actor, name: input.names?.[c.actor] ?? c.actor, text: c.text, outcome: describe(v), committed: committedIds.has(c.id) }
     })
 
+  // 动作提示与旁白并行（50 §2）：输入只有玩家可见的东西，失败只丢提示，不影响正文与账本。
+  // 先发起再 await 旁白，两者才真的同时跑；等旁白写完才开始就会白等一遍模型。
+  const suggested = deps.suggester === undefined ? undefined : suggestHints(deps.suggester, suggestInput(input, world, out), leakIds(input, world))
+
   let passage = ''
   let narrationFailed = false
   const narrationNotes: string[] = []
@@ -244,6 +253,11 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     passage = fallbackPassage(narratorEvents)
     narrationNotes.push(`旁白失败（事实摘要兜底）：${(error as Error).message}`)
   }
+
+  // 提示失败只是少一行可选内容：本拍的 passage、账本与 seq 都不受影响。
+  const hintResult = suggested === undefined ? undefined : await suggested
+  if (hintResult !== undefined) narrationNotes.push(...hintResult.notes)
+  const hints = hintResult === undefined || hintResult.hints.length === 0 ? undefined : hintResult.hints
 
   // 每个参与者只拿到自己的那句 + 裁判给本人的感知摘要（决策 #42）。绝不把别人的原话广播出去：
   // 旁白看得到整拍，人物只看得到自己感知到的。
@@ -301,6 +315,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
       text: passage,
       source: narrationFailed ? 'fallback' : 'narrator',
       beatSeq: entry.seq,
+      ...(hints === undefined ? {} : { hints }),
     })
   } catch (error) {
     // passage 是派生文本；写失败不能反过来抹掉已经落盘的 journal。
@@ -314,6 +329,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     passage,
     journalSeq: entry.seq,
     committedClaims: applied.filter((a) => a.committed).map((a) => a.claimId),
+    ...(hints === undefined ? {} : { hints }),
     notes: [...degraded, ...notes, ...narrationNotes, ...projectionNotes],
   }
 
@@ -327,6 +343,77 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     result.scene = openScene({ id: `s${folded.seq}`, place, clock: clockAfter, participants: scene.participants })
   }
   return result
+}
+
+/**
+ * 提示器只看玩家可见的那份投影（60 §6）：地点/在场/持有/已知事实的显示名、玩家本拍的原话与本拍感知摘要。
+ * 裁判意见、别人的主张、账本 id 一律不进——它不该说出玩家本来不知道的事。
+ */
+function suggestInput(input: BeatInput, world: World, out: RefereeOutput): SuggestInput {
+  const player = input.player
+  const place = world.ledger.at[player] ?? input.scene.place
+  // 只列人：账本里还有灯、门、柜台这类实体，它们是陈设不是在场者
+  const people = new Set<EntId>([player, ...input.scene.participants])
+  const here = Object.entries(world.ledger.at)
+    .filter(([ent, at]) => at === place && ent !== player && people.has(ent))
+    .map(([ent]) => input.names?.[ent] ?? ent)
+  const holds = Object.entries(world.ledger.holds[player] ?? {})
+    .filter(([, n]) => n > 0)
+    .map(([item, n]) => ({ name: input.items?.[item] ?? item, count: n }))
+  const observation = out.observations[player]?.summary.trim() ?? ''
+  return {
+    sceneText: input.sceneText,
+    place: world.places[place] ?? place,
+    here,
+    holds,
+    knows: knownTexts(world, player),
+    playerClaim: input.playerClaim ?? '',
+    ...(observation === '' ? {} : { observation }),
+  }
+}
+
+/** 已知事实只给最近 5 条：提示要接得住刚才那句，不需要一整本账。 */
+const KNOWS_FOR_HINT = 5
+
+function knownTexts(world: World, player: EntId): string[] {
+  return (world.ledger.knows[player] ?? [])
+    .map((id) => world.facts[id])
+    .filter((fact): fact is Fact => fact !== undefined)
+    .sort((a, b) => a.at - b.at)
+    .slice(-KNOWS_FOR_HINT)
+    .map((fact) => fact.text)
+}
+
+/** 提示里出现 id 或引擎词就把这一条丢掉：玩家界面不能因此泄漏账本。 */
+const ENGINE_WORDS = ['claim', 'verdict', 'delta', 'phys', 'ledger', 'token', 'cost', 'heat', 'rel', 'drives', 'beliefs']
+
+function leakIds(input: BeatInput, world: World): string[] {
+  return [...Object.keys(input.names ?? {}), ...Object.keys(input.items ?? {}), ...Object.keys(world.places)]
+}
+
+function leaks(hint: string, ids: readonly string[]): boolean {
+  const lower = hint.toLowerCase()
+  return ENGINE_WORDS.some((word) => lower.includes(word)) || ids.some((id) => id !== '' && lower.includes(id.toLowerCase()))
+}
+
+async function suggestHints(
+  suggester: Suggester,
+  input: SuggestInput,
+  ids: readonly string[],
+): Promise<{ hints: string[]; notes: string[] }> {
+  try {
+    const { hints, notes: modelNotes = [] } = await suggester.suggest(input)
+    const kept: string[] = []
+    const notes: string[] = [...modelNotes]
+    for (const hint of hints) {
+      // 过滤是降级，不是静默：丢掉的写进 notes，才能事后看出模型在泄漏什么
+      if (leaks(hint, ids)) notes.push(`动作提示被丢弃（含 id 或引擎词）：${hint}`)
+      else kept.push(hint)
+    }
+    return { hints: kept, notes }
+  } catch (error) {
+    return { hints: [], notes: [`动作提示失败：${(error as Error).message}`] }
+  }
 }
 
 export interface LedgerView {

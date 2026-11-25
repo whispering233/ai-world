@@ -66,7 +66,7 @@ app.get('*', serveWeb)
 const beats = session.view().beats.length
 console.log(
   `ai-world http://${HOST}:${PORT} | ${pack.title} | 已有 ${beats} 拍 | ` +
-    `cognition=${cfg.models.cognition} referee=${cfg.models.referee} narration=${cfg.models.narration}`,
+    `cognition=${cfg.models.cognition} referee=${cfg.models.referee} narration=${cfg.models.narration} suggest=${cfg.models.suggest}`,
 )
 serve({ fetch: app.fetch, hostname: HOST, port: PORT })
 

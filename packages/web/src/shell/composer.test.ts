@@ -11,7 +11,7 @@ import { createElement } from 'react'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type { PlayerStateView } from '@ai-world/shared'
 
-beforeAll(() => {
+beforeAll(async () => {
   window.matchMedia = ((query: string) => ({
     matches: false,
     media: query,
@@ -28,17 +28,41 @@ beforeAll(() => {
     unobserve() {}
     disconnect() {}
   } as unknown as typeof ResizeObserver
-})
 
-async function mount(options: { draft: string; inFlight?: boolean; settled?: boolean; state?: PlayerStateView }) {
+  // 预热：@ant-design/x 的首次渲染带有一次性的样式注入（Sender 与选项区的 Prompts 都在这一下）。
+  // 放进 hook 里，纯事件断言才不会把注入耗时算成自己的 15s 超时（满负载并行时这一下能超十秒）。
+  const { Composer } = await import('./Composer.tsx')
+  const warm = render(
+    createElement(Composer, {
+      draft: '',
+      onDraftChange: () => {},
+      onSend: () => {},
+      onStop: () => {},
+      onWait: () => {},
+      inFlight: false,
+      elapsedMs: 0,
+      hints: ['预热'],
+    }),
+  )
+  warm.unmount()
+}, 60_000)
+
+async function mount(options: {
+  draft: string
+  inFlight?: boolean
+  settled?: boolean
+  state?: PlayerStateView
+  hints?: string[]
+}) {
   const { Composer } = await import('./Composer.tsx')
   const onSend = vi.fn()
   const onStop = vi.fn()
   const onWait = vi.fn()
+  const onDraftChange = vi.fn()
   const { container, unmount } = render(
     createElement(Composer, {
       draft: options.draft,
-      onDraftChange: () => {},
+      onDraftChange,
       onSend,
       onStop,
       onWait,
@@ -46,11 +70,12 @@ async function mount(options: { draft: string; inFlight?: boolean; settled?: boo
       settled: options.settled ?? false,
       elapsedMs: 0,
       state: options.state,
+      ...(options.hints === undefined ? {} : { hints: options.hints }),
     }),
   )
   const textarea = container.querySelector('textarea')
   if (textarea === null) throw new Error('Sender 没有渲染出 textarea')
-  return { container, textarea, onSend, onStop, onWait, unmount }
+  return { container, textarea, onSend, onStop, onWait, onDraftChange, unmount }
 }
 
 function waitButton(container: HTMLElement): HTMLButtonElement | undefined {
@@ -177,6 +202,45 @@ describe('Composer 的状态行与「等一会儿」', () => {
     const { container, onWait, unmount } = await mount({ draft: '', inFlight: true })
     expect(waitButton(container)).toBeUndefined()
     expect(onWait).not.toHaveBeenCalled()
+    unmount()
+  })
+}, 15_000)
+
+/** 选项区：最近一拍的动作提示，点选只填不发（ui/DESIGN §3） */
+describe('Composer 的选项区', () => {
+  const hints = ['问安账本的事', '把杯子推回柜台', '看一眼地窖门']
+
+  function itemOf(container: HTMLElement, hint: string): HTMLElement | undefined {
+    return Array.from(container.querySelectorAll<HTMLElement>('.ant-prompts-item')).find(
+      (item) => item.textContent === hint,
+    )
+  }
+
+  it('有提示时把三条都渲染出来', async () => {
+    const { container, unmount } = await mount({ draft: '', hints })
+    for (const hint of hints) expect(itemOf(container, hint)).toBeDefined()
+    unmount()
+  })
+
+  it('点选项只调用 onDraftChange，绝不直接发送', async () => {
+    const { container, onDraftChange, onSend, unmount } = await mount({ draft: '', hints })
+    const item = itemOf(container, '把杯子推回柜台')
+    expect(item).toBeDefined()
+    fireEvent.click(item!)
+    expect(onDraftChange).toHaveBeenCalledWith('把杯子推回柜台')
+    expect(onSend).not.toHaveBeenCalled()
+    unmount()
+  })
+
+  it('等待中不渲染选项', async () => {
+    const { container, unmount } = await mount({ draft: '', hints, inFlight: true })
+    for (const hint of hints) expect(itemOf(container, hint)).toBeUndefined()
+    unmount()
+  })
+
+  it('没有提示时不渲染空选项区', async () => {
+    const { container, unmount } = await mount({ draft: '' })
+    expect(container.querySelector('.ant-prompts')).toBeNull()
     unmount()
   })
 }, 15_000)

@@ -81,6 +81,20 @@ describe('openStore：追加写入与重开', () => {
   })
 })
 
+describe('passage：动作提示', () => {
+  it('hints 落盘并按原样读回；没提示的 passage 没有这个字段', () => {
+    const dir = tmp()
+    const s = openStore(dir)
+    s.appendPassage({ clock: 11, text: '雨还没停。', source: 'narrator', beatSeq: 1, hints: ['问安账本的事', '看一眼地窖门'] })
+    // 旧日志与提示失败都走这条：没有 hints 键
+    s.appendPassage({ clock: 12, text: '雨更大了。', source: 'narrator', beatSeq: 2 })
+
+    const read = openStore(dir).readPassage()
+    expect(read[0]?.hints).toEqual(['问安账本的事', '看一眼地窖门'])
+    expect(read[1]?.hints).toBeUndefined()
+  })
+})
+
 describe('readJournal：尾部撕裂', () => {
   it('半行垃圾被丢掉，不抛，且之后仍能继续追加', () => {
     const dir = tmp()

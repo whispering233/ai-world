@@ -17,7 +17,7 @@ import { runBeat, type BeatDeps } from '@ai-world/core'
 import { fmt } from '@ai-world/core'
 import { createCognition } from '@ai-world/core'
 import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
-import { createLlm } from '@ai-world/core'
+import { createLlm, type ModelRole } from '@ai-world/core'
 import { createNarrator } from '@ai-world/core'
 import { readonlyPiCredentials } from '@ai-world/core'
 import { createLlmReferee, noRate } from '@ai-world/core'
@@ -188,10 +188,11 @@ async function runOne(): Promise<void> {
   rmSync(DIR, { recursive: true, force: true })
   const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL
   const cfg = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json', piDefault)
-  const usage: Record<'cognition' | 'referee' | 'narration', { input: number; output: number; ms: number; calls: number }> = {
+  const usage: Record<ModelRole, { input: number; output: number; ms: number; calls: number }> = {
     cognition: { input: 0, output: 0, ms: 0, calls: 0 },
     referee: { input: 0, output: 0, ms: 0, calls: 0 },
     narration: { input: 0, output: 0, ms: 0, calls: 0 },
+    suggest: { input: 0, output: 0, ms: 0, calls: 0 },
   }
   const llm = createLlm({
     models: cfg.models,

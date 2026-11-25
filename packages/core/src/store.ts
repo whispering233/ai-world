@@ -46,6 +46,8 @@ export interface PassageEntry {
   source: 'narrator' | 'player' | 'npc' | 'fallback'
   /** 对应 journal 的 seq：连接玩家原话与旁白的稳定键；旧日志没有这个字段 */
   beatSeq?: number
+  /** 本拍生成的动作提示（≤3 条）；生成失败时不写，旧日志也没有这个字段 */
+  hints?: string[]
 }
 
 export interface Store {

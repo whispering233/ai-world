@@ -9,6 +9,7 @@ import { createStubNarrator, type NarrationInput } from './narrate.ts'
 import { createStubReferee, type RefereeInput, type RefereeOutput } from './referee.ts'
 import { openScene } from './scene.ts'
 import { openStore, replay, replayCharacters, type Store } from './store.ts'
+import { createStubSuggester } from './suggest.ts'
 import type { EntId, World } from './world.ts'
 import type { Referee } from './referee.ts'
 
@@ -1072,5 +1073,158 @@ describe('runBeat：成长闸', () => {
     expect(list[0]?.text).toBe('第一条')
     expect(second.folded).toBeUndefined()
     expect(store.readJournal()[1]?.experience?.['ann']?.some((e) => e.kind === 'self')).toBe(false)
+  })
+})
+
+describe('runBeat：动作提示', () => {
+  /** 一拍能落账的最小裁决：玩家那句话成立、无变化。 */
+  const settled: RefereeOutput = {
+    order: ['player'],
+    verdicts: [{ claimId: 'p0', actor: 'player', ok: true, deltas: [], duration: 1 }],
+    observations: { player: { claimIds: ['p0'], summary: '你把银元放在柜台上。' } },
+    driveHits: [],
+  }
+
+  const HINTS = ['问安账本的事', '把杯子推回柜台', '看一眼地窖门']
+
+  it('带 suggester 时 result.hints 与 passage.hints 一致，并落盘', async () => {
+    const store = tmpStore()
+    const input = base(store, [settled])
+    input.playerClaim = '我把银元放在柜台上。'
+    const r = await runBeat({ ...input, deps: { ...input.deps, suggester: createStubSuggester([JSON.stringify({ hints: HINTS })]) } })
+
+    expect(r.hints).toEqual(HINTS)
+    expect(store.readPassage()[0]?.hints).toEqual(HINTS)
+  })
+
+  it('suggester 抛错时这一拍照常落账，只是没有提示', async () => {
+    const store = tmpStore()
+    const input = base(store, [settled])
+    input.playerClaim = '我把银元放在柜台上。'
+    const suggester = { suggest: () => Promise.reject(new Error('ETIMEDOUT')) }
+    const r = await runBeat({ ...input, deps: { ...input.deps, suggester } })
+
+    expect(r.journalSeq).toBeGreaterThan(0)
+    expect(r.passage).not.toBe('')
+    expect(r).not.toHaveProperty('hints')
+    expect(r.notes.some((n) => n.includes('动作提示失败') && n.includes('ETIMEDOUT'))).toBe(true)
+    expect(store.readPassage()[0]?.hints).toBeUndefined()
+  })
+
+  it('不传 suggester：没有提示，也不留 note（旧调用点不受影响）', async () => {
+    const store = tmpStore()
+    const input = base(store, [settled])
+    input.playerClaim = '我把银元放在柜台上。'
+    const r = await runBeat(input)
+
+    expect(r).not.toHaveProperty('hints')
+    expect(r.notes.filter((n) => n.includes('动作提示'))).toEqual([])
+  })
+
+  it('与旁白并行：两边都发起之后才等结果', async () => {
+    const store = tmpStore()
+    const input = base(store, [settled])
+    input.playerClaim = '我把银元放在柜台上。'
+    const gates: (() => void)[] = []
+    let started = 0
+    const narrator = {
+      narrate: () => {
+        started += 1
+        return new Promise<{ text: string; absoluteTime: string[] }>((resolve) => {
+          gates.push(() => resolve({ text: '雨还没停。', absoluteTime: [] }))
+        })
+      },
+    }
+    const suggester = {
+      suggest: () => {
+        started += 1
+        return new Promise<{ hints: string[] }>((resolve) => {
+          gates.push(() => resolve({ hints: HINTS }))
+        })
+      },
+    }
+    const running = runBeat({ ...input, deps: { ...input.deps, narrator, suggester } })
+    await new Promise((r) => setTimeout(r, 0))
+    // 串行实现此时只会发起旁白那一次
+    expect(started).toBe(2)
+    for (const release of gates) release()
+    const r = await running
+    expect(r.hints).toEqual(HINTS)
+  })
+
+  it('含 id 或引擎词的提示被丢掉，并在 notes 里留痕', async () => {
+    const store = tmpStore()
+    const input = base(store, [settled])
+    input.playerClaim = '我把银元放在柜台上。'
+    const hints = ['问 ann 账本的事', '看 ledger 一眼', '看一眼地窖门']
+    const r = await runBeat({
+      ...input,
+      names: { player: '你', ann: '安' },
+      items: { 'silver-dollar': '银元' },
+      deps: { ...input.deps, suggester: createStubSuggester([JSON.stringify({ hints })]) },
+    })
+
+    expect(r.hints).toEqual(['看一眼地窖门'])
+    expect(r.notes.filter((n) => n.includes('动作提示被丢弃'))).toHaveLength(2)
+  })
+
+  it('地点 id 也算 id：提示里出现 saloon 会被丢掉', async () => {
+    const store = tmpStore()
+    const input = base(store, [settled])
+    input.playerClaim = '我把银元放在柜台上。'
+    const hints = ['回 saloon 去看看', '问 ann 账本的事', '看一眼地窖门']
+    const r = await runBeat({
+      ...input,
+      names: { player: '你', ann: '安' },
+      items: { 'silver-dollar': '银元' },
+      deps: { ...input.deps, suggester: createStubSuggester([JSON.stringify({ hints })]) },
+    })
+
+    expect(r.hints).toEqual(['看一眼地窖门'])
+    expect(r.notes.filter((n) => n.includes('动作提示被丢弃'))).toHaveLength(2)
+  })
+
+  it('输入只有玩家可见的数据：没有别人的原话、没有感知以外的东西', async () => {
+    const store = tmpStore()
+    const input = base(store, [
+      {
+        order: ['ann'],
+        verdicts: [verdict('p0', [], 1), verdict('ann0', [], 1), verdict('doc0', [], 1)],
+        observations: { player: { claimIds: ['p0'], summary: '你把银元放在柜台上。' } },
+        driveHits: [],
+      },
+    ])
+    input.playerClaim = '我把银元放在柜台上。'
+    const seen: { input: Parameters<typeof JSON.stringify>[0] }[] = []
+    const suggester = {
+      suggest: (req: unknown) => {
+        seen.push({ input: req })
+        return Promise.resolve({ hints: [] })
+      },
+    }
+    await runBeat({
+      ...input,
+      names: { player: '你', ann: '安', doc: '医生', counter: '柜台' },
+      items: { 'silver-dollar': '银元' },
+      deps: { ...input.deps, suggester },
+    })
+
+    // 只看喂进去的**值**：字段名（playerClaim）里带 player 是代码写法，不是泄漏
+    const values: string[] = []
+    const walk = (value: unknown): void => {
+      if (typeof value === 'string') values.push(value)
+      else if (Array.isArray(value)) value.forEach(walk)
+      else if (typeof value === 'object' && value !== null) Object.values(value).forEach(walk)
+    }
+    walk(seen[0]?.input)
+    const fed = values.join('\n')
+    // 别人的主张与裁判意见都不进提示器
+    expect(fed).not.toContain('把杯子推过去')
+    expect(fed).not.toContain('抬头看了一眼')
+    // 实体 id、物品 id 一个都不出现
+    for (const id of ['player', 'ann', 'doc', 'counter', 'silver-dollar']) expect(fed).not.toContain(id)
+    expect(fed).toContain('你把银元放在柜台上。')
+    expect(fed).toContain('我把银元放在柜台上。')
+    expect(fed).toContain('安')
   })
 })

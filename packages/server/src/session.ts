@@ -21,6 +21,7 @@ import {
   createCognition,
   createLlmReferee,
   createNarrator,
+  createSuggester,
   healthView,
   openScene,
   openStore,
@@ -92,7 +93,7 @@ export interface Session {
 /** prompt 环形缓冲只留最近 3 拍（docs/api/30-api-author.md §2） */
 const PROMPT_BEATS = 3
 const PLAYER_TEXT_MAX = 500
-const ROLES: ModelRoleName[] = ['cognition', 'referee', 'narration']
+const ROLES: ModelRoleName[] = ['cognition', 'referee', 'narration', 'suggest']
 /** journal.jsonl / passage.jsonl 是 schema 里的存储契约（docs/db/schema.md §3 §4） */
 const JOURNAL = 'journal.jsonl'
 const PASSAGE = 'passage.jsonl'
@@ -116,9 +117,10 @@ export function createSession(opts: SessionOptions): Session {
     cognition: emptyUsage(),
     referee: emptyUsage(),
     narration: emptyUsage(),
+    suggest: emptyUsage(),
   }
   // 各角色最近一次实际使用的模型串：本拍没调到的角色沿用它，telemetry 才不缺角色
-  const models: Record<ModelRoleName, string> = { cognition: '', referee: '', narration: '' }
+  const models: Record<ModelRoleName, string> = { cognition: '', referee: '', narration: '', suggest: '' }
   const notes = new Map<number, string[]>()
   const prompts: { seq: number; calls: PromptCallView[] }[] = []
 
@@ -251,7 +253,7 @@ export function createSession(opts: SessionOptions): Session {
     const sink: BeatSink = {
       telemetry: {
         models: { ...models },
-        usage: { cognition: emptyUsage(), referee: emptyUsage(), narration: emptyUsage() },
+        usage: { cognition: emptyUsage(), referee: emptyUsage(), narration: emptyUsage(), suggest: emptyUsage() },
       },
       calls: [],
     }
@@ -278,6 +280,7 @@ export function createSession(opts: SessionOptions): Session {
           referee: createLlmReferee(scoped),
           cognition: createCognition(scoped),
           narrator: createNarrator(scoped),
+          suggester: createSuggester(scoped),
           store,
         },
       })

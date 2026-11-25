@@ -121,6 +121,7 @@ export function beatViews(input: BeatJoinInput): BeatView[] {
     }
     if (line !== undefined) view.player = line.text
     if (passage !== undefined) view.passage = passage.text
+    if (passage?.hints !== undefined) view.hints = passage.hints
     views.push(view)
   }
   return views

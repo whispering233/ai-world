@@ -246,6 +246,8 @@ export function App() {
   }
 
   // 两个壳共用同一个输入节点：发送逻辑只有下面这一个 `send`
+  // 选项只取最近一拍：更早的提示已经跟当前现场无关
+  const lastHints = state.beats.at(-1)?.hints
   const composer = (
     <Composer
       draft={state.draft}
@@ -257,6 +259,7 @@ export function App() {
       settled={state.settled}
       elapsedMs={state.elapsedMs}
       state={state.session?.state}
+      {...(lastHints === undefined ? {} : { hints: lastHints })}
     />
   )
 

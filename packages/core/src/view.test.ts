@@ -53,11 +53,12 @@ const JOURNAL: JournalEntry[] = [
     driveHits: [{ ent: 'ann', driveId: 'keep-saloon', delta: 0.1 }],
     experience: { ann: [{ t: 603, kind: 'seen', text: '生面孔进门。', w: 2 }] },
     telemetry: {
-      models: { cognition: 'm', referee: 'stub-referee', narration: 'n' },
+      models: { cognition: 'm', referee: 'stub-referee', narration: 'n', suggest: 's' },
       usage: {
         cognition: { input: 1, output: 2, cacheRead: 0, cacheWrite: 0, cost: 0, ms: 10, retries: 0, calls: 2 },
         referee: { input: 3, output: 4, cacheRead: 0, cacheWrite: 0, cost: 0, ms: 20, retries: 0, calls: 1 },
         narration: { input: 5, output: 6, cacheRead: 0, cacheWrite: 0, cost: 0, ms: 30, retries: 0, calls: 1 },
+        suggest: { input: 7, output: 8, cacheRead: 0, cacheWrite: 0, cost: 0, ms: 40, retries: 0, calls: 1 },
       },
     },
   },
@@ -158,7 +159,7 @@ const AUTHOR_INPUT: AuthorViewInput = {
   journal: JOURNAL,
   passages: PASSAGES,
   content: CONTENT,
-  usage: { cognition: USAGE, referee: USAGE, narration: USAGE },
+  usage: { cognition: USAGE, referee: USAGE, narration: USAGE, suggest: USAGE },
   health: HEALTH,
   prompts: [{ seq: 3, calls: [{ role: 'referee', text: '{"verdicts":[]}', ms: 12, retries: 0, messages: [] }] }],
 }
@@ -219,6 +220,15 @@ describe('playerView', () => {
     expect(playerView({ ...PLAYER_INPUT, opening: '雨把街灯打得只剩一团黄。' }).opening).toBe('雨把街灯打得只剩一团黄。')
     expect(playerView(PLAYER_INPUT)).not.toHaveProperty('opening')
     expect(playerView({ ...PLAYER_INPUT, opening: '  ' })).not.toHaveProperty('opening')
+  })
+
+  it('passage 有 hints 时透传到 BeatView.hints；旧 passage 无 hints 时字段缺省', () => {
+    const passages: PassageEntry[] = PASSAGES.map((p) => (p.beatSeq === 1 ? { ...p, hints: ['问安账本的事', '看一眼地窖门'] } : p))
+    const beats = beatViews({ journal: JOURNAL, passages, player: 'guest' })
+
+    expect(beats[0]?.hints).toEqual(['问安账本的事', '看一眼地窖门'])
+    // 旧日志：字段整个不出现，不是空数组
+    expect(beats[1]).not.toHaveProperty('hints')
   })
 
   it('journal 乱序时 beat 仍按 seq 升序', () => {
