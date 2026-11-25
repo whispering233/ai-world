@@ -9,6 +9,7 @@
 import { fireEvent, render } from '@testing-library/react'
 import { createElement } from 'react'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
+import type { PlayerStateView } from '@ai-world/shared'
 
 beforeAll(() => {
   window.matchMedia = ((query: string) => ({
@@ -29,24 +30,31 @@ beforeAll(() => {
   } as unknown as typeof ResizeObserver
 })
 
-async function mount(options: { draft: string; inFlight?: boolean; settled?: boolean }) {
+async function mount(options: { draft: string; inFlight?: boolean; settled?: boolean; state?: PlayerStateView }) {
   const { Composer } = await import('./Composer.tsx')
   const onSend = vi.fn()
   const onStop = vi.fn()
+  const onWait = vi.fn()
   const { container, unmount } = render(
     createElement(Composer, {
       draft: options.draft,
       onDraftChange: () => {},
       onSend,
       onStop,
+      onWait,
       inFlight: options.inFlight ?? false,
       settled: options.settled ?? false,
       elapsedMs: 0,
+      state: options.state,
     }),
   )
   const textarea = container.querySelector('textarea')
   if (textarea === null) throw new Error('Sender 没有渲染出 textarea')
-  return { container, textarea, onSend, onStop, unmount }
+  return { container, textarea, onSend, onStop, onWait, unmount }
+}
+
+function waitButton(container: HTMLElement): HTMLButtonElement | undefined {
+  return Array.from(container.querySelectorAll('button')).find((button) => button.textContent === '等一会儿')
 }
 
 // 慢的是 @ant-design/x 的样式注入（单跑约 4s），满负载并行时 5s 不够；断言本身是即时事件。
@@ -117,6 +125,58 @@ describe('Composer 的键盘契约', () => {
     expect(container.textContent).not.toContain('世界在回应…')
     expect(container.textContent).toContain('00:00')
     expect(container.textContent).not.toContain('已记录')
+    unmount()
+  })
+}, 15_000)
+
+/** 玩家投影：状态行只取地点与持有（ui/DESIGN §3） */
+const playerState: PlayerStateView = {
+  place: '酒馆',
+  here: ['安'],
+  holds: [{ name: '银元', count: 2 }],
+  knows: [],
+}
+
+describe('Composer 的状态行与「等一会儿」', () => {
+  it('状态行用显示名拼出地点与持有，不出现 id 与引擎词', async () => {
+    const { container, unmount } = await mount({ draft: '', state: playerState })
+    const text = container.textContent ?? ''
+    expect(text).toContain('酒馆 · 你身上：银元×2')
+    for (const word of ['ann', 'silver-dollar', 'claim', 'verdict', 'settled', 'inFlight']) expect(text).not.toContain(word)
+    unmount()
+  })
+
+  it('身上空着时写「空手」', async () => {
+    const { container, unmount } = await mount({ draft: '', state: { ...playerState, holds: [] } })
+    expect(container.textContent).toContain('酒馆 · 你身上：空手')
+    unmount()
+  })
+
+  it('还没读到会话时不渲染状态行', async () => {
+    const { container, unmount } = await mount({ draft: '' })
+    expect(container.textContent).not.toContain('你身上：')
+    unmount()
+  })
+
+  it('placeholder 是「说点什么，或做什么…」', async () => {
+    const { textarea, unmount } = await mount({ draft: '' })
+    expect(textarea.getAttribute('placeholder')).toBe('说点什么，或做什么…')
+    unmount()
+  })
+
+  it('空闲时点「等一会儿」发一条等待', async () => {
+    const { container, onWait, unmount } = await mount({ draft: '我还没打完', state: playerState })
+    const button = waitButton(container)
+    expect(button).toBeDefined()
+    fireEvent.click(button!)
+    expect(onWait).toHaveBeenCalledTimes(1)
+    unmount()
+  })
+
+  it('等待中不给「等一会儿」，也不重复发送', async () => {
+    const { container, onWait, unmount } = await mount({ draft: '', inFlight: true })
+    expect(waitButton(container)).toBeUndefined()
+    expect(onWait).not.toHaveBeenCalled()
     unmount()
   })
 }, 15_000)

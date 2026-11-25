@@ -1,4 +1,6 @@
 import { Sender } from '@ant-design/x'
+import { Button } from 'antd'
+import type { PlayerStateView } from '@ai-world/shared'
 import { READING_COLUMN } from './column.ts'
 
 export interface ComposerProps {
@@ -6,10 +8,14 @@ export interface ComposerProps {
   onDraftChange: (draft: string) => void
   onSend: () => void
   onStop: () => void
+  /** 等待 = 一条普通输入，不改 API（决策 #49） */
+  onWait: () => void
   inFlight: boolean
   /** 账本已落定、旁白还没成型：等待文案换一段 */
   settled?: boolean
   elapsedMs: number
+  /** 同一份玩家投影：地点与持有，不显示 id / heat / rel（ui/DESIGN §3） */
+  state?: PlayerStateView
 }
 
 function mmss(ms: number): string {
@@ -23,10 +29,16 @@ function mmss(ms: number): string {
  * 等待期只给 `loading`（发送按钮换成停止），不用 `disabled`——那会把输入框一起锁灰，
  * 而设计只要求「不许重复发送」；重复发送在 `onSubmit` 入口再拦一道。
  */
-export function Composer({ draft, onDraftChange, onSend, onStop, inFlight, settled, elapsedMs }: ComposerProps) {
+export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFlight, settled, elapsedMs, state }: ComposerProps) {
+  const holds = state?.holds.map((item) => `${item.name}×${item.count}`).join('、') ?? ''
   return (
     <div className="shrink-0 border-t border-rule bg-paper">
       <div className={`${READING_COLUMN} py-3`}>
+        {state !== undefined && (
+          <p className="mb-2 text-meta text-ink-soft">
+            {state.place} · 你身上：{holds === '' ? '空手' : holds}
+          </p>
+        )}
         <Sender
           value={draft}
           onChange={(value) => onDraftChange(value)}
@@ -36,22 +48,30 @@ export function Composer({ draft, onDraftChange, onSend, onStop, inFlight, settl
           }}
           onCancel={onStop}
           loading={inFlight}
-          placeholder="说点什么…"
+          placeholder="说点什么，或做什么…"
           autoSize={{ minRows: 2, maxRows: 6 }}
           aria-label="你说或做什么"
         />
-        <p className="mt-2 text-meta text-ink-soft">
-          {inFlight ? (
-            <span>
-              {settled === true ? '这一拍已经定了，正在落笔…' : '世界在回应…'} {mmss(elapsedMs)}
-              <span aria-hidden="true" className="blink">
-                ▍
-              </span>
-            </span>
-          ) : (
-            'Enter 发送 · Shift+Enter 换行'
+        <div className="mt-2 flex items-center justify-between text-meta text-ink-soft">
+          <span>
+            {inFlight ? (
+              <>
+                {settled === true ? '这一拍已经定了，正在落笔…' : '世界在回应…'} {mmss(elapsedMs)}
+                <span aria-hidden="true" className="blink">
+                  ▍
+                </span>
+              </>
+            ) : (
+              'Enter 发送 · Shift+Enter 换行'
+            )}
+          </span>
+          {/* 等待中不提供：同一时刻只允许一条在途输入 */}
+          {!inFlight && (
+            <Button size="small" type="text" onClick={onWait}>
+              等一会儿
+            </Button>
           )}
-        </p>
+        </div>
       </div>
     </div>
   )
