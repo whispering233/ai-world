@@ -99,3 +99,51 @@ describe('ReadingStream：首屏', () => {
     unmount()
   })
 })
+
+/** 首屏示例：只在这一拍还没开始时出现；是样子，不是可点的选项（决策 #46） */
+const EXAMPLES = ['我把银元推过去。', '我问安账本的事。', '我走到门口听雨。']
+
+function expectsExamples(text: string): void {
+  for (const example of EXAMPLES) expect(text).toContain(example)
+}
+
+describe('ReadingStream：首屏示例', () => {
+  it('有 opening 时示例排在开篇之后', () => {
+    const { container, unmount } = render(
+      createElement(ReadingStream, { beats: [], pendingText: null, opening: '雨把街灯打得只剩一团黄。', scene }),
+    )
+    const text = container.textContent ?? ''
+    expectsExamples(text)
+    expect(text.indexOf('雨把街灯打得只剩一团黄。')).toBeLessThan(text.indexOf(EXAMPLES[0]!))
+    unmount()
+  })
+
+  it('没有 opening 时示例在场景卡里', () => {
+    const { container, unmount } = render(createElement(ReadingStream, { beats: [], pendingText: null, scene }))
+    const text = container.textContent ?? ''
+    expectsExamples(text)
+    expect(text).toContain('说点什么，或做什么')
+    expect(text).not.toContain('写一句你想说的话')
+    const card = Array.from(container.querySelectorAll('div')).find((element) =>
+      element.textContent?.startsWith('第 1 天 · 夜 · 酒馆'),
+    )
+    for (const example of EXAMPLES) expect(card?.textContent ?? '').toContain(example)
+    unmount()
+  })
+
+  it('已经有拍之后不再显示示例', () => {
+    const { container, unmount } = render(
+      createElement(ReadingStream, { beats: [beat], pendingText: null, opening: '雨把街灯打得只剩一团黄。', scene }),
+    )
+    for (const example of EXAMPLES) expect(container.textContent ?? '').not.toContain(example)
+    unmount()
+  })
+
+  it('在途时不显示示例（一句已经发出去）', () => {
+    const { container, unmount } = render(
+      createElement(ReadingStream, { beats: [], pendingText: '我又说了一句。', opening: '雨把街灯打得只剩一团黄。', scene }),
+    )
+    for (const example of EXAMPLES) expect(container.textContent ?? '').not.toContain(example)
+    unmount()
+  })
+})

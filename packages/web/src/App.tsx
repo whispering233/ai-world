@@ -13,6 +13,8 @@ import { READING_COLUMN } from './shell/column.ts'
 import type { ShellMode } from './ui/ModeSwitch.tsx'
 
 const MODE_KEY = 'ai-world.mode'
+/** 「等一会儿」发的是这一句普通输入；服务端照常结算，不改 API（决策 #49） */
+const WAIT_TEXT = '我等着，看看他们怎么说。'
 
 // 作者壳只在切过去时才下载：它带着 Table / Descriptions 这类玩家壳用不到的组件，
 // 静态 import 会让每个读者都付这份体积（实测 1.12 MB 的单 chunk）。
@@ -37,7 +39,7 @@ type Action =
   | { type: 'loaded'; session: SessionView }
   | { type: 'load-failed' }
   | { type: 'draft'; draft: string }
-  | { type: 'send' }
+  | { type: 'send'; text: string; keepDraft: boolean }
   | { type: 'frame'; frame: BeatFrame }
   | { type: 'end' }
   | { type: 'stop' }
@@ -94,9 +96,14 @@ function applyFrame(state: AppState, frame: BeatFrame): AppState {
         elapsedMs: 0,
         pendingText: null,
         error: 'refused',
-        draft: state.pendingText ?? state.draft,
+        draft: restoredDraft(state),
       }
   }
+}
+
+/** 失败时把玩家那一句退回输入框；已经打好的草稿优先，「等一会儿」不能把它冲掉 */
+function restoredDraft(state: AppState): string {
+  return state.draft !== '' ? state.draft : (state.pendingText ?? '')
 }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -110,9 +117,17 @@ function reducer(state: AppState, action: Action): AppState {
     case 'draft':
       return { ...state, draft: action.draft }
     case 'send': {
-      const text = state.draft.trim()
+      const text = action.text.trim()
       if (text === '' || state.inFlight) return state
-      return { ...state, draft: '', pendingText: text, inFlight: true, settled: false, elapsedMs: 0, error: null }
+      return {
+        ...state,
+        draft: action.keepDraft ? state.draft : '',
+        pendingText: text,
+        inFlight: true,
+        settled: false,
+        elapsedMs: 0,
+        error: null,
+      }
     }
     case 'frame':
       return applyFrame(state, action.frame)
@@ -121,7 +136,7 @@ function reducer(state: AppState, action: Action): AppState {
       if (!state.inFlight) return state
       return state.pendingText === null
         ? { ...state, inFlight: false, settled: false, elapsedMs: 0 }
-        : { ...state, inFlight: false, settled: false, elapsedMs: 0, pendingText: null, error: 'refused', draft: state.pendingText }
+        : { ...state, inFlight: false, settled: false, elapsedMs: 0, pendingText: null, error: 'refused', draft: restoredDraft(state) }
     case 'stop':
       // 停止 = 断开连接；账本由服务端决定，界面不猜
       return { ...state, inFlight: false, settled: false, elapsedMs: 0, pendingText: null }
@@ -133,7 +148,7 @@ function reducer(state: AppState, action: Action): AppState {
         elapsedMs: 0,
         error: 'refused',
         pendingText: null,
-        draft: state.pendingText ?? state.draft,
+        draft: restoredDraft(state),
       }
     case 'mode':
       return { ...state, mode: action.mode }
@@ -201,10 +216,10 @@ export function App() {
     if (session !== null) dispatch({ type: 'loaded', session })
   }
 
-  async function send() {
-    const text = state.draft.trim()
+  /** `keepDraft` 只给「等一会儿」用：等待不该吃掉玩家已经打好的半句话 */
+  async function send(text = state.draft.trim(), keepDraft = false) {
     if (text === '' || state.inFlight) return
-    dispatch({ type: 'send' })
+    dispatch({ type: 'send', text, keepDraft })
     const controller = new AbortController()
     inFlightRequest.current = controller
     try {
@@ -237,9 +252,11 @@ export function App() {
       onDraftChange={(draft) => dispatch({ type: 'draft', draft })}
       onSend={() => void send()}
       onStop={() => inFlightRequest.current?.abort()}
+      onWait={() => void send(WAIT_TEXT, true)}
       inFlight={state.inFlight}
       settled={state.settled}
       elapsedMs={state.elapsedMs}
+      state={state.session?.state}
     />
   )
 

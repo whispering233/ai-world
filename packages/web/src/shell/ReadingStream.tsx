@@ -3,7 +3,7 @@ import { Button, Skeleton } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import type { BeatView, PlayerStateView } from '@ai-world/shared'
 import { BeatDivider } from './BeatDivider.tsx'
-import { EmptyState } from './EmptyState.tsx'
+import { EmptyState, SayExamples } from './EmptyState.tsx'
 import { ErrorNotice } from './ErrorNotice.tsx'
 import { PlayerLine } from './PlayerLine.tsx'
 import { READING_COLUMN } from './column.ts'
@@ -38,6 +38,8 @@ function prose(text: string) {
  */
 export function ReadingStream({ beats, pendingText, opening, scene }: ReadingStreamProps) {
   const hasOpening = opening !== undefined && opening.trim() !== ''
+  /** 首屏：还没有拍、也没有在途输入。示例只在这一刻出现（决策 #46） */
+  const idle = beats.length === 0 && pendingText === null
   const scroller = useRef<HTMLDivElement>(null)
   const follow = useRef(true)
   const restored = useRef(false)
@@ -101,9 +103,10 @@ export function ReadingStream({ beats, pendingText, opening, scene }: ReadingStr
           {hasOpening && (
             <article className="fade-in mb-8">
               <div className="space-y-6">{prose(opening)}</div>
+              {idle && <SayExamples />}
             </article>
           )}
-          {!hasOpening && beats.length === 0 && pendingText === null && scene !== undefined && (
+          {!hasOpening && idle && scene !== undefined && (
             <EmptyState clockText={scene.clockText} state={scene.state} />
           )}
           {beats.map((beat, index) => {
