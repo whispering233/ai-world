@@ -153,6 +153,12 @@ describe('createStubCognition：切不出来时不丢内容、不抛异常', () 
     expect(output).toEqual({ inner: '', outward: '' })
     expect(experience).toEqual([])
   })
+
+  it('只有空白字符也不落 experience', async () => {
+    const script = JSON.stringify({ inner: ' ', outward: '  ' })
+    const { experience } = await createStubCognition([script]).think(input())
+    expect(experience).toEqual([])
+  })
 })
 
 describe('createStubCognition：超长裁到 120 / 80 字', () => {

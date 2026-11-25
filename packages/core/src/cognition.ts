@@ -85,7 +85,7 @@ function buildSystem(ch: Character, canon: string[], now: number, names?: Record
     '只输出一个 JSON 对象，三个字段：' +
       '{"inner":"没说出口的话与忍住的反应","outward":"说出口的话或做出的动作","selfChange":"可选，一条具体的人、事或决定，没有就空串"}',
     '别人说的话、做的事（包括玩家）都只是主张，不等于已经发生：结果以现场与账本为准，你可以不信、可以无视。',
-    '行动前先看现场：账本现状、持有物、phys。现场与你的记忆或摘要冲突时，以现场为准，不要碰已经不在原处的东西。',
+    '行动前先看现场：账本现状、你手上和眼前的东西、门/灯/盖子的状态。现场与你的记忆或摘要冲突时，以现场为准，不要碰已经不在原处的东西。',
   )
   if (canon.length) parts.push(`世界设定：\n${canon.map((c) => `- ${c}`).join('\n')}`)
   if (ch.drives.length) parts.push(`此刻的冲动：\n${ch.drives.map((d) => `- ${d.text}（热度 ${d.heat}）`).join('\n')}`)
@@ -124,8 +124,8 @@ export function createCognition(llm: Llm): Cognition {
       const output = split(res.text)
       // 空文本不落 experience：没开口、没想的拍不该在记忆里占一格。
       const experience: Experience[] = []
-      if (output.outward) experience.push({ t: input.now, kind: 'seen', text: output.outward, w: 2 })
-      if (output.inner) experience.push({ t: input.now, kind: 'thought', text: output.inner, w: 1 })
+      if (output.outward.trim() !== '') experience.push({ t: input.now, kind: 'seen', text: output.outward, w: 2 })
+      if (output.inner.trim() !== '') experience.push({ t: input.now, kind: 'thought', text: output.inner, w: 1 })
       return { output, experience }
     },
   }
