@@ -6,7 +6,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | clock | 是 | number | ≥ 0 | 分钟数，单调递增 |
 | at | 是 | Record<EntId, PlaceId> | | 位置 |
-| holds | 是 | Record<EntId, Record<ItemId, number>> | count ≥ 0 | 持有物 |
+| holds | 是 | Record<EntId, Record<ItemId, number>> | count ≥ 0 | 持有物；对非人实体（柜台/铁盒/桌子）表示承载/放置，不是所有权 |
 | phys | 是 | Record<EntId, Record<string, number\|boolean>> | | 键开放，需一句物理描述可解释 |
 | rel | 是 | Record<EntId, Record<EntId, number>> | -3 ~ 3 | **单向**：A→B 与 B→A 独立 |
 | knows | 是 | Record<EntId, FactId[]> | | 是否知情 |
@@ -126,6 +126,7 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 | `broken` | 损坏 | boolean | 门轴、器皿 | 修理（目前世界里没有修的动作） | 初值键 |
 | `open` | 敞开 | boolean | 地窖盖板 | 合上 | 初值键 |
 | `bolted` | 闩死 | boolean | 门 | 拔闩 | **运行中出现，从未解除过（见 9.3）** |
+| `locked` | 锁着 | boolean | 铁盒、门 | 用钥匙打开 | 新增；与 `closed`/`bolted` 分开 |
 | `blocking_counter` / `blocking_cellar` | 挡在某处 | boolean | 人 | 走开 | 运行中出现；**命名反面例子** |
 | `wounded` | 伤势 | 0–3 | 人 | 痊愈 | 仅规则示例，尚未出现 |
 

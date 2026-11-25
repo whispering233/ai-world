@@ -76,6 +76,7 @@ POST /api/beat
 | 校验 | `validatePack()`，与运行时同一份；服务端在加载与保存两处都调用。覆盖到 `ledger` 的子对象（`holds` 数量、`phys` 值类型、`rel` 指向、`knows` 形态）与 `clock` 是否有限 |
 | 生效 | **只在新局生效**。保存 = 写盘；本局继续用启动时加载的那一份 |
 | 闭合世界 | 运行时不创建 item/entity/place（决策 #50）；`ContentPack` 是唯一来源，`Op` 只有 move/transfer/consume/phys/rel/fact/know |
+| 陈设 | 柜台/铁盒/桌子是 `world.ledger` 里的非人实体（`at`/`holds`/`phys`），不进 `characters`；作者直接编辑 JSON，作者壳暂无 `places`/`names` 表单 |
 | 哈希 | 保存与启动各算一次；`activeHash ≠ diskHash` 时作者壳顶栏常驻横幅「内容已变更，未生效」 |
 | 不热生效 | 热切换会静默清掉本局的 `drives[].heat` 与 `beliefs`（两者既是作者字段又是运行时状态），等于"保存成功"在偷偷改世界 |
 

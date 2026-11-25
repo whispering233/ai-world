@@ -82,7 +82,7 @@
 | 候选 | 现在做它的理由 | 先看什么 |
 | :--- | :--- | :--- |
 | 世界层三项缺陷（物质流 / 知识通胀 / 时间钉死） | 阅读面已落地，浏览器里能直接看到"读了三拍什么也没发生"；T4/T5 与 D 两次 smoke 都是 47–51/60 空结果，写操作只有个位数。这是当前唯一能改善**阅读体验**的工作 | [world-baseline.md](../research/world-baseline.md)、[t4t5-smoke.md](../research/t4t5-smoke.md) §3、[d-detemplate-smoke.md](../research/d-detemplate-smoke.md) §3 |
-| 物质流：物品位置不可表示 | 三份 smoke 的 transfer/consume 只涉及银元/威士忌；把酒瓶搁到柜面、账本收进铁盒、药包推回桌里都落不了 op。账本只有持有与 phys，没有“在某表面上” | 先定表示方式：家具/容器实体 / 账本地点物品表 / 只记 fact，见 [material-flow-audit.md](../research/material-flow-audit.md) |
+| 物质流：物品位置不可表示 | 三份 smoke 的 transfer/consume 只涉及银元/威士忌；把酒瓶搁到柜面、账本收进铁盒、药包推回桌里都落不了 op。账本只有持有与 phys，没有“在某表面上” | 已定 A（决策 #51）：家具实体承载；M1 卡实施中，见 [tasks.md](tasks.md) |
 | 20 拍基线重跑 | §4 的取数在 R1（裁判规则 9b）之前，改过提示词之后不能当判据 | 本文 §4 |
 | storylet 骨架与账本状态的相容性（冻结中） | R1 后逐条核对：14 条拒绝里绝大多数有账本依据，瓶颈是骨架没把"闩着/完好/没受力"写进 `when` | [storylet-probe.md](../research/storylet-probe.md) §18 |
 | 世界事件与玩家主张的优先级 | 关键词避让已证伪，但"玩家动作被顶掉"仍没有规则 | [storylet-probe.md](../research/storylet-probe.md) §12 §14 |
