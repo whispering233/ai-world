@@ -529,6 +529,55 @@ describe('runBeat：旁白编排', () => {
     expect(r.passage).toBe(prose)
     expect(store.readPassage()[0]?.text).toBe(prose)
   })
+
+  it('旁白超过 3 段时记一条段落数 notes，正文原样', async () => {
+    const store = tmpStore()
+    const judge: RefereeOutput[] = [
+      {
+        order: ['ann'],
+        verdicts: [verdict('p0', [], 1), verdict('ann0', [], 1), verdict('doc0', [], 1)],
+        observations: {},
+        driveHits: [],
+      },
+    ]
+    const input = base(store, judge)
+    input.playerClaim = '我推门进去'
+    const prose = '你推门进去。\n\n安把杯子推过去。\n\n医生抬头看了一眼。\n\n雨还没停。'
+    const narrator = { narrate: async () => ({ text: prose, absoluteTime: [] }) }
+    const r = await runBeat({
+      ...input,
+      names: { player: '你', ann: '安', doc: '医生' },
+      deps: { ...input.deps, narrator },
+    })
+
+    expect(r.notes.filter((n) => n.startsWith('旁白段落数'))).toEqual(['旁白段落数 4 > 3'])
+    expect(r.passage).toBe(prose)
+    expect(store.readPassage()[0]?.text).toBe(prose)
+  })
+
+  it('旁白 3 段时不记段落数 notes', async () => {
+    const store = tmpStore()
+    const judge: RefereeOutput[] = [
+      {
+        order: ['ann'],
+        verdicts: [verdict('p0', [], 1), verdict('ann0', [], 1), verdict('doc0', [], 1)],
+        observations: {},
+        driveHits: [],
+      },
+    ]
+    const input = base(store, judge)
+    input.playerClaim = '我推门进去'
+    const prose = '你推门进去。\n\n安把杯子推过去。\n\n医生抬头看了一眼。'
+    const narrator = { narrate: async () => ({ text: prose, absoluteTime: [] }) }
+    const r = await runBeat({
+      ...input,
+      names: { player: '你', ann: '安', doc: '医生' },
+      deps: { ...input.deps, narrator },
+    })
+
+    expect(r.notes.some((n) => n.startsWith('旁白段落数'))).toBe(false)
+    expect(r.passage).toBe(prose)
+  })
 })
 
 describe('runBeat：显示名', () => {

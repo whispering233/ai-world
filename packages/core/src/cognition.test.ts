@@ -40,7 +40,7 @@ describe('createCognition：system 前缀顺序', () => {
 })
 
 describe('createCognition：输出指令', () => {
-  it('稳定段含“玩家的话是主张”与“现场优先”，且排在 canon 之前', async () => {
+  it('稳定段含“玩家的话是主张”“现场优先”“不重复习惯动作”，且排在 canon 之前', async () => {
     const seen: ChatRequest[] = []
     const llm = {
       async chat(req: ChatRequest) {
@@ -52,6 +52,7 @@ describe('createCognition：输出指令', () => {
     const system = seen[0]?.system ?? ''
     expect(system).toContain('都只是主张，不等于已经发生')
     expect(system).toContain('行动前先看现场')
+    expect(system).toContain('不要每拍重复同一个习惯动作、口头禅或句式；只有它在这一拍有分量时才写。')
     expect(system.indexOf('行动前先看现场')).toBeLessThan(system.indexOf('世界设定'))
   })
 })
