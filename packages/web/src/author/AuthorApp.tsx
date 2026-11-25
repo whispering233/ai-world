@@ -1,7 +1,7 @@
 import { Alert, Button, Collapse, Modal } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { AuthorBeatView, AuthorSessionView, BeatView } from '@ai-world/shared'
+import type { AuthorBeatView, AuthorSessionView, BeatView, PlayerStateView } from '@ai-world/shared'
 import { fetchAuthorBeat, fetchAuthorSession } from '../api.ts'
 import { ReadingStream } from '../shell/ReadingStream.tsx'
 import { ModeSwitch } from '../ui/ModeSwitch.tsx'
@@ -16,6 +16,10 @@ export interface AuthorAppProps {
   /** 与玩家壳同一份阅读流：换壳不重新请求、不重置滚动位置 */
   beats: BeatView[]
   pendingText: string | null
+  /** 首屏散文：两壳共用，换壳不能丢 */
+  opening?: string
+  /** 场景卡素材：没有 opening 且还没有拍时用它 */
+  scene?: { clockText: string; state: PlayerStateView }
   onModeChange: (mode: ShellMode) => void
   /** 开新局由 App 统一做：玩家壳也要一起换成新局 */
   onNewGame: () => Promise<void>
@@ -24,7 +28,7 @@ export interface AuthorAppProps {
 }
 
 /** 作者壳：拍列表 / 同一份阅读流 / 本拍详情，固定宽度，不做拖拽分隔条。 */
-export function AuthorApp({ beats, pendingText, onModeChange, onNewGame, composer }: AuthorAppProps) {
+export function AuthorApp({ beats, pendingText, opening, scene, onModeChange, onNewGame, composer }: AuthorAppProps) {
   const [session, setSession] = useState<AuthorSessionView | null>(null)
   const [failed, setFailed] = useState(false)
   const [selected, setSelected] = useState<number | null>(null)
@@ -117,7 +121,7 @@ export function AuthorApp({ beats, pendingText, onModeChange, onNewGame, compose
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <ReadingStream beats={beats} pendingText={pendingText} />
+          <ReadingStream beats={beats} pendingText={pendingText} opening={opening} scene={scene} />
           {composer}
         </div>
 

@@ -237,6 +237,10 @@ export function App() {
     />
   )
 
+  // 两个壳共用同一份首屏素材：换壳不重新请求，也不丢掉 opening
+  const scene =
+    state.session === null ? undefined : { clockText: state.session.clockText, state: state.session.state }
+
   return (
     <div className="flex h-dvh flex-col bg-paper text-ink">
       <TopBar
@@ -255,6 +259,8 @@ export function App() {
           <AuthorApp
             beats={state.beats}
             pendingText={state.pendingText}
+            opening={state.session?.opening}
+            scene={scene}
             onModeChange={(mode) => dispatch({ type: 'mode', mode })}
             onNewGame={startNewGame}
             composer={composer}
@@ -266,11 +272,7 @@ export function App() {
             beats={state.beats}
             pendingText={state.pendingText}
             opening={state.session?.opening}
-            scene={
-              state.session === null
-                ? undefined
-                : { clockText: state.session.clockText, state: state.session.state }
-            }
+            scene={scene}
           />
           {state.loadFailed && (
             <div className={`${READING_COLUMN} pb-2`}>
