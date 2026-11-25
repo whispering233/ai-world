@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * 等待中的形态：只表达“这一拍在生成”，不出现任何阶段名（`ui/DESIGN.md` §4）。
+ * 等待中的形态与首屏：只表达“这一拍在生成”或“还没有拍”，不出现任何阶段名（`ui/DESIGN.md` §4）。
  *
  * 这里能断言的只有结构；骨架屏长什么样、动画在 `prefers-reduced-motion` 下是否停，
  * 都要真浏览器（jsdom 不算布局也不算层叠）。
@@ -51,6 +51,51 @@ describe('ReadingStream：等待中的骨架', () => {
     const { container, unmount } = mount(null)
     expect(container.querySelector('.ant-skeleton')).toBeNull()
     expect(container.textContent).toContain('灯亮着。')
+    unmount()
+  })
+})
+
+/** 场景卡素材：一段玩家投影，只用于没有 opening 且没有拍的场景。 */
+const scene = {
+  clockText: '第 1 天 · 夜',
+  state: { place: '酒馆', here: ['安', '道森医生'], holds: [{ name: '银元', count: 2 }], knows: [] },
+}
+
+describe('ReadingStream：首屏', () => {
+  it('有拍时 opening 仍在最上方，且排在叙述之前', () => {
+    const { container, unmount } = render(
+      createElement(ReadingStream, { beats: [beat], pendingText: null, opening: '雨把街灯打得只剩一团黄。', scene }),
+    )
+    const text = container.textContent ?? ''
+    expect(text).toContain('雨把街灯打得只剩一团黄。')
+    expect(text.indexOf('雨把街灯打得只剩一团黄。')).toBeLessThan(text.indexOf('灯亮着。'))
+    unmount()
+  })
+
+  it('没有 opening 也没有拍时，场景卡用时间、地点、在场与持有拼出来', () => {
+    const { container, unmount } = render(createElement(ReadingStream, { beats: [], pendingText: null, scene }))
+    const text = container.textContent ?? ''
+    expect(text).toContain('第 1 天 · 夜 · 酒馆')
+    expect(text).toContain('在场：安、道森医生')
+    expect(text).toContain('你身上：银元×2')
+    // 卡片里不出现实体 id，也不出现引擎词
+    for (const word of ['ann', 'doc', 'saloon', 'silver-dollar', 'claim', 'verdict']) expect(text).not.toContain(word)
+    unmount()
+  })
+
+  it('有 opening 但没有拍时不显示场景卡，也不显示空状态文案', () => {
+    const { container, unmount } = render(
+      createElement(ReadingStream, { beats: [], pendingText: null, opening: '雨把街灯打得只剩一团黄。', scene }),
+    )
+    const text = container.textContent ?? ''
+    expect(text).toContain('雨把街灯打得只剩一团黄。')
+    expect(text).not.toContain('你身上：')
+    unmount()
+  })
+
+  it('还没读到会话时不渲染场景卡', () => {
+    const { container, unmount } = render(createElement(ReadingStream, { beats: [], pendingText: null }))
+    expect((container.textContent ?? '').trim()).toBe('')
     unmount()
   })
 })

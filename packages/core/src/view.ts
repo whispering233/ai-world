@@ -26,6 +26,8 @@ import type { EntId, Fact, World } from './world.ts'
 
 export interface PlayerViewInput {
   title: string
+  /** 首屏散文：空串与缺失同义，都不透出 */
+  opening?: string
   /** 玩家是谁：place / here / holds / knows 与 beat 里的玩家原话都按它取 */
   player: EntId
   /**
@@ -43,8 +45,10 @@ export interface PlayerViewInput {
 
 export function playerView(input: PlayerViewInput): SessionView {
   const clock = input.world.ledger.clock
+  const opening = input.opening === undefined || input.opening.trim() === '' ? undefined : input.opening
   return {
     title: input.title,
+    ...(opening === undefined ? {} : { opening }),
     clock,
     clockText: fmt(clock),
     state: playerState(input),

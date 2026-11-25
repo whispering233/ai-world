@@ -215,6 +215,12 @@ describe('playerView', () => {
     expect(beats[2]).not.toHaveProperty('passage')
   })
 
+  it('opening 原样透出；空串与缺失都不透出', () => {
+    expect(playerView({ ...PLAYER_INPUT, opening: '雨把街灯打得只剩一团黄。' }).opening).toBe('雨把街灯打得只剩一团黄。')
+    expect(playerView(PLAYER_INPUT)).not.toHaveProperty('opening')
+    expect(playerView({ ...PLAYER_INPUT, opening: '  ' })).not.toHaveProperty('opening')
+  })
+
   it('journal 乱序时 beat 仍按 seq 升序', () => {
     const beats = beatViews({ journal: [...JOURNAL].reverse(), passages: PASSAGES, player: 'guest' })
     expect(beats.map((b) => b.seq)).toEqual([1, 2, 3])

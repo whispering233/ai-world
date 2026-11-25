@@ -91,6 +91,39 @@ describe('validatePack：账本子对象', () => {
   })
 })
 
+describe('validatePack：opening 与 scene', () => {
+  it('STARTER_TOWN 两者都有，且都在字数上限内', () => {
+    expect([...(pack.opening ?? '')].length).toBeGreaterThan(0)
+    expect([...(pack.scene ?? '')].length).toBeGreaterThan(0)
+    expect(validatePack(pack)).toEqual([])
+  })
+
+  it('旧内容包没有这两个字段照样通过', () => {
+    const old: ContentPack = { ...pack }
+    delete old.opening
+    delete old.scene
+    expect(validatePack(old)).toEqual([])
+  })
+
+  it('空串视为缺失，不报错', () => {
+    expect(validatePack({ ...pack, opening: '', scene: '   ' })).toEqual([])
+  })
+
+  it('类型不对或超长时各报一条', () => {
+    const text = validatePack({
+      ...pack,
+      opening: 42 as unknown as string,
+      scene: '雨'.repeat(161),
+    }).join('\n')
+    expect(text).toContain('opening 必须是字符串')
+    expect(text).toContain('scene 是 161 字，要求 ≤ 160')
+  })
+
+  it('opening 超过 600 字时报出实际字数', () => {
+    expect(validatePack({ ...pack, opening: '雨'.repeat(601) })).toEqual(['opening 是 601 字，要求 ≤ 600'])
+  })
+})
+
 describe('两人的可区分性', () => {
   it('core 开头 12 字与 voice 都不相同', () => {
     const ann = seed('ann')

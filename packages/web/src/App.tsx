@@ -262,7 +262,16 @@ export function App() {
         </Suspense>
       ) : (
         <>
-          <ReadingStream beats={state.beats} pendingText={state.pendingText} />
+          <ReadingStream
+            beats={state.beats}
+            pendingText={state.pendingText}
+            opening={state.session?.opening}
+            scene={
+              state.session === null
+                ? undefined
+                : { clockText: state.session.clockText, state: state.session.state }
+            }
+          />
           {state.loadFailed && (
             <div className={`${READING_COLUMN} pb-2`}>
               <Alert type="error" showIcon title="读不到世界。请确认服务在跑。" />
