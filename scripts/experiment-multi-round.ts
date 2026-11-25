@@ -111,7 +111,7 @@ interface BeatSample {
 type Thought = { ok: true; ent: EntId; ch: Character; res: { output: CognitionOutput; experience: Experience[] } }
 
 const AUTO_LINES = [
-  '我推门进去，找了个靠门的位子坐下。',
+  '我在靠门的位子坐下，把湿外套搭在椅背上。',
   '我问老板娘还有没有酒。',
   '我把那本账本推到柜台中间。',
   '我问医生这镇上最近死了几个人。',
@@ -142,6 +142,10 @@ const MODE = arg('--mode', 'all')
 const TAG = arg('--tag', `run-${new Date().toISOString().replace(/[:.]/g, '-')}`)
 const DATA_ROOT = arg('--data', 'data/experiment')
 const FORCE = process.argv.includes('--force')
+/** 可选长动作探针：默认不加，避免短对话基线的 clock 被一次睡眠改写。 */
+const LONG = process.argv.includes('--long')
+const LONG_BEAT = 5
+const LONG_PROBE = '我坐在桌边等雨停，等了四个钟头。'
 
 function zeroUsage(): Record<ModelRole, UsageTotals> {
   return {
@@ -783,7 +787,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
   const beatSamples: BeatSample[] = []
 
   for (let beat = 1; beat <= BEATS; beat += 1) {
-    const playerClaim = AUTO_LINES[(beat - 1) % AUTO_LINES.length] ?? ''
+    const playerClaim = LONG && beat === LONG_BEAT ? LONG_PROBE : (AUTO_LINES[(beat - 1) % AUTO_LINES.length] ?? '')
     const clockBefore = world.ledger.clock
     const usageStart = samples.length
     const t0 = performance.now()
