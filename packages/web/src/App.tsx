@@ -7,6 +7,7 @@ import { Composer } from './shell/Composer.tsx'
 import { ErrorNotice } from './shell/ErrorNotice.tsx'
 import type { ErrorKind } from './shell/ErrorNotice.tsx'
 import { ReadingStream } from './shell/ReadingStream.tsx'
+import { effectiveTarget } from './shell/target.ts'
 import { StateDrawer } from './shell/StateDrawer.tsx'
 import { TopBar } from './shell/TopBar.tsx'
 import { READING_COLUMN } from './shell/column.ts'
@@ -32,6 +33,10 @@ interface AppState {
   dialog: 'none' | 'new-game' | 'about'
   draft: string
   pendingText: string | null
+  /** “对谁说”的目标（在场者显示名）；null = 所有人 */
+  target: string | null
+  /** 在途那一拍实际带上的目标：等待中也要能看出“对安说的” */
+  pendingTo: string | null
   loadFailed: boolean
 }
 
@@ -39,7 +44,8 @@ type Action =
   | { type: 'loaded'; session: SessionView }
   | { type: 'load-failed' }
   | { type: 'draft'; draft: string }
-  | { type: 'send'; text: string; keepDraft: boolean }
+  | { type: 'target'; target: string | null }
+  | { type: 'send'; text: string; keepDraft: boolean; to: string | null }
   | { type: 'frame'; frame: BeatFrame }
   | { type: 'end' }
   | { type: 'stop' }
@@ -61,6 +67,8 @@ function initialState(): AppState {
     dialog: 'none',
     draft: '',
     pendingText: null,
+    target: null,
+    pendingTo: null,
     loadFailed: false,
   }
 }
@@ -73,7 +81,7 @@ function applyFrame(state: AppState, frame: BeatFrame): AppState {
     case 'passage':
       // 停止之后迟到的帧不能落进正文：那一拍由重取的 session 权威给出
       if (!state.inFlight) return state
-      return { ...state, beats: [...state.beats, frame.data], pendingText: null, settled: false }
+      return { ...state, beats: [...state.beats, frame.data], pendingText: null, pendingTo: null, settled: false }
     case 'state':
       if (state.session === null) return state
       return {
@@ -95,6 +103,7 @@ function applyFrame(state: AppState, frame: BeatFrame): AppState {
         settled: false,
         elapsedMs: 0,
         pendingText: null,
+        pendingTo: null,
         error: 'refused',
         draft: restoredDraft(state),
       }
@@ -110,12 +119,14 @@ function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'loaded': {
       const { session } = action
-      return { ...state, session, beats: session.beats, inFlight: session.inFlight, loadFailed: false }
+      return { ...state, session, beats: session.beats, inFlight: session.inFlight, loadFailed: false, pendingTo: null }
     }
     case 'load-failed':
       return { ...state, loadFailed: true }
     case 'draft':
       return { ...state, draft: action.draft }
+    case 'target':
+      return { ...state, target: action.target }
     case 'send': {
       const text = action.text.trim()
       if (text === '' || state.inFlight) return state
@@ -123,6 +134,7 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         draft: action.keepDraft ? state.draft : '',
         pendingText: text,
+        pendingTo: action.to,
         inFlight: true,
         settled: false,
         elapsedMs: 0,
@@ -135,11 +147,11 @@ function reducer(state: AppState, action: Action): AppState {
       // 流在没有 done 的情况下结束：已落盘的拍照常显示，没落盘的那句退回去
       if (!state.inFlight) return state
       return state.pendingText === null
-        ? { ...state, inFlight: false, settled: false, elapsedMs: 0 }
-        : { ...state, inFlight: false, settled: false, elapsedMs: 0, pendingText: null, error: 'refused', draft: restoredDraft(state) }
+        ? { ...state, inFlight: false, settled: false, elapsedMs: 0, pendingTo: null }
+        : { ...state, inFlight: false, settled: false, elapsedMs: 0, pendingText: null, pendingTo: null, error: 'refused', draft: restoredDraft(state) }
     case 'stop':
       // 停止 = 断开连接；账本由服务端决定，界面不猜
-      return { ...state, inFlight: false, settled: false, elapsedMs: 0, pendingText: null }
+      return { ...state, inFlight: false, settled: false, elapsedMs: 0, pendingText: null, pendingTo: null }
     case 'failed':
       return {
         ...state,
@@ -148,6 +160,7 @@ function reducer(state: AppState, action: Action): AppState {
         elapsedMs: 0,
         error: 'refused',
         pendingText: null,
+        pendingTo: null,
         draft: restoredDraft(state),
       }
     case 'mode':
@@ -199,6 +212,18 @@ export function App() {
     localStorage.setItem(MODE_KEY, state.mode)
   }, [state.mode])
 
+  // 目标只对“仍在场的显示名”生效：在场名单由服务端投影给，不自己猜（ui/DESIGN §3）。
+  // `here` 每帧都是新数组，依赖用它的稳定字符串，否则每次心跳都会重跑一次。
+  const hereKey = (state.session?.state.here ?? []).join('\u0000')
+  useEffect(() => {
+    if (state.target === null) return
+    if (effectiveTarget(state.target, state.session?.state.here ?? []) !== null) return
+    dispatch({ type: 'target', target: null })
+  }, [hereKey, state.target])
+
+  // 有效目标：不在场就当没选（服务端也会按自己那份投影再验一次，两边不会偏差）
+  const target = effectiveTarget(state.target, state.session?.state.here ?? [])
+
   // Ctrl/Cmd+Shift+D 换壳
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -217,13 +242,17 @@ export function App() {
   }
 
   /** `keepDraft` 只给「等一会儿」用：等待不该吃掉玩家已经打好的半句话 */
-  async function send(text = state.draft.trim(), keepDraft = false) {
+  async function send(text = state.draft.trim(), keepDraft = false, to: string | null = target) {
     if (text === '' || state.inFlight) return
-    dispatch({ type: 'send', text, keepDraft })
+    dispatch({ type: 'send', text, keepDraft, to })
     const controller = new AbortController()
     inFlightRequest.current = controller
     try {
-      await postBeat(text, { signal: controller.signal, onFrame: (frame) => dispatch({ type: 'frame', frame }) })
+      await postBeat(text, {
+        signal: controller.signal,
+        onFrame: (frame) => dispatch({ type: 'frame', frame }),
+        ...(to === null ? {} : { to }),
+      })
       dispatch({ type: 'end' })
     } catch {
       const aborted = controller.signal.aborted
@@ -254,11 +283,14 @@ export function App() {
       onDraftChange={(draft) => dispatch({ type: 'draft', draft })}
       onSend={() => void send()}
       onStop={() => inFlightRequest.current?.abort()}
-      onWait={() => void send(WAIT_TEXT, true)}
+      // 等待文案是“看看他们怎么说”，始终对所有人，不继承已选中的单人目标
+      onWait={() => void send(WAIT_TEXT, true, null)}
       inFlight={state.inFlight}
       settled={state.settled}
       elapsedMs={state.elapsedMs}
       state={state.session?.state}
+      target={target}
+      onTargetChange={(next) => dispatch({ type: 'target', target: next })}
       {...(lastHints === undefined ? {} : { hints: lastHints })}
     />
   )
@@ -285,6 +317,7 @@ export function App() {
           <AuthorApp
             beats={state.beats}
             pendingText={state.pendingText}
+            {...(state.pendingTo === null ? {} : { pendingTo: state.pendingTo })}
             opening={state.session?.opening}
             scene={scene}
             onModeChange={(mode) => dispatch({ type: 'mode', mode })}
@@ -297,6 +330,7 @@ export function App() {
           <ReadingStream
             beats={state.beats}
             pendingText={state.pendingText}
+            {...(state.pendingTo === null ? {} : { pendingTo: state.pendingTo })}
             opening={state.session?.opening}
             scene={scene}
           />

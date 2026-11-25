@@ -1228,3 +1228,123 @@ describe('runBeat：动作提示', () => {
     expect(fed).toContain('安')
   })
 })
+
+describe('runBeat：聚焦（对谁说）', () => {
+  /** 记录每个人物拿到的现场切片；返回一句非空 outward，好让 claim 真的进裁判。 */
+  const recording = (slices: { id: string; sceneText: string }[]) => ({
+    think: (req: { character: { id: string }; sceneText: string }) => {
+      slices.push({ id: req.character.id, sceneText: req.sceneText })
+      return Promise.resolve({ output: { inner: '看着', outward: '点了下头' }, experience: [] })
+    },
+  })
+
+  /** 把裁判收集到的 claim id 记下来：用来证明“谁被叫到”。 */
+  function claimRecorder() {
+    const judged: string[] = []
+    const referee: Referee = {
+      async judge({ claims }) {
+        judged.push(...claims.map((c) => c.id))
+        return {
+          order: [],
+          verdicts: claims.map((c) => ({ claimId: c.id, actor: c.actor, ok: true, deltas: [], duration: 1 })),
+          observations: {},
+          driveHits: [],
+        }
+      },
+    }
+    return { judged, referee }
+  }
+
+  it('目标在场时只叫玩家 + 目标：其余热人物这一拍不产生 claim', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.playerClaim = '我把银元塞进安手里'
+    input.playerTo = 'ann'
+    const { judged, referee } = claimRecorder()
+    const slices: { id: string; sceneText: string }[] = []
+    const r = await runBeat({
+      ...input,
+      deps: { ...input.deps, referee, cognition: recording(slices) },
+    })
+
+    // 安与医生都是 heat 0.8；聚焦时只叫安
+    expect(slices.map((s) => s.id)).toEqual(['ann'])
+    expect(judged).toEqual(['p0', 'ann0'])
+    expect(r.committedClaims).toEqual(['p0', 'ann0'])
+    expect(store.readJournal()).toHaveLength(1)
+  })
+
+  it('玩家 claim 带 to：journal 里存实体 id', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.playerClaim = '我把银元塞进安手里'
+    input.playerTo = 'ann'
+    await runBeat({ ...input, deps: { ...input.deps, referee: okJudge() } })
+
+    const entry = store.readJournal()[0]
+    expect(entry?.claims.find((c) => c.actor === 'player')).toMatchObject({ to: 'ann' })
+    // 人物的 claim 不带 to：目标只属于玩家这次发言
+    expect(entry?.claims.find((c) => c.actor === 'ann')).not.toHaveProperty('to')
+  })
+
+  it('被聚焦的人看到“对你说”，其他人仍是“提出”', async () => {
+    const focused: { id: string; sceneText: string }[] = []
+    const all: { id: string; sceneText: string }[] = []
+    const input = base(tmpStore(), [])
+
+    await runBeat({
+      ...input,
+      playerClaim: '我把银元塞进安手里',
+      playerTo: 'ann',
+      deps: { ...input.deps, referee: okJudge(), cognition: recording(focused) },
+    })
+    await runBeat({
+      ...input,
+      playerClaim: '我把银元塞进安手里',
+      deps: { ...input.deps, referee: okJudge(), cognition: recording(all) },
+    })
+
+    expect(focused[0]?.sceneText).toContain('玩家这一拍对你说（尚未裁决）：我把银元塞进安手里')
+    expect(focused[0]?.sceneText).not.toContain('玩家这一拍提出')
+    expect(all.every((s) => s.sceneText.includes('玩家这一拍提出（尚未裁决）：我把银元塞进安手里'))).toBe(true)
+    expect(all.some((s) => s.sceneText.includes('对你说'))).toBe(false)
+  })
+
+  it('目标不在场：按所有人结算并留 note，claim 不带 to', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.playerClaim = '我朝门口喊了一声'
+    input.playerTo = 'ghost'
+    const { judged, referee } = claimRecorder()
+    const r = await runBeat({ ...input, deps: { ...input.deps, referee } })
+
+    expect(judged).toEqual(['p0', 'ann0', 'doc0'])
+    expect(r.notes.some((n) => n.includes('聚焦目标不在场') && n.includes('ghost'))).toBe(true)
+    const entry = store.readJournal()[0]
+    expect(entry?.claims.find((c) => c.actor === 'player')).not.toHaveProperty('to')
+  })
+
+  it('目标就是玩家自己：等于对所有人，claim 不带 to', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.playerClaim = '我自言自语'
+    input.playerTo = 'player'
+    const { judged, referee } = claimRecorder()
+    await runBeat({ ...input, deps: { ...input.deps, referee } })
+
+    expect(judged).toEqual(['p0', 'ann0', 'doc0'])
+    expect(store.readJournal()[0]?.claims.find((c) => c.actor === 'player')).not.toHaveProperty('to')
+  })
+
+  it('不传 playerTo：调度与 claim 形状都不变', async () => {
+    const store = tmpStore()
+    const input = base(store, [])
+    input.playerClaim = '我把银元放柜台上'
+    const { judged, referee } = claimRecorder()
+    const r = await runBeat({ ...input, deps: { ...input.deps, referee } })
+
+    expect(judged).toEqual(['p0', 'ann0', 'doc0'])
+    expect(store.readJournal()[0]?.claims.find((c) => c.actor === 'player')).not.toHaveProperty('to')
+    expect(r.notes.some((n) => n.includes('聚焦'))).toBe(false)
+  })
+})

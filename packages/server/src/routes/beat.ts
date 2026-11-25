@@ -23,7 +23,10 @@ export function beatRoutes(session: Session): Hono {
     const body = await readBody(c)
     if (body === undefined) return c.json({ code: 'E_INVALID_BODY', msg: '请求体格式错误' }, 400)
     if (typeof body.text !== 'string') return c.json({ code: 'E_INVALID_BODY', msg: '请求体格式错误' }, 400)
+    // `to` 是显示名，不是 id；只做形状校验，能不能匹配上由 session 定（docs/api/20-api-beat.md §1）
+    if (body.to !== undefined && typeof body.to !== 'string') return c.json({ code: 'E_INVALID_BODY', msg: '请求体格式错误' }, 400)
     const text = body.text
+    const to = typeof body.to === 'string' ? body.to.trim() : ''
     if (text.trim() === '') return c.json({ code: 'E_EMPTY_INPUT', msg: '玩家输入为空' }, 400)
     // 单飞是 HTTP 语义（409），所以必须在开流之前判：流一旦开了只能发 error 帧
     if (session.inFlight()) return c.json({ code: 'E_BEAT_IN_FLIGHT', msg: '上一拍还在结算' }, 409)
@@ -46,7 +49,7 @@ export function beatRoutes(session: Session): Hono {
             event: 'progress',
             data: JSON.stringify({ elapsedMs, clockText, ...(phase === undefined ? {} : { phase }) }),
           })
-        })
+        }, to)
         await stream.writeSSE({ event: 'passage', data: JSON.stringify(res.beat) })
         await stream.writeSSE({
           event: 'state',
@@ -69,10 +72,10 @@ export function beatRoutes(session: Session): Hono {
   return app
 }
 
-async function readBody(c: Context): Promise<{ text?: unknown } | undefined> {
+async function readBody(c: Context): Promise<{ text?: unknown; to?: unknown } | undefined> {
   try {
     const body: unknown = await c.req.json()
-    return typeof body === 'object' && body !== null ? (body as { text?: unknown }) : undefined
+    return typeof body === 'object' && body !== null ? (body as { text?: unknown; to?: unknown }) : undefined
   } catch {
     return undefined
   }

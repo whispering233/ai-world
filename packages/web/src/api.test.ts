@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { parseSseFrames, readSseFrames, toBeatFrame } from './api.ts'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { parseSseFrames, postBeat, readSseFrames, toBeatFrame } from './api.ts'
 import type { SseFrame } from './api.ts'
 
 const PROGRESS = 'event: progress\ndata: {"elapsedMs":1000,"clockText":"第 2 天 · 夜"}'
@@ -22,6 +22,33 @@ async function collect(chunks: string[]): Promise<SseFrame[]> {
   await readSseFrames(streamOf(chunks), (frame) => frames.push(frame))
   return frames
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('postBeat 请求体', () => {
+  async function bodyOf(to?: string): Promise<unknown> {
+    const bodies: unknown[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit) => {
+        bodies.push(JSON.parse(String(init.body)))
+        return new Response(new ReadableStream({ start(controller) { controller.close() } }), { status: 200 })
+      }) as unknown as typeof fetch,
+    )
+    await postBeat('我推门进去。', { onFrame: () => {}, ...(to === undefined ? {} : { to }) })
+    return bodies[0]
+  }
+
+  it('没有目标时 body 只有 text，不带 to 键', async () => {
+    expect(await bodyOf()).toEqual({ text: '我推门进去。' })
+  })
+
+  it('有目标时 body 带显示名', async () => {
+    expect(await bodyOf('安')).toEqual({ text: '我推门进去。', to: '安' })
+  })
+})
 
 describe('parseSseFrames', () => {
   it('切出单帧，尾部不留残渣', () => {

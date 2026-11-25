@@ -16,6 +16,8 @@ export interface AuthorAppProps {
   /** 与玩家壳同一份阅读流：换壳不重新请求、不重置滚动位置 */
   beats: BeatView[]
   pendingText: string | null
+  /** 在途那一拍的“对谁说”；与玩家壳同一份阅读流 */
+  pendingTo?: string
   /** 首屏散文：两壳共用，换壳不能丢 */
   opening?: string
   /** 场景卡素材：没有 opening 且还没有拍时用它 */
@@ -28,7 +30,7 @@ export interface AuthorAppProps {
 }
 
 /** 作者壳：拍列表 / 同一份阅读流 / 本拍详情，固定宽度，不做拖拽分隔条。 */
-export function AuthorApp({ beats, pendingText, opening, scene, onModeChange, onNewGame, composer }: AuthorAppProps) {
+export function AuthorApp({ beats, pendingText, pendingTo, opening, scene, onModeChange, onNewGame, composer }: AuthorAppProps) {
   const [session, setSession] = useState<AuthorSessionView | null>(null)
   const [failed, setFailed] = useState(false)
   const [selected, setSelected] = useState<number | null>(null)
@@ -121,7 +123,7 @@ export function AuthorApp({ beats, pendingText, opening, scene, onModeChange, on
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <ReadingStream beats={beats} pendingText={pendingText} opening={opening} scene={scene} />
+          <ReadingStream beats={beats} pendingText={pendingText} pendingTo={pendingTo} opening={opening} scene={scene} />
           {composer}
         </div>
 

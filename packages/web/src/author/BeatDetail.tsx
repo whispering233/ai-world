@@ -24,6 +24,7 @@ export function BeatDetail({ beat, world }: BeatDetailProps) {
               <li key={claim.id}>
                 <p className="text-meta text-ink-soft">
                   {claim.id} · {claim.actor} · {claim.kind}
+                  {claim.to === undefined ? '' : ` · 对 ${claim.to}`}
                 </p>
                 <p className="text-body">{claim.text}</p>
               </li>

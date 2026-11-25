@@ -17,6 +17,8 @@ export interface Claim {
   actor: EntId
   text: string
   kind: ClaimKind
+  /** 这次发言的对象；只有玩家 claim 用，实体 id 由服务端按显示名解析（docs/db/schema.md §3） */
+  to?: EntId
 }
 
 export interface Verdict {

@@ -147,3 +147,34 @@ describe('ReadingStream：首屏示例', () => {
     unmount()
   })
 })
+
+/** “对谁说”：只显示名，不显示实体 id（ui/DESIGN §3） */
+describe('ReadingStream：目标前缀', () => {
+  it('拍里带 playerTo 时，玩家行上方写「你（对安）」', () => {
+    const withTarget: BeatView = { ...beat, playerTo: '安' }
+    const { container, unmount } = render(createElement(ReadingStream, { beats: [withTarget], pendingText: null }))
+    const text = container.textContent ?? ''
+    expect(text).toContain('你（对安）')
+    // 前缀在玩家那句之前，正文照常在后
+    expect(text.indexOf('你（对安）')).toBeLessThan(text.indexOf('我推门进去。'))
+    unmount()
+  })
+
+  it('无目标时不出现前缀，玩家那句照常显示', () => {
+    const { container, unmount } = render(createElement(ReadingStream, { beats: [beat], pendingText: null }))
+    const text = container.textContent ?? ''
+    expect(text).toContain('我推门进去。')
+    expect(text).not.toContain('（对')
+    unmount()
+  })
+
+  it('等待中的那一拍也显示目标', () => {
+    const { container, unmount } = render(
+      createElement(ReadingStream, { beats: [beat], pendingText: '我又说了一句。', pendingTo: '道森医生' }),
+    )
+    const text = container.textContent ?? ''
+    expect(text).toContain('你（对道森医生）')
+    expect(text).toContain('我又说了一句。')
+    unmount()
+  })
+})
