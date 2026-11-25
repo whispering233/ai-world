@@ -472,6 +472,65 @@ describe('runBeat：旁白失败', () => {
   })
 })
 
+describe('runBeat：旁白编排', () => {
+  it('旁白事件按裁判给的 order 排，未列出的保持 claim 原顺序', async () => {
+    const store = tmpStore()
+    const judge: RefereeOutput[] = [
+      {
+        order: ['doc'],
+        verdicts: [verdict('p0', [], 1), verdict('ann0', [], 1), verdict('doc0', [], 1)],
+        observations: {},
+        driveHits: [],
+      },
+    ]
+    const input = base(store, judge)
+    input.playerClaim = '我推门进去'
+    let actors: EntId[] = []
+    let events = 0
+    const narrator = {
+      narrate: async (req: NarrationInput) => {
+        actors = req.events.map((e) => e.actor)
+        events = req.events.length
+        return { text: '你推门进去。', absoluteTime: [] }
+      },
+    }
+    await runBeat({ ...input, deps: { ...input.deps, narrator } })
+
+    // order 里的 doc 先写；玩家与 ann 没被列出，保持收集顺序接在后面
+    expect(actors).toEqual(['doc', 'player', 'ann'])
+    expect(events).toBe(3)
+    // 收集顺序不变：journal 记的是 claim 原顺序，不是叙述顺序
+    expect(store.readJournal()[0]?.claims.map((c) => c.actor)).toEqual(['player', 'ann', 'doc'])
+  })
+
+  it('已落账的动作没在旁白里露面时记一条 notes，且 passage 原样', async () => {
+    const store = tmpStore()
+    const judge: RefereeOutput[] = [
+      {
+        order: ['ann'],
+        verdicts: [verdict('p0', [], 1), verdict('ann0', [], 1), verdict('doc0', [], 1)],
+        observations: {},
+        driveHits: [],
+      },
+    ]
+    const input = base(store, judge)
+    input.playerClaim = '我推门进去'
+    const prose = '安把杯子推过去，医生抬头看了一眼。'
+    const narrator = { narrate: async () => ({ text: prose, absoluteTime: [] }) }
+    const r = await runBeat({
+      ...input,
+      names: { player: '你', ann: '安', doc: '医生' },
+      deps: { ...input.deps, narrator },
+    })
+
+    expect(r.committedClaims).toHaveLength(3)
+    // 漏写用显示名（安/你），不是 id；只报告，一个字的正文都不改
+    expect(r.notes.filter((n) => n.startsWith('旁白漏写：'))).toEqual(['旁白漏写：你'])
+    expect(r.passage).toBe(prose)
+    expect(store.readPassage()[0]?.text).toBe(prose)
+  })
+})
+
 describe('runBeat：显示名', () => {
   it('旁白事件带显示名，正文不泄漏玩家 id', async () => {
     const store = tmpStore()
@@ -488,7 +547,8 @@ describe('runBeat：显示名', () => {
     let firstEventName = ''
     const narrator = {
       narrate: async (req: NarrationInput) => {
-        firstEventName = req.events[0]?.name ?? ''
+        // 事件已按裁判 order 排，不能再拿位置当“玩家那条”：按 actor 找
+        firstEventName = req.events.find((e) => e.actor === 'player')?.name ?? ''
         return { text: '你推门进去，雨声跟了进来。', absoluteTime: [] }
       },
     }

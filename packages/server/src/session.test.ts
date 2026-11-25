@@ -41,7 +41,8 @@ const verdictFor = (claimId: string): string =>
     },
   })
 
-const narration = '雨顺着门缝往里渗。'
+/** 两个显示名都在正文里：干净的一拍不该留下“旁白漏写”的 notes（T5）。 */
+const narration = '雨顺着门缝往里渗，安抬头看了你一眼。'
 
 /** 按角色分派的桩：referee 缺省给一条能落账的裁决，narration 缺省给一句话。 */
 function stubLlm(overrides: Partial<Record<ChatRequest['role'], (req: ChatRequest) => Promise<ChatResult>>> = {}): Llm {
