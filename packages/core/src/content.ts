@@ -16,6 +16,10 @@ export type CharacterSeed = Omit<Character, 'experience' | 'busyUntil'>
 export interface ContentPack {
   /** 世界标题：玩家壳顶栏用它 */
   title: string
+  /** 首屏散文：只给玩家读，不进任何上下文；空串与缺失同义 */
+  opening?: string
+  /** 一两句现场描述：拼在 sceneText 之前，进人物/裁判/旁白上下文；空串与缺失同义 */
+  scene?: string
   world: World
   characters: CharacterSeed[]
   canon: string[]
@@ -39,6 +43,8 @@ export function seedCharacters(pack: ContentPack): Character[] {
 const CORE_MIN = 200
 const CORE_MAX = 400
 const CANON_MAX = 60
+const OPENING_MAX = 600
+const SCENE_MAX = 160
 
 function width(text: string): number {
   return [...text].length
@@ -129,6 +135,21 @@ export function validatePack(pack: ContentPack): string[] {
   for (const [ent, ids] of Object.entries(ledger.knows)) {
     if (!(ent in at)) errors.push(`knows 里的实体 ${ent} 不在 ledger.at 里`)
     if (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string')) errors.push(`${ent} 的 knows 必须是字符串数组`)
+  }
+
+  // 空串视为缺失：旧内容包没有这两个字段，作者把 textarea 清空也不该被拒
+  for (const [field, max] of [
+    ['opening', OPENING_MAX],
+    ['scene', SCENE_MAX],
+  ] as const) {
+    const value: unknown = pack[field]
+    if (value === undefined) continue
+    if (typeof value !== 'string') {
+      errors.push(`${field} 必须是字符串`)
+      continue
+    }
+    const proseWidth = width(value.trim())
+    if (proseWidth > max) errors.push(`${field} 是 ${proseWidth} 字，要求 ≤ ${max}`)
   }
 
   if (pack.canon.length === 0) errors.push('canon 为空')

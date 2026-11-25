@@ -45,6 +45,8 @@ export interface BeatView {
 
 export interface SessionView {
   title: string
+  /** 首屏散文：来自 `ContentPack.opening`；缺失时前端回退场景卡 */
+  opening?: string
   clock: number
   clockText: string
   state: PlayerStateView

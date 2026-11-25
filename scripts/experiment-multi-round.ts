@@ -170,7 +170,9 @@ function describeScene(world: World): string {
     .filter(([ent, place]) => actors.has(ent) && place === here)
     .map(([ent]) => ent)
   const lit = world.ledger.phys['lamp']?.['lit'] === true ? '灯还亮着' : '灯已经灭了'
-  return `酒馆里：${present.map((ent) => pack.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
+  const line = `酒馆里：${present.map((ent) => pack.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
+  // 与 packages/server/src/session.ts 的 sceneText 同序：先现场，再地点与在场
+  return [pack.scene?.trim() ?? '', line].filter((text) => text !== '').join('\n')
 }
 
 /** 与 packages/core/src/beat.ts 的 describeLedger 保持同形状（选项对象）；实验脚本不把它抽成公共层。 */

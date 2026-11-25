@@ -145,6 +145,7 @@ export function createSession(opts: SessionOptions): Session {
   function view(): SessionView {
     return playerView({
       title: pack.title,
+      opening: pack.opening,
       player: pack.player,
       // 只有内容包里的人物算“人”：账本里还有灯、门、地窖门这类实体
       people: new Set(pack.characters.map((seed) => seed.id)),
@@ -355,13 +356,15 @@ function roster(pack: ContentPack): EntId[] {
   return [pack.player, ...pack.characters.map((c) => c.id)]
 }
 
-/** 场景的静态描述：本拍的地点和在场者，与 play.ts 的 describeScene 同源。 */
+/** 场景的静态描述：作者写的现场 + 本拍的地点和在场者，与 play.ts 的 describeScene 同源。 */
 function sceneText(pack: ContentPack, world: World): string {
   const here = world.ledger.at[pack.player] ?? ''
   const present = Object.entries(world.ledger.at)
     .filter(([, place]) => place === here)
     .map(([ent]) => pack.names[ent] ?? ent)
-  return `${world.places[here] ?? here}：${present.join('、')}在场。`
+  return [pack.scene?.trim() ?? '', `${world.places[here] ?? here}：${present.join('、')}在场。`]
+    .filter((line) => line !== '')
+    .join('\n')
 }
 
 /** 请求体上限 500 字：超长截断（并在 notes 记一条），不返回错误。 */

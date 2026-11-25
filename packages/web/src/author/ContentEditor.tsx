@@ -36,6 +36,8 @@ interface EditableCharacter {
  */
 export interface EditablePack {
   title: string
+  opening?: string
+  scene?: string
   world: unknown
   characters: EditableCharacter[]
   canon: string[]
@@ -127,6 +129,25 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
     <div className="flex max-h-[80dvh] flex-col">
       <div className="flex-1 overflow-y-auto p-4">
         {errors.length > 0 && <Alert type="error" showIcon title={errors.join('；')} className="mb-4" />}
+
+        <section className="mb-8 flex flex-col gap-3">
+          <LabeledField label="opening（首屏散文，≤600 字）" htmlFor="pack-opening">
+            <Input.TextArea
+              id="pack-opening"
+              rows={6}
+              value={pack.opening ?? ''}
+              onChange={(event) => setPack({ ...pack, opening: event.target.value })}
+            />
+          </LabeledField>
+          <LabeledField label="scene（现场一句话，≤160 字）" htmlFor="pack-scene">
+            <Input.TextArea
+              id="pack-scene"
+              rows={2}
+              value={pack.scene ?? ''}
+              onChange={(event) => setPack({ ...pack, scene: event.target.value })}
+            />
+          </LabeledField>
+        </section>
 
         <section className="mb-8">
           <h3 className="mb-2 text-meta text-ink-soft">人物</h3>

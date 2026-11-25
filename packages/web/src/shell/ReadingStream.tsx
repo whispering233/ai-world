@@ -1,7 +1,7 @@
 import { ArrowDownOutlined } from '@ant-design/icons'
 import { Button, Skeleton } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import type { BeatView } from '@ai-world/shared'
+import type { BeatView, PlayerStateView } from '@ai-world/shared'
 import { BeatDivider } from './BeatDivider.tsx'
 import { EmptyState } from './EmptyState.tsx'
 import { ErrorNotice } from './ErrorNotice.tsx'
@@ -15,6 +15,19 @@ const STICK_PX = 32
 export interface ReadingStreamProps {
   beats: BeatView[]
   pendingText: string | null
+  /** 首屏散文：作者写了就一直在最上方，不随拍增长 */
+  opening?: string
+  /** 场景卡素材：没有 opening 且还没有拍时用它；缺省表示还没读到会话 */
+  scene?: { clockText: string; state: PlayerStateView }
+}
+
+/** 段落按空行拆开：`whitespace-pre-wrap` 下一整块里的空行只有行高那么高，段落分不清（需要「段间距 > 行距」）。 */
+function prose(text: string) {
+  return text.split(/\n{2,}/).map((paragraph, index) => (
+    <p key={index} className="whitespace-pre-wrap text-prose leading-prose text-ink">
+      {paragraph}
+    </p>
+  ))
 }
 
 /**
@@ -23,7 +36,8 @@ export interface ReadingStreamProps {
  * 贴底与“回到最新”是两件事：读者上滚看旧文时不抢滚动位置，但新拍到达要有个能点的去处，
  * 否则只能靠猜“上面是不是又多了一段”。
  */
-export function ReadingStream({ beats, pendingText }: ReadingStreamProps) {
+export function ReadingStream({ beats, pendingText, opening, scene }: ReadingStreamProps) {
+  const hasOpening = opening !== undefined && opening.trim() !== ''
   const scroller = useRef<HTMLDivElement>(null)
   const follow = useRef(true)
   const restored = useRef(false)
@@ -84,7 +98,14 @@ export function ReadingStream({ beats, pendingText }: ReadingStreamProps) {
     <div className="relative flex min-h-0 flex-1">
       <div ref={scroller} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto">
         <div aria-live="polite" className={`${READING_COLUMN} py-8`}>
-          {beats.length === 0 && pendingText === null && <EmptyState />}
+          {hasOpening && (
+            <article className="fade-in mb-8">
+              <div className="space-y-6">{prose(opening)}</div>
+            </article>
+          )}
+          {!hasOpening && beats.length === 0 && pendingText === null && scene !== undefined && (
+            <EmptyState clockText={scene.clockText} state={scene.state} />
+          )}
           {beats.map((beat, index) => {
             const previousBeat = beats[index - 1]
             return (
@@ -93,17 +114,8 @@ export function ReadingStream({ beats, pendingText }: ReadingStreamProps) {
                   <BeatDivider clockText={beat.clockText} />
                 )}
                 {beat.player !== undefined && <PlayerLine text={beat.player} />}
-                {beat.passage !== undefined && (
-                  // 段落按空行拆开渲染：`whitespace-pre-wrap` 下一整块里的空行只有行高那么高，
-                  // 段落分不清（需要「段间距 > 行距」）。`space-y-6` 给 24px，比 31.45px 行高之外的留白明显。
-                  <div className="mt-4 space-y-6">
-                    {beat.passage.split(/\n{2,}/).map((paragraph, paragraphIndex) => (
-                      <p key={paragraphIndex} className="whitespace-pre-wrap text-prose leading-prose text-ink">
-                        {paragraph}
-                      </p>
-                    ))}
-                  </div>
-                )}
+                {/* `space-y-6` 给 24px：段间距必须大于行高，否则一整段看不出分断 */}
+                {beat.passage !== undefined && <div className="mt-4 space-y-6">{prose(beat.passage)}</div>}
                 {beat.fallback && <ErrorNotice kind="fallback" />}
                 {beat.passage === undefined && <ErrorNotice kind="missing" />}
               </article>
