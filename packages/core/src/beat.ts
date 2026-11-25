@@ -8,7 +8,7 @@ import { calledActors, fmt } from './clock.ts'
 import { applyDriveHit, canWriteSelf, remember, selfInWindow, type Character, type Experience } from './character.ts'
 import type { Cognition } from './cognition.ts'
 import { fallbackPassage, type Narrator } from './narrate.ts'
-import { commit, type Claim, type Referee, type Verdict } from './referee.ts'
+import { commit, type Claim, type Referee, type RefereeOutput, type Verdict } from './referee.ts'
 import { appendBeat, contextOf, fold, foldReason, openScene, type FoldMaterial, type Scene } from './scene.ts'
 import type { BeatTelemetry, Store } from './store.ts'
 import type { EntId, World } from './world.ts'
@@ -59,6 +59,8 @@ export interface BeatInput {
    * runBeat 只在 appendBeat 时读它，不深拷贝；本拍没落 journal 就不会被写出去。
    */
   telemetry?: BeatTelemetry
+  /** 账本在内存落定后调一次（旁白之前）：此刻世界已定，正文还没写 */
+  onSettled?: () => void
   deps: BeatDeps
 }
 
@@ -163,7 +165,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
     return { world: input.world, scene: input.scene, characters: input.characters, passage: '', journalSeq: 0, committedClaims: [], notes: [...degraded, '没有主张，本拍未发生'] }
   }
 
-  let out
+  let out: RefereeOutput
   try {
     out = await deps.referee.judge({
       clock,
@@ -192,6 +194,7 @@ export async function runBeat(input: BeatInput): Promise<BeatResult> {
   const clockAfter = clock + maxDuration(out.verdicts.filter((v) => committedIds.has(v.claimId)))
   const at = { ...input.world, ledger: { ...input.world.ledger, clock: clockAfter } }
   const { world, applied } = commit(at, out)
+  input.onSettled?.()
   const notes = applied.flatMap((a) => a.results.filter((r) => !r.ok).map((r) => `${a.claimId}: ${r.why ?? 'op 失败'}`))
 
   // 整条裁决被回滚时，当事人记住的是"没成"，不是"我成功了"

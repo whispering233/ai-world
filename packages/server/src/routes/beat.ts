@@ -41,8 +41,11 @@ export function beatRoutes(session: Session): Hono {
       outgoing?.on('close', onClose)
 
       try {
-        const res = await session.beat(text, controller.signal, (elapsedMs) => {
-          void stream.writeSSE({ event: 'progress', data: JSON.stringify({ elapsedMs, clockText }) })
+        const res = await session.beat(text, controller.signal, (elapsedMs, phase) => {
+          void stream.writeSSE({
+            event: 'progress',
+            data: JSON.stringify({ elapsedMs, clockText, ...(phase === undefined ? {} : { phase }) }),
+          })
         })
         await stream.writeSSE({ event: 'passage', data: JSON.stringify(res.beat) })
         await stream.writeSSE({

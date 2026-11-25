@@ -7,6 +7,8 @@ export interface ComposerProps {
   onSend: () => void
   onStop: () => void
   inFlight: boolean
+  /** 账本已落定、旁白还没成型：等待文案换一段 */
+  settled?: boolean
   elapsedMs: number
 }
 
@@ -21,7 +23,7 @@ function mmss(ms: number): string {
  * 等待期只给 `loading`（发送按钮换成停止），不用 `disabled`——那会把输入框一起锁灰，
  * 而设计只要求「不许重复发送」；重复发送在 `onSubmit` 入口再拦一道。
  */
-export function Composer({ draft, onDraftChange, onSend, onStop, inFlight, elapsedMs }: ComposerProps) {
+export function Composer({ draft, onDraftChange, onSend, onStop, inFlight, settled, elapsedMs }: ComposerProps) {
   return (
     <div className="shrink-0 border-t border-rule bg-paper">
       <div className={`${READING_COLUMN} py-3`}>
@@ -41,7 +43,7 @@ export function Composer({ draft, onDraftChange, onSend, onStop, inFlight, elaps
         <p className="mt-2 text-meta text-ink-soft">
           {inFlight ? (
             <span>
-              世界在回应… {mmss(elapsedMs)}
+              {settled === true ? '这一拍已经定了，正在落笔…' : '世界在回应…'} {mmss(elapsedMs)}
               <span aria-hidden="true" className="blink">
                 ▍
               </span>

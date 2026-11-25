@@ -29,7 +29,7 @@ beforeAll(() => {
   } as unknown as typeof ResizeObserver
 })
 
-async function mount(options: { draft: string; inFlight?: boolean }) {
+async function mount(options: { draft: string; inFlight?: boolean; settled?: boolean }) {
   const { Composer } = await import('./Composer.tsx')
   const onSend = vi.fn()
   const onStop = vi.fn()
@@ -40,12 +40,13 @@ async function mount(options: { draft: string; inFlight?: boolean }) {
       onSend,
       onStop,
       inFlight: options.inFlight ?? false,
+      settled: options.settled ?? false,
       elapsedMs: 0,
     }),
   )
   const textarea = container.querySelector('textarea')
   if (textarea === null) throw new Error('Sender 没有渲染出 textarea')
-  return { textarea, onSend, onStop, unmount }
+  return { container, textarea, onSend, onStop, unmount }
 }
 
 // 慢的是 @ant-design/x 的样式注入（单跑约 4s），满负载并行时 5s 不够；断言本身是即时事件。
@@ -98,6 +99,24 @@ describe('Composer 的键盘契约', () => {
     expect(stopButton).toBeDefined()
     fireEvent.click(stopButton!)
     expect(onStop).toHaveBeenCalledTimes(1)
+    unmount()
+  })
+
+  // 两段等待文案只报可证状态（决策 #45）：不说“已记录/已落盘”
+  it('等待中先说「世界在回应…」', async () => {
+    const { container, unmount } = await mount({ draft: '我推门进去。', inFlight: true })
+    expect(container.textContent).toContain('世界在回应…')
+    expect(container.textContent).not.toContain('这一拍已经定了')
+    expect(container.textContent).toContain('00:00')
+    unmount()
+  })
+
+  it('账本落定后换成「这一拍已经定了，正在落笔…」', async () => {
+    const { container, unmount } = await mount({ draft: '我推门进去。', inFlight: true, settled: true })
+    expect(container.textContent).toContain('这一拍已经定了，正在落笔…')
+    expect(container.textContent).not.toContain('世界在回应…')
+    expect(container.textContent).toContain('00:00')
+    expect(container.textContent).not.toContain('已记录')
     unmount()
   })
 }, 15_000)

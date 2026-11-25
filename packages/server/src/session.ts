@@ -80,7 +80,11 @@ export interface Session {
   /** 唯一写入：校验通过后写 `content/`，不改 `activeHash`、不改运行时世界 */
   saveContent(text: string): SavedContent
   /** 单飞：已有拍在结算时立刻抛 `code: 'E_BEAT_IN_FLIGHT'`，不排队 */
-  beat(text: string, signal: AbortSignal, onProgress: (elapsedMs: number) => void): Promise<BeatOutcome>
+  beat(
+    text: string,
+    signal: AbortSignal,
+    onProgress: (elapsedMs: number, phase?: 'settled') => void,
+  ): Promise<BeatOutcome>
   reset(): void
   inFlight(): boolean
 }
@@ -233,7 +237,7 @@ export function createSession(opts: SessionOptions): Session {
   async function beat(
     text: string,
     clientSignal: AbortSignal,
-    onProgress: (elapsedMs: number) => void,
+    onProgress: (elapsedMs: number, phase?: 'settled') => void,
   ): Promise<BeatOutcome> {
     if (busy) throw coded('E_BEAT_IN_FLIGHT', '上一拍还在结算')
     busy = true
@@ -268,6 +272,8 @@ export function createSession(opts: SessionOptions): Session {
         ...(pack.aliases === undefined ? {} : { aliases: pack.aliases }),
         playerClaim,
         telemetry: sink.telemetry,
+        // 账本落定 = 可证的中途状态（docs/api/20-api-beat.md §2）：裁判返回后立刻报一次
+        onSettled: () => onProgress(Math.round(performance.now() - startedAt), 'settled'),
         deps: {
           referee: createLlmReferee(scoped),
           cognition: createCognition(scoped),

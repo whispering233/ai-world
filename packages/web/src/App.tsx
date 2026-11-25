@@ -22,6 +22,7 @@ interface AppState {
   session: SessionView | null
   beats: BeatView[]
   inFlight: boolean
+  settled: boolean
   elapsedMs: number
   error: ErrorKind | null
   mode: ShellMode
@@ -50,6 +51,7 @@ function initialState(): AppState {
     session: null,
     beats: [],
     inFlight: false,
+    settled: false,
     elapsedMs: 0,
     error: null,
     mode: localStorage.getItem(MODE_KEY) === 'author' ? 'author' : 'player',
@@ -64,11 +66,12 @@ function initialState(): AppState {
 function applyFrame(state: AppState, frame: BeatFrame): AppState {
   switch (frame.event) {
     case 'progress':
-      return { ...state, elapsedMs: frame.data.elapsedMs }
+      // settled 只由 phase 帧置真：之后的心跳帧没有 phase，不得把它翻回去
+      return { ...state, elapsedMs: frame.data.elapsedMs, settled: frame.data.phase === 'settled' ? true : state.settled }
     case 'passage':
       // 停止之后迟到的帧不能落进正文：那一拍由重取的 session 权威给出
       if (!state.inFlight) return state
-      return { ...state, beats: [...state.beats, frame.data], pendingText: null }
+      return { ...state, beats: [...state.beats, frame.data], pendingText: null, settled: false }
     case 'state':
       if (state.session === null) return state
       return {
@@ -81,12 +84,13 @@ function applyFrame(state: AppState, frame: BeatFrame): AppState {
         },
       }
     case 'done':
-      return { ...state, inFlight: false, elapsedMs: 0 }
+      return { ...state, inFlight: false, settled: false, elapsedMs: 0 }
     case 'error':
       // 没有 passage 帧就是没有发生：把玩家那句话退回输入框
       return {
         ...state,
         inFlight: false,
+        settled: false,
         elapsedMs: 0,
         pendingText: null,
         error: 'refused',
@@ -108,7 +112,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'send': {
       const text = state.draft.trim()
       if (text === '' || state.inFlight) return state
-      return { ...state, draft: '', pendingText: text, inFlight: true, elapsedMs: 0, error: null }
+      return { ...state, draft: '', pendingText: text, inFlight: true, settled: false, elapsedMs: 0, error: null }
     }
     case 'frame':
       return applyFrame(state, action.frame)
@@ -116,15 +120,16 @@ function reducer(state: AppState, action: Action): AppState {
       // 流在没有 done 的情况下结束：已落盘的拍照常显示，没落盘的那句退回去
       if (!state.inFlight) return state
       return state.pendingText === null
-        ? { ...state, inFlight: false, elapsedMs: 0 }
-        : { ...state, inFlight: false, elapsedMs: 0, pendingText: null, error: 'refused', draft: state.pendingText }
+        ? { ...state, inFlight: false, settled: false, elapsedMs: 0 }
+        : { ...state, inFlight: false, settled: false, elapsedMs: 0, pendingText: null, error: 'refused', draft: state.pendingText }
     case 'stop':
       // 停止 = 断开连接；账本由服务端决定，界面不猜
-      return { ...state, inFlight: false, elapsedMs: 0, pendingText: null }
+      return { ...state, inFlight: false, settled: false, elapsedMs: 0, pendingText: null }
     case 'failed':
       return {
         ...state,
         inFlight: false,
+        settled: false,
         elapsedMs: 0,
         error: 'refused',
         pendingText: null,
@@ -233,6 +238,7 @@ export function App() {
       onSend={() => void send()}
       onStop={() => inFlightRequest.current?.abort()}
       inFlight={state.inFlight}
+      settled={state.settled}
       elapsedMs={state.elapsedMs}
     />
   )
