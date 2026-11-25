@@ -29,6 +29,26 @@ function pack(): ContentPack {
   }
 }
 
+/** 带陈设的现场：柜台 / 铁盒 / 桌子 与 门 / 灯 都在账本里，但只有人是“在场者”。 */
+function furnishedPack(): ContentPack {
+  const base = pack()
+  return {
+    ...base,
+    scene: '雨夜的酒馆，柜台上摆着酒瓶。',
+    world: {
+      ...base.world,
+      ledger: {
+        ...base.world.ledger,
+        at: { player: 'saloon', ann: 'saloon', counter: 'saloon', strongbox: 'saloon', table: 'saloon', door: 'saloon', lamp: 'saloon' },
+        holds: { counter: { whiskey: 3 }, strongbox: { 'ledger-book': 1 }, table: { cup: 1 } },
+        phys: { strongbox: { locked: true }, door: { closed: true }, lamp: { lit: true } },
+      },
+    },
+    names: { player: '你', ann: '安', counter: '柜台', strongbox: '铁盒', table: '桌子', door: '门', lamp: '灯' },
+    items: { whiskey: '威士忌', 'ledger-book': '账本', cup: '杯子' },
+  }
+}
+
 /** 玩家主张的 id 是 `p${clock}`；裁判只判它，人物主张由 parseRefereeOutput 按"无事发生"补齐。 */
 const verdictFor = (claimId: string): string =>
   JSON.stringify({
@@ -277,6 +297,29 @@ describe('createSession', () => {
     const session = makeSession(tmpDir(), stubLlm())
     await session.beat('我把两枚银元塞进安手里。', new AbortController().signal, noProgress)
     expect(session.view().beats[0]?.player).toBe('我把两枚银元塞进安手里。')
+  })
+
+  it('sceneText 的“在场”只列玩家与人物，不列陈设与门灯', async () => {
+    const prompts: string[] = []
+    const dir = tmpDir()
+    const value = furnishedPack()
+    const session = createSession({
+      dir,
+      contentPath: writePack(dir, value),
+      pack: value,
+      llm: stubLlm({
+        referee: async (req) => {
+          prompts.push(req.messages[0]?.content ?? '')
+          return { text: verdictFor('p0'), toolCalls: [], inputTokens: 0, outputTokens: 0, model: 'stub/referee' }
+        },
+      }),
+    })
+    await session.beat('我看了看柜台。', new AbortController().signal, noProgress)
+
+    // scene 散文本身可以提柜台，所以只取“在场”那一行断言
+    const presentLine = prompts.join('\n').split('\n').find((line) => line.startsWith('酒馆：')) ?? ''
+    expect(presentLine).toBe('酒馆：你、安在场。')
+    for (const fixture of ['柜台', '铁盒', '桌子', '门', '灯']) expect(presentLine).not.toContain(fixture)
   })
 
   it('authorView()：journal 与 usage 都有内容，单拍详情能拿到 prompts 与 notes', async () => {

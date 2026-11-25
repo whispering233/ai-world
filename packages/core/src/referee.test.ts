@@ -90,6 +90,18 @@ describe('REFEREE_SYSTEM：同一 phys 键的相反值', () => {
   })
 })
 
+describe('REFEREE_SYSTEM：物品位置', () => {
+  it('陈设不能 move，放/取用 transfer、开/锁用 phys，三个例子都在提示里', () => {
+    expect(REFEREE_SYSTEM).toContain('陈设是承载者，不是行动者')
+    // 取：柜台上的酒瓶拿到手里
+    expect(REFEREE_SYSTEM).toContain('transfer{from:"counter",to:"player",item:"whiskey",n:1}')
+    // 锁：铁盒的状态用 phys，不用 fact
+    expect(REFEREE_SYSTEM).toContain('phys{who:"strongbox",key:"locked",value:true}')
+    // 放：杯子放回柜台
+    expect(REFEREE_SYSTEM).toContain('transfer{from:"player",to:"counter",item:"cup",n:1}')
+  })
+})
+
 describe('refereePrompt：世界设定', () => {
   it('canon 渲染成世界设定块', () => {
     const prompt = refereePrompt({ clock: 10, claims, context: '现场', canon: ['这家酒馆欠着银行的债', '安不卖赊账'] })

@@ -11,6 +11,9 @@
         "doc": "saloon",
         "cody": "saloon",
         "granny": "saloon",
+        "counter": "saloon",
+        "strongbox": "saloon",
+        "table": "saloon",
         "lamp": "saloon",
         "door": "saloon",
         "cellar": "saloon",
@@ -18,8 +21,17 @@
       },
       "holds": {
         "ann": {
-          "ledger-book": 1,
-          "whiskey": 3
+          "cup": 1
+        },
+        "counter": {
+          "whiskey": 3,
+          "cup": 2
+        },
+        "strongbox": {
+          "ledger-book": 1
+        },
+        "table": {
+          "cup": 1
         },
         "doc": {
           "morphine": 11
@@ -35,6 +47,9 @@
         }
       },
       "phys": {
+        "strongbox": {
+          "locked": true
+        },
         "lamp": {
           "lit": true
         },
@@ -157,6 +172,9 @@
     "doc": "道森医生",
     "cody": "科迪",
     "granny": "格蕾妮",
+    "counter": "柜台",
+    "strongbox": "铁盒",
+    "table": "桌子",
     "lamp": "灯",
     "door": "门",
     "cellar": "地窖门",
@@ -168,7 +186,8 @@
     "morphine": "吗啡",
     "private-bottle": "私酒",
     "keys": "钥匙串",
-    "silver-dollar": "银元"
+    "silver-dollar": "银元",
+    "cup": "杯子"
   },
   "aliases": {
     "player": [
