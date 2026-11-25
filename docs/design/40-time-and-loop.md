@@ -83,6 +83,8 @@ loop:
 
 **不做动作时长表**：那是能力清单的第三种形态，会长不完。
 
+**短对话不等于时间钉死**：默认 experiment 只喂 12 拍短句，走 17 分钟是正确的；`play` 的 20 拍里睡一整夜给过 480 分钟，`experiment --long` 的“等雨四个钟头”给过 240 分钟（clock 9→249，拂晓）。不要为了“让时间走”给 `duration` 加强制下限；长动作被拒先看场景是否成立。证据见 [time-probe-smoke.md](../research/time-probe-smoke.md)。
+
 `clock` 只按**已提交** claim 的最大 duration 推进；判断“本拍是否时间跳跃”要用**上一拍结束时刻**，不能用 `scene.lastBeatAt`——它已被本拍推到结束了。
 
 ## 6. 时间只有一个出口
