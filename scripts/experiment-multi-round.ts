@@ -26,6 +26,7 @@ import { createCognition, type Cognition, type CognitionOutput } from '@ai-world
 import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
 import { createLlm, type ModelRole, type UsageSample } from '@ai-world/core'
 import { createNarrator, type NarrationEvent, type Narrator } from '@ai-world/core'
+import { createSuggester } from '@ai-world/core'
 import { readonlyPiCredentials } from '@ai-world/core'
 import {
   commit,
@@ -758,6 +759,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
     referee: createLlmReferee(llm),
     cognition: createCognition(llm),
     narrator: createNarrator(llm),
+    suggester: createSuggester(llm),
     store,
   }
 
