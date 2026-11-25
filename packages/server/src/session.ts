@@ -311,7 +311,10 @@ export function createSession(opts: SessionOptions): Session {
       // journalSeq === 0 = 这一拍没有发生（裁决失败）：世界不动，只有注记
       if (res.journalSeq === 0) {
         const head = deadline.aborted && !clientSignal.aborted ? `本拍超过 ${Math.ceil((opts.timeoutMs ?? BEAT_TIMEOUT_MS) / 1000)} 秒未结算` : ''
-        throw coded('E_MODEL_CALL', [head, ...res.notes].filter((s) => s !== '').join('；') || '模型调用失败')
+        throw coded(
+          'E_MODEL_CALL',
+          [head, ...(focusNote === undefined ? [] : [focusNote]), ...res.notes].filter((s) => s !== '').join('；') || '模型调用失败',
+        )
       }
 
       state.world = res.world

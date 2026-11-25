@@ -6,7 +6,7 @@
  * jsdom 只需两个 stub（`matchMedia` / `ResizeObserver`）；下面 `beforeAll` 里就是全部。
  * 这里不断言样式，只断言「按了什么键、`onSend` 有没有被叫」。
  */
-import { fireEvent, render } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type { PlayerStateView } from '@ai-world/shared'
@@ -284,6 +284,16 @@ describe('Composer 的目标 chips', () => {
   it('点「所有人」回到 null', async () => {
     const { container, onTargetChange, onSend, unmount } = await mount({ draft: '我推门进去。', state: playerState, target: '安' })
     fireEvent.click(chipOf(container, '所有人')!)
+    expect(onTargetChange).toHaveBeenCalledWith(null)
+    expect(onSend).not.toHaveBeenCalled()
+    unmount()
+  })
+
+  it('键盘 Enter/Space 也能选目标，不只是鼠标', async () => {
+    const { onTargetChange, onSend, unmount } = await mount({ draft: '', state: playerState })
+    fireEvent.keyDown(screen.getByRole('radio', { name: '安' }), { key: 'Enter' })
+    expect(onTargetChange).toHaveBeenCalledWith('安')
+    fireEvent.keyDown(screen.getByRole('radio', { name: '所有人' }), { key: ' ' })
     expect(onTargetChange).toHaveBeenCalledWith(null)
     expect(onSend).not.toHaveBeenCalled()
     unmount()

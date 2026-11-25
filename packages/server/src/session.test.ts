@@ -267,6 +267,27 @@ describe('createSession', () => {
     expect(refs).toEqual([1, 11])
   })
 
+  it('聚焦失败 note 不因裁判失败消失', async () => {
+    const dir = tmpDir()
+    const session = makeSession(
+      dir,
+      stubLlm({
+        referee: async () => {
+          throw new Error('模型挂了')
+        },
+      }),
+    )
+    let error: Error | undefined
+    try {
+      await session.beat('我对不存在的人说。', new AbortController().signal, noProgress, '不存在')
+    } catch (reason) {
+      error = reason as Error
+    }
+    expect(error).toMatchObject({ code: 'E_MODEL_CALL' })
+    expect(error?.message).toContain('聚焦失败')
+    expect(openStore(dir).readJournal()).toHaveLength(0)
+  })
+
   it('失败的一拍不占拍号', async () => {
     const dir = tmpDir()
     let fail = true

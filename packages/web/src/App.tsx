@@ -7,6 +7,7 @@ import { Composer } from './shell/Composer.tsx'
 import { ErrorNotice } from './shell/ErrorNotice.tsx'
 import type { ErrorKind } from './shell/ErrorNotice.tsx'
 import { ReadingStream } from './shell/ReadingStream.tsx'
+import { effectiveTarget } from './shell/target.ts'
 import { StateDrawer } from './shell/StateDrawer.tsx'
 import { TopBar } from './shell/TopBar.tsx'
 import { READING_COLUMN } from './shell/column.ts'
@@ -216,12 +217,12 @@ export function App() {
   const hereKey = (state.session?.state.here ?? []).join('\u0000')
   useEffect(() => {
     if (state.target === null) return
-    if (state.session?.state.here.includes(state.target) === true) return
+    if (effectiveTarget(state.target, state.session?.state.here ?? []) !== null) return
     dispatch({ type: 'target', target: null })
   }, [hereKey, state.target])
 
   // 有效目标：不在场就当没选（服务端也会按自己那份投影再验一次，两边不会偏差）
-  const target = state.target !== null && state.session?.state.here.includes(state.target) === true ? state.target : null
+  const target = effectiveTarget(state.target, state.session?.state.here ?? [])
 
   // Ctrl/Cmd+Shift+D 换壳
   useEffect(() => {
@@ -241,9 +242,8 @@ export function App() {
   }
 
   /** `keepDraft` 只给「等一会儿」用：等待不该吃掉玩家已经打好的半句话 */
-  async function send(text = state.draft.trim(), keepDraft = false) {
+  async function send(text = state.draft.trim(), keepDraft = false, to: string | null = target) {
     if (text === '' || state.inFlight) return
-    const to = target
     dispatch({ type: 'send', text, keepDraft, to })
     const controller = new AbortController()
     inFlightRequest.current = controller
@@ -283,7 +283,8 @@ export function App() {
       onDraftChange={(draft) => dispatch({ type: 'draft', draft })}
       onSend={() => void send()}
       onStop={() => inFlightRequest.current?.abort()}
-      onWait={() => void send(WAIT_TEXT, true)}
+      // 等待文案是“看看他们怎么说”，始终对所有人，不继承已选中的单人目标
+      onWait={() => void send(WAIT_TEXT, true, null)}
       inFlight={state.inFlight}
       settled={state.settled}
       elapsedMs={state.elapsedMs}

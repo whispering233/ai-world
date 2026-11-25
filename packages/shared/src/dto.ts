@@ -139,6 +139,8 @@ export interface ClaimView {
   actor: string
   text: string
   kind: 'say' | 'act'
+  /** 玩家 claim 的发言对象（实体 id；作者壳可见原始 id） */
+  to?: string
 }
 
 export type OpView =

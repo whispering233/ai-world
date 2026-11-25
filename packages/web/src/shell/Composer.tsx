@@ -24,6 +24,26 @@ export interface ComposerProps {
   hints?: string[]
 }
 
+function TargetChip({ label, checked, onSelect }: { label: string; checked: boolean; onSelect: () => void }) {
+  return (
+    <span
+      role="radio"
+      aria-checked={checked}
+      tabIndex={0}
+      className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        onSelect()
+      }}
+    >
+      <Tag.CheckableTag checked={checked} onChange={() => onSelect()}>
+        {label}
+      </Tag.CheckableTag>
+    </span>
+  )
+}
+
 function mmss(ms: number): string {
   const seconds = Math.floor(ms / 1000)
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
@@ -57,15 +77,11 @@ export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFligh
               {state.place} · 你身上：{holds === '' ? '空手' : holds}
             </span>
             {/* 目标 chips：只改状态，不发送；目标只影响发送时（所以等待中也不锁） */}
-            <div className="flex flex-wrap items-center gap-1">
-              <Tag.CheckableTag checked={target === null || target === undefined} onChange={() => onTargetChange?.(null)}>
-                所有人
-              </Tag.CheckableTag>
+            <div role="radiogroup" aria-label="对谁说" className="flex flex-wrap items-center gap-1">
+              <TargetChip label="所有人" checked={target === null || target === undefined} onSelect={() => onTargetChange?.(null)} />
               {/* 显示名不保证唯一（重名时服务端会让聚焦失败）：key 加下标，不让 React 报重复 key */}
               {state.here.map((name, index) => (
-                <Tag.CheckableTag key={`${name}-${index}`} checked={target === name} onChange={() => onTargetChange?.(name)}>
-                  {name}
-                </Tag.CheckableTag>
+                <TargetChip key={`${name}-${index}`} label={name} checked={target === name} onSelect={() => onTargetChange?.(name)} />
               ))}
             </div>
           </div>
