@@ -84,9 +84,18 @@ export function validatePack(pack: ContentPack): string[] {
     if (!(place in pack.world.places)) errors.push(`实体 ${ent} 所在地点 ${place} 不在 places 里`)
     if ((pack.names[ent] ?? '').trim() === '') errors.push(`实体 ${ent} 缺少显示名`)
   }
-  for (const bag of Object.values(pack.world.ledger.holds)) {
-    for (const item of Object.keys(bag)) {
-      if ((pack.items[item] ?? '').trim() === '') errors.push(`物品 ${item} 缺少显示名`)
+  // 物品名对整张 items 生效：作者壳能改任一显示名，只查被 holds 引用的那些会放过没上身的物品。
+  // 缺键与空名合并成一次检查，避免同一个物品被多个持有者各报一遍。
+  if (!isRecord(pack.items)) {
+    errors.push('items 必须是对象')
+  } else {
+    const named = new Set(Object.keys(pack.items))
+    for (const bag of Object.values(pack.world.ledger.holds)) {
+      for (const item of Object.keys(bag)) named.add(item)
+    }
+    for (const item of named) {
+      const name = pack.items[item]
+      if (typeof name !== 'string' || name.trim() === '') errors.push(`物品 ${item} 缺少显示名`)
     }
   }
 

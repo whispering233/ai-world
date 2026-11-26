@@ -30,6 +30,32 @@ describe('validatePack', () => {
     expect(errors).toContain('物品 whiskey 缺少显示名')
   })
 
+  it('空物品名被拒，且不限于被 holds 引用的物品', () => {
+    const held: ContentPack = { ...pack, items: { ...pack.items, whiskey: '' } }
+    expect(validatePack(held)).toEqual(['物品 whiskey 缺少显示名'])
+
+    // `spare-coin` 不在任何 holds 里：只查被引用的物品会让它漏网
+    const loose: ContentPack = { ...pack, items: { ...pack.items, 'spare-coin': '' } }
+    expect(validatePack(loose)).toEqual(['物品 spare-coin 缺少显示名'])
+
+    // 反过来：holds 引用了、items 里整键缺失的仍是错（旧行为不因上一条变宽而放掉）
+    const missing: ContentPack = {
+      ...pack,
+      items: Object.fromEntries(Object.entries(pack.items).filter(([id]) => id !== 'whiskey')),
+    }
+    expect(validatePack(missing)).toEqual(['物品 whiskey 缺少显示名'])
+
+    // cup 被柜台和桌子同时持有：缺键也只能报一次
+    const noCup: ContentPack = {
+      ...pack,
+      items: Object.fromEntries(Object.entries(pack.items).filter(([id]) => id !== 'cup')),
+    }
+    expect(validatePack(noCup).filter((line) => line === '物品 cup 缺少显示名')).toHaveLength(1)
+
+    // 形状不对时不按条目遍历，也不抛
+    expect(validatePack({ ...pack, items: 'abc' as unknown as Record<string, string> })).toContain('items 必须是对象')
+  })
+
   it('core 过长、heat 越界、实体不在 at 里：三处各报一条，互不遮蔽', () => {
     const broken: ContentPack = {
       ...pack,

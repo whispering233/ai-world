@@ -177,7 +177,7 @@ chrome 全部用 antd 6 / `@ant-design/x` 2，见 §13；壳层的自有组件�
 - 拍列表：只显示 `clockText` 与首句摘要；点击定位到该拍，不改阅读流内容。
 - 本拍详情：`claims` / `verdicts`（`ok`、`reason`、`deltas`、`duration`）/ `notes` / `telemetry`；再往下是 antd `Collapse` 的「账本原始」与「prompt」。
 - 顶部条：内容状态（`activeHash === diskHash` 与否）、累计 cost、降级 notes 计数。
-- 「内容」面板：`core` / `voice` / `drives` / `beliefs` / `canon` 表单 + `places` / `names` 显示名表单 + 只读 JSON 块（世界结构）；显式「保存」→ 三选一弹窗。
+- 「内容」面板：`core` / `voice` / `drives` / `beliefs` / `canon` 表单 + `places` / `names` / `items` 显示名表单 + 只读 JSON 块（世界结构）；显式「保存」→ 三选一弹窗。
 - **作者壳也能发拍**：与玩家壳共用同一个 `Composer` 节点，位置在中栏底部；发送后作者投影按 `beats.length` 重取。
 - 三栏固定宽度，不做拖拽分隔条。
 

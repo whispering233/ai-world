@@ -71,7 +71,7 @@ prompt 缓冲**不落盘**：进程一停就没了。理由是 prompt 体积大�
 | :--- | :--- |
 | 只写内容 | 只碰 `content/` 下的文件，**永不**写 `data/` |
 | 开场字段 | `opening` / `scene` 与 title、canon 一样由作者壳编辑；两者可空，空时玩家壳回退场景卡，运行时用 `sceneText()` 的旧口径 |
-| 显示名 | 作者壳可编辑现有 `places` 与 `names` 的值（id 不变）；空显示名由 `validatePack` 拒绝 |
+| 显示名 | 作者壳可编辑现有 `places` / `names` / `items` 的值（id 不变）；空显示名由 `validatePack` 拒绝 |
 | 不热生效 | 保存后本局仍用 `activeHash` 那一份；新内容要 `POST /api/reset` 才生效 |
 | 与 `/api/beat` 互斥 | 结算中保存返回 `E_BEAT_IN_FLIGHT` |
 | 不自动保存 | 前端用显式「保存」按钮；不做失焦保存（否则每次点走都弹三选一） |
