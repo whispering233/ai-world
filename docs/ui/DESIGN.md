@@ -73,7 +73,7 @@ antd 6 的三处改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` �
 
 - 吸底，与正文同宽。
 - 上方一行状态：地点 + 持有（`text-meta text-ink-soft`），不显示 `heat`/`rel`/id。
-- 状态行右侧是目标 chips：`所有人` + 在场者显示名；目标不在场时自动回到“所有人”；chip 支持鼠标与 Enter/Space。
+- 状态行右侧是目标 chips：`自动`（默认，正文里唯一人名才聚焦）+ `所有人`（显式广播，不推断）+ 在场者显示名；目标不在场时回到“自动”；chip 支持鼠标与 Enter/Space。
 - 状态行上方最多 3 条选项（x 的 `Prompts`；`Suggestion` 2.x 是下拉，不是固定列表）；点选只填入 `draft`，不直接发送。
 - “等一会儿”始终对所有人，不继承已选中的单人目标。
 - `Enter` 发送，`Shift+Enter` 换行；placeholder 是“说点什么，或做什么…”。

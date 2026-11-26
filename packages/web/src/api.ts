@@ -160,10 +160,10 @@ export async function saveContent(text: string): Promise<{ saved: true; activeHa
 export interface PostBeatOptions {
   signal?: AbortSignal
   onFrame: (frame: BeatFrame) => void
-  /** “对谁说”的在场者显示名；缺省 = 所有人（docs/api/20-api-beat.md §1） */
-  to?: string
-  /** 显式「所有人」（C11）：与 `to` 互斥，二选一由调用方保证，这里不抛也不纠正 */
+  /** 显式广播“所有人”；与 to 互斥；缺省时服务端按正文唯一人名推断（C10/C11） */
   all?: boolean
+  /** “对谁说”的在场者显示名；缺省 = 自动推断 */
+  to?: string
 }
 
 /**

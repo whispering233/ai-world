@@ -249,7 +249,8 @@ export function App() {
   /** `keepDraft` 只给「等一会儿」用：等待不该吃掉玩家已经打好的半句话 */
   async function send(text = state.draft.trim(), keepDraft = false, to: string | null = target, all = state.explicitAll) {
     if (text === '' || state.inFlight) return
-    dispatch({ type: 'send', text, keepDraft, to, all })
+    const broadcast = all && to === null
+    dispatch({ type: 'send', text, keepDraft, to, all: broadcast })
     const controller = new AbortController()
     inFlightRequest.current = controller
     try {
@@ -257,7 +258,7 @@ export function App() {
         signal: controller.signal,
         onFrame: (frame) => dispatch({ type: 'frame', frame }),
         ...(to === null ? {} : { to }),
-        ...(all ? { all: true } : {}),
+        ...(broadcast ? { all: true } : {}),
       })
       dispatch({ type: 'end' })
     } catch {

@@ -86,7 +86,7 @@ export interface Session {
     text: string,
     signal: AbortSignal,
     onProgress: (elapsedMs: number, phase?: 'settled') => void,
-    /** 对谁说：在场者的显示名；空串/缺省 = 所有人（docs/api/20-api-beat.md §1） */
+    /** 对谁说：在场者的显示名；空串/缺省 = 自动推断（C10）；all=true = 显式所有人（C11） */
     to?: string,
     /** 显式「所有人」：跳过 `to` 解析与正文推断（C11）；与 `to` 互斥，路由层已拦 */
     all?: boolean,
