@@ -549,7 +549,7 @@ describe('聚焦（对谁说）', () => {
     expect(session.authorBeat(res.seq)?.notes).toEqual([])
   })
 
-  it('不传 to：默认全员调度，玩家 claim 没有 to', async () => {
+  it('不传 to 且正文没提人：默认全员调度，玩家 claim 没有 to', async () => {
     const dir = tmpDir()
     const session = makeFocusSession(dir)
     const res = await session.beat('我推门进去。', signal(), noProgress)
@@ -559,7 +559,18 @@ describe('聚焦（对谁说）', () => {
     expect(res.beat).not.toHaveProperty('playerTo')
   })
 
-  it('空串 to 与缺省同义：所有人', async () => {
+  it('没发 to 时按正文补聚焦：只叫玩家与那个人，且不留注记', async () => {
+    const dir = tmpDir()
+    const session = makeFocusSession(dir)
+    const res = await session.beat('我走到安面前，把银元放下。', signal(), noProgress)
+
+    expect(openStore(dir).readJournal()[0]?.claims.map((claim) => claim.actor)).toEqual(['player', 'ann'])
+    expect(res.beat.playerTo).toBe('安')
+    // 自动推断不写 note：没点目标和没提到人看起来要一样
+    expect(session.authorBeat(res.seq)?.notes).toEqual([])
+  })
+
+  it('空串 to 且正文没提人：与缺省同义，所有人', async () => {
     const dir = tmpDir()
     const session = makeFocusSession(dir)
     const res = await session.beat('我推门进去。', signal(), noProgress, '')
