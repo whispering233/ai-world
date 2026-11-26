@@ -14,6 +14,7 @@
         "counter": "saloon",
         "strongbox": "saloon",
         "table": "saloon",
+        "hook": "saloon",
         "lamp": "saloon",
         "door": "saloon",
         "cellar": "saloon",
@@ -40,15 +41,18 @@
           "private-bottle": 1
         },
         "granny": {
-          "keys": 1
+          "keys": 1,
+          "rag": 1
         },
         "player": {
-          "silver-dollar": 2
+          "silver-dollar": 2,
+          "coat": 1
         }
       },
       "phys": {
         "strongbox": {
-          "locked": true
+          "locked": true,
+          "open": false
         },
         "lamp": {
           "lit": true
@@ -175,6 +179,7 @@
     "counter": "柜台",
     "strongbox": "铁盒",
     "table": "桌子",
+    "hook": "门边钉子",
     "lamp": "灯",
     "door": "门",
     "cellar": "地窖门",
@@ -187,7 +192,9 @@
     "private-bottle": "私酒",
     "keys": "钥匙串",
     "silver-dollar": "银元",
-    "cup": "杯子"
+    "cup": "杯子",
+    "coat": "湿外套",
+    "rag": "抹布"
   },
   "aliases": {
     "player": [
