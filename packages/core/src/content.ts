@@ -110,7 +110,13 @@ export function validatePack(pack: ContentPack): string[] {
 
   // 账本子对象也是作者可编辑输入：坏的那一份要在保存时就拒，不能等到第一次 op 把整拍打死
   if (!Number.isFinite(ledger.clock) || ledger.clock < 0) errors.push(`ledger.clock 不合法：${String(ledger.clock)}`)
-  if (!isRecord(pack.world.places) || Object.keys(pack.world.places).length === 0) errors.push('places 为空')
+  if (!isRecord(pack.world.places) || Object.keys(pack.world.places).length === 0) {
+    errors.push('places 为空')
+  } else {
+    for (const [place, name] of Object.entries(pack.world.places)) {
+      if (typeof name !== 'string' || name.trim() === '') errors.push(`地点 ${place} 缺少显示名`)
+    }
+  }
   for (const [ent, bag] of Object.entries(ledger.holds)) {
     if (!(ent in at)) errors.push(`holds 里的实体 ${ent} 不在 ledger.at 里`)
     for (const [item, n] of Object.entries(bag)) {

@@ -113,12 +113,12 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
 
   function updatePlace(id: string, name: string): void {
     if (pack === null) return
-    setPack({ ...pack, world: { ...pack.world, places: { ...pack.world.places, [id]: name } } })
+    setPack({ ...pack, world: { ...pack.world, places: { ...(pack.world.places ?? {}), [id]: name } } })
   }
 
   function updateName(id: string, name: string): void {
     if (pack === null) return
-    setPack({ ...pack, names: { ...pack.names, [id]: name } })
+    setPack({ ...pack, names: { ...(pack.names ?? {}), [id]: name } })
   }
 
   function updateCanon(index: number, line: string): void {
@@ -172,7 +172,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
           <h3 className="text-meta text-ink-soft">地点与显示名</h3>
           <div className="flex flex-col gap-2">
             <h4 className="text-meta text-ink-soft">places</h4>
-            {Object.entries(pack.world.places ?? {}).map(([id, name]) => (
+            {Object.entries(pack.world?.places ?? {}).map(([id, name]) => (
               <LabeledField key={id} label={id}>
                 <Input
                   value={name}
@@ -184,7 +184,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
           </div>
           <div className="flex flex-col gap-2">
             <h4 className="text-meta text-ink-soft">names</h4>
-            {Object.entries(pack.names).map(([id, name]) => (
+            {Object.entries(pack.names ?? {}).map(([id, name]) => (
               <LabeledField key={id} label={id}>
                 <Input
                   value={name}

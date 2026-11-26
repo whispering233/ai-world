@@ -10,6 +10,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createElement } from 'react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ApiError } from '../api.ts'
 import { ContentEditor } from './ContentEditor.tsx'
 
 const api = vi.hoisted(() => ({
@@ -123,13 +124,21 @@ describe('ContentEditor 的地点与显示名', () => {
     expect(submitted.characters).toEqual(pack.characters)
   }, 30_000)
 
+  it('保存失败时显示服务端校验错误', async () => {
+    api.saveContent.mockRejectedValueOnce(new ApiError('E_INVALID_CONTENT', '内容校验失败', ['地点 saloon 缺少显示名']))
+    const { unmount } = render(createElement(ContentEditor, { onSaved: () => {} }))
+    await screen.findByLabelText('地点 saloon 的显示名')
+    fireEvent.click(screen.getByRole('button', { name: /保\s*存/ }))
+    expect(await screen.findByText(/地点 saloon 缺少显示名/)).toBeDefined()
+    unmount()
+  }, 30_000)
+
   it('只读 JSON 预览仍在：places/names 不是唯一入口，但完整内容还看得见', async () => {
     const { unmount } = render(createElement(ContentEditor, { onSaved: () => {} }))
 
     await screen.findByLabelText('地点 street 的显示名')
-    expect(screen.getByText('世界结构（只读）')).toBeDefined()
-    expect(screen.getByText('places')).toBeDefined()
-    expect(screen.getByText('names')).toBeDefined()
+    fireEvent.click(screen.getByText('世界结构（只读）'))
+    expect(await screen.findByText(/ambient/)).toBeDefined()
     unmount()
   }, 30_000)
 })
