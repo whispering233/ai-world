@@ -42,6 +42,7 @@ import { describeFacts, type LedgerView } from '@ai-world/core'
 import { seedCharacters } from '@ai-world/core'
 import { loadContentPack, STARTER_TOWN_PATH } from '@ai-world/content'
 import type { EntId, World } from '@ai-world/core'
+import { detectConflicts } from './conflicts.ts'
 
 const { pack } = loadContentPack(STARTER_TOWN_PATH)
 
@@ -73,6 +74,7 @@ interface BeatMetrics {
   failedOps: number
   hardConflicts: number
   doubleSpend: number
+  conflictDetails: string[]
   moveConflicts: number
   physConflicts: number
   crossTalkCalls: number
@@ -93,6 +95,8 @@ interface ArmResult {
   folded?: FoldMaterial
   notes: string[]
   claims: Claim[]
+  /** 本拍裁判给的结算顺序；无 claim / 裁判失败的拍为空数组 */
+  order: EntId[]
   verdicts: Verdict[]
   crossTalkCalls: number
   crossTalkChanged: number
@@ -299,66 +303,9 @@ function opCounts(verdicts: readonly Verdict[]): Record<string, number> {
   return out
 }
 
-function detectConflicts(world: World, verdicts: readonly Verdict[]): {
-  hard: number
-  doubleSpend: number
-  move: number
-  phys: number
-  details: string[]
-} {
-  const ops = verdicts.filter((v) => v.ok).flatMap((v) => v.deltas)
-  const spent = new Map<string, number>()
-  const moves = new Map<string, Set<string>>()
-  const phys = new Map<string, Set<string>>()
-  const details: string[] = []
-
-  for (const op of ops) {
-    if (op.op === 'transfer' || op.op === 'consume') {
-      const key = `${op.from}|${op.item}`
-      spent.set(key, (spent.get(key) ?? 0) + op.n)
-    } else if (op.op === 'move') {
-      const set = moves.get(op.who) ?? new Set<string>()
-      set.add(op.to)
-      moves.set(op.who, set)
-    } else if (op.op === 'phys') {
-      const key = `${op.who}|${op.key}`
-      const set = phys.get(key) ?? new Set<string>()
-      set.add(String(op.value))
-      phys.set(key, set)
-    }
-  }
-
-  let doubleSpend = 0
-  for (const [key, total] of spent) {
-    const [holder = '', item = ''] = key.split('|')
-    const held = world.ledger.holds[holder]?.[item] ?? 0
-    if (total > held) {
-      doubleSpend += 1
-      details.push(`双花候选：${holder}.${item} 需要 ${total}，只有 ${held}`)
-    }
-  }
-
-  let move = 0
-  for (const [who, set] of moves) {
-    if (set.size > 1) {
-      move += 1
-      details.push(`移动冲突：${who} → ${[...set].join(' / ')}`)
-    }
-  }
-
-  let physConflicts = 0
-  for (const [key, set] of phys) {
-    if (set.size > 1) {
-      physConflicts += 1
-      details.push(`物质冲突：${key} = ${[...set].join(' / ')}`)
-    }
-  }
-
-  return { hard: doubleSpend + move + physConflicts, doubleSpend, move, phys: physConflicts, details }
-}
-
-function failedOpsOf(world: World, verdicts: readonly Verdict[]): number {
-  const probe = commit(world, { order: [], verdicts: [...verdicts], observations: {}, driveHits: [] })
+/** 按裁判的结算顺序看哪些 op 真的失败；order 与冲突检测必须同一个，否则是另一套账。 */
+function failedOpsOf(world: World, order: readonly EntId[], verdicts: readonly Verdict[]): number {
+  const probe = commit(world, { order: [...order], verdicts: [...verdicts], observations: {}, driveHits: [] })
   return probe.applied.flatMap((a) => a.results).filter((r) => !r.ok).length
 }
 
@@ -479,6 +426,7 @@ async function runCrossTalkBeat(input: {
       journalSeq: 0,
       notes: [...degraded, '没有主张，本拍未发生'],
       claims,
+      order: [],
       verdicts: [],
       crossTalkCalls,
       crossTalkChanged,
@@ -505,6 +453,7 @@ async function runCrossTalkBeat(input: {
       journalSeq: 0,
       notes: [...degraded, `裁决失败（本拍无进展）：${(error as Error).message}`],
       claims,
+      order: [],
       verdicts: [],
       crossTalkCalls,
       crossTalkChanged,
@@ -570,6 +519,7 @@ async function runCrossTalkBeat(input: {
     journalSeq: entry.seq,
     notes: [...degraded, ...notes],
     claims,
+    order: out.order,
     verdicts: out.verdicts,
     crossTalkCalls,
     crossTalkChanged,
@@ -836,6 +786,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         notes: r.notes,
         ...(r.hints === undefined ? {} : { hints: r.hints }),
         claims: entry?.claims ?? [],
+        order: entry?.order ?? [],
         verdicts: entry?.verdicts ?? [],
         crossTalkCalls: 0,
         crossTalkChanged: 0,
@@ -861,8 +812,8 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
 
     const wallMs = Math.round(performance.now() - t0)
     const beatUsage = usageOf(samples.slice(usageStart))
-    const conflicts = detectConflicts(world, res.verdicts)
-    const failedOps = failedOpsOf(world, res.verdicts)
+    const conflicts = detectConflicts(world, res.order, res.verdicts)
+    const failedOps = failedOpsOf(world, res.order, res.verdicts)
     const m: BeatMetrics = {
       arm,
       beat,
@@ -881,6 +832,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
       failedOps,
       hardConflicts: conflicts.hard,
       doubleSpend: conflicts.doubleSpend,
+      conflictDetails: conflicts.details,
       moveConflicts: conflicts.move,
       physConflicts: conflicts.phys,
       crossTalkCalls: res.crossTalkCalls,

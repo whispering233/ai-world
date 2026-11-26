@@ -25,6 +25,7 @@
 - `docs/design/backlog.md` §6：组件迁移之后的两条 UI 待办（对话与场景分层、等待反馈），各自卡在一条没定的语义契约上。
 
 ### Fixed
+- 实验脚本的冲突检测改为按 `commit` 的真实结算顺序核对：同一拍先收后付不再算双花，回滚 verdict 的 move/phys 不再计入；`metrics.jsonl` 增 `conflictDetails` 便于复核。
 - journal 的 `seq` 改由**已有最大 seq + 1** 推出：中间行坏掉不再回退序号（旧口径会用“可解析行数”重发已存在的 `seq`，让 `/author/beat/:seq` 串拍）。
 - 内容包校验覆盖账本子对象（`clock` / `holds` 数量 / `phys` 值类型 / `rel` 指向与值 / `knows` 形态），且在最外层形状不对时**返回错误而不是 500**；`apply` 对缺失的 `ledger` 子对象就地补空，不再抛 TypeError。
 - CI 改为 `ubuntu-latest` + `windows-latest` 双平台（`fail-fast: false`）：路径分隔符、CRLF 这类差异本来就只在 Windows 上暴露。
