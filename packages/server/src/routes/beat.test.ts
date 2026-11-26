@@ -177,3 +177,43 @@ describe('POST /beat：对谁说（to）', () => {
     }
   })
 })
+
+/** 「自动」与「所有人」是两个意图：前者允许服务端按正文推断，后者不允许（C11） */
+describe('POST /beat：显式所有人（all）', () => {
+  it('all:true 时不按正文推断：正文只提到安也没有 playerTo', async () => {
+    const res = await post(session(stubLlm()), '{"text":"我走到安面前。","all":true}')
+    const passage = JSON.parse(dataOf(await res.text(), 'passage')[0] ?? '{}') as { playerTo?: string }
+    expect(passage).not.toHaveProperty('playerTo')
+  })
+
+  it('all:false 与缺省同义：正文只提到安就聚焦到他', async () => {
+    const res = await post(session(stubLlm()), '{"text":"我走到安面前。","all":false}')
+    const passage = JSON.parse(dataOf(await res.text(), 'passage')[0] ?? '{}') as { playerTo?: string }
+    expect(passage.playerTo).toBe('安')
+  })
+
+  it('all:true 与空白 to 不冲突：空白 to 本来就等于没给', async () => {
+    const res = await post(session(stubLlm()), '{"text":"我走到安面前。","all":true,"to":"   "}')
+    expect(res.status).toBe(200)
+    const passage = JSON.parse(dataOf(await res.text(), 'passage')[0] ?? '{}') as { playerTo?: string }
+    expect(passage).not.toHaveProperty('playerTo')
+  })
+
+  it('all:true 与 to 互斥：同时给当事人就是 400 E_INVALID_BODY', async () => {
+    const res = await post(session(stubLlm()), '{"text":"我走到安面前。","all":true,"to":"安"}')
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({ code: 'E_INVALID_BODY' })
+  })
+
+  it('all 不是布尔：400 E_INVALID_BODY', async () => {
+    for (const body of [
+      '{"text":"我推门进去。","all":"yes"}',
+      '{"text":"我推门进去。","all":1}',
+      '{"text":"我推门进去。","all":null}',
+    ]) {
+      const res = await post(session(stubLlm()), body)
+      expect(res.status).toBe(400)
+      expect(await res.json()).toMatchObject({ code: 'E_INVALID_BODY' })
+    }
+  })
+})

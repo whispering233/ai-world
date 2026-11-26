@@ -33,8 +33,10 @@ interface AppState {
   dialog: 'none' | 'new-game' | 'about'
   draft: string
   pendingText: string | null
-  /** “对谁说”的目标（在场者显示名）；null = 所有人 */
+  /** “对谁说”的目标（在场者显示名）；null = 没有点名的人 */
   target: string | null
+  /** 显式点了「所有人」：发送时带 `all:true`，服务端不推断（C11） */
+  explicitAll: boolean
   /** 在途那一拍实际带上的目标：等待中也要能看出“对安说的” */
   pendingTo: string | null
   loadFailed: boolean
@@ -44,8 +46,8 @@ type Action =
   | { type: 'loaded'; session: SessionView }
   | { type: 'load-failed' }
   | { type: 'draft'; draft: string }
-  | { type: 'target'; target: string | null }
-  | { type: 'send'; text: string; keepDraft: boolean; to: string | null }
+  | { type: 'target'; target: string | null; all?: boolean }
+  | { type: 'send'; text: string; keepDraft: boolean; to: string | null; all: boolean }
   | { type: 'frame'; frame: BeatFrame }
   | { type: 'end' }
   | { type: 'stop' }
@@ -68,6 +70,7 @@ function initialState(): AppState {
     draft: '',
     pendingText: null,
     target: null,
+    explicitAll: false,
     pendingTo: null,
     loadFailed: false,
   }
@@ -126,7 +129,8 @@ function reducer(state: AppState, action: Action): AppState {
     case 'draft':
       return { ...state, draft: action.draft }
     case 'target':
-      return { ...state, target: action.target }
+      // 点在场者 / 「自动」都落在「不广播」；只有「所有人」把 explicitAll 置真
+      return { ...state, target: action.target, explicitAll: action.all === true }
     case 'send': {
       const text = action.text.trim()
       if (text === '' || state.inFlight) return state
@@ -134,7 +138,8 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         draft: action.keepDraft ? state.draft : '',
         pendingText: text,
-        pendingTo: action.to,
+        // 显式「所有人」是广播：等待行不该再显示「对安说的」（to 与 all 由调用方二选一）
+        pendingTo: action.all ? null : action.to,
         inFlight: true,
         settled: false,
         elapsedMs: 0,
@@ -242,9 +247,10 @@ export function App() {
   }
 
   /** `keepDraft` 只给「等一会儿」用：等待不该吃掉玩家已经打好的半句话 */
-  async function send(text = state.draft.trim(), keepDraft = false, to: string | null = target) {
+  async function send(text = state.draft.trim(), keepDraft = false, to: string | null = target, all = state.explicitAll) {
     if (text === '' || state.inFlight) return
-    dispatch({ type: 'send', text, keepDraft, to })
+    const broadcast = all && to === null
+    dispatch({ type: 'send', text, keepDraft, to, all: broadcast })
     const controller = new AbortController()
     inFlightRequest.current = controller
     try {
@@ -252,6 +258,7 @@ export function App() {
         signal: controller.signal,
         onFrame: (frame) => dispatch({ type: 'frame', frame }),
         ...(to === null ? {} : { to }),
+        ...(broadcast ? { all: true } : {}),
       })
       dispatch({ type: 'end' })
     } catch {
@@ -284,13 +291,18 @@ export function App() {
       onSend={() => void send()}
       onStop={() => inFlightRequest.current?.abort()}
       // 等待文案是“看看他们怎么说”，始终对所有人，不继承已选中的单人目标
-      onWait={() => void send(WAIT_TEXT, true, null)}
+      // 显式 `all:true`：等待是广播，服务端不该再从正文里推断目标
+      onWait={() => void send(WAIT_TEXT, true, null, true)}
       inFlight={state.inFlight}
       settled={state.settled}
       elapsedMs={state.elapsedMs}
       state={state.session?.state}
       target={target}
+      auto={!state.explicitAll && target === null}
+      explicitAll={state.explicitAll}
       onTargetChange={(next) => dispatch({ type: 'target', target: next })}
+      onAuto={() => dispatch({ type: 'target', target: null })}
+      onAll={() => dispatch({ type: 'target', target: null, all: true })}
       {...(lastHints === undefined ? {} : { hints: lastHints })}
     />
   )

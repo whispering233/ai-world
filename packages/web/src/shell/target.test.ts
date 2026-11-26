@@ -10,7 +10,7 @@ describe('effectiveTarget', () => {
     expect(effectiveTarget('安', ['安', '科迪'])).toBe('安')
   })
 
-  it('目标离场时回到所有人', () => {
+  it('目标离场时回到自动', () => {
     expect(effectiveTarget('安', ['科迪'])).toBeNull()
   })
 })

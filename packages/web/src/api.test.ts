@@ -28,7 +28,7 @@ afterEach(() => {
 })
 
 describe('postBeat 请求体', () => {
-  async function bodyOf(to?: string): Promise<unknown> {
+  async function bodyOf(options: { to?: string; all?: boolean } = {}): Promise<unknown> {
     const bodies: unknown[] = []
     vi.stubGlobal(
       'fetch',
@@ -37,7 +37,7 @@ describe('postBeat 请求体', () => {
         return new Response(new ReadableStream({ start(controller) { controller.close() } }), { status: 200 })
       }) as unknown as typeof fetch,
     )
-    await postBeat('我推门进去。', { onFrame: () => {}, ...(to === undefined ? {} : { to }) })
+    await postBeat('我推门进去。', { onFrame: () => {}, ...options })
     return bodies[0]
   }
 
@@ -46,7 +46,16 @@ describe('postBeat 请求体', () => {
   })
 
   it('有目标时 body 带显示名', async () => {
-    expect(await bodyOf('安')).toEqual({ text: '我推门进去。', to: '安' })
+    expect(await bodyOf({ to: '安' })).toEqual({ text: '我推门进去。', to: '安' })
+  })
+
+  it('显式所有人时 body 带 all:true，不带 to 键', async () => {
+    expect(await bodyOf({ all: true })).toEqual({ text: '我推门进去。', all: true })
+  })
+
+  // `all:false` 就是「自动」，与不传完全一样：不在 body 里留一个无意义的键
+  it('all:false 与空 to 都不上车', async () => {
+    expect(await bodyOf({ all: false, to: '' })).toEqual({ text: '我推门进去。' })
   })
 })
 
