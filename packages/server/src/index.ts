@@ -8,15 +8,16 @@
  * 生产态只需要 `pnpm build` 一次，然后 `pnpm serve` 一个进程就够。
  */
 import { randomUUID } from 'node:crypto'
+import { readFileSync, readdirSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join, resolve, sep, extname } from 'node:path'
+import { basename, extname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { serve } from '@hono/node-server'
 import { Hono, type Context } from 'hono'
 import { FALLBACK_MODEL, createLlm, loadModelConfig, readPiDefaultModel, readonlyPiCredentials } from '@ai-world/core'
-import { STARTER_TOWN_PATH, loadContentPack } from '@ai-world/content'
-import { createSession } from './session.ts'
+import { CONTENT_DIR, contentPathFor, loadContentPack } from '@ai-world/content'
+import { createSession, type WorldOption } from './session.ts'
 import { authorRoutes } from './routes/author.ts'
 import { beatRoutes } from './routes/beat.ts'
 import { readRoutes } from './routes/session.ts'
@@ -24,7 +25,10 @@ import { resetRoutes } from './routes/reset.ts'
 
 const HOST = '127.0.0.1'
 const PORT = 8787
-const DATA_DIR = 'data/starter-town'
+/** 缺省世界：只在启动时读一次，进程不记玩家选过什么 */
+const DEFAULT_WORLD = 'starter-town'
+/** 世界 id 就是内容包文件名：与 `contentPathFor` 的校验同一口径 */
+const WORLD_ID = /^[a-z0-9-]+$/
 const DIST = resolve(fileURLToPath(new URL('../../web/dist/', import.meta.url)))
 
 const TYPES: Record<string, string> = {
@@ -48,8 +52,15 @@ const llm = createLlm({
   ...(cfg.retry ? { retry: cfg.retry } : {}),
 })
 
-const { pack } = loadContentPack(STARTER_TOWN_PATH)
-const session = createSession({ dir: DATA_DIR, contentPath: STARTER_TOWN_PATH, pack, llm })
+// 可开的世界 = `content/` 下的 *.json：标题读不到就退回 id，不让一个坏包拖垮启动
+const worlds = listWorlds()
+const world = process.env.AI_WORLD ?? DEFAULT_WORLD
+const active = worlds.find((w) => w.id === world)
+if (active === undefined) {
+  throw new Error(`AI_WORLD=${world} 不在内容包里；可用：${worlds.map((w) => w.id).join('、')}`)
+}
+const { pack } = loadContentPack(active.contentPath)
+const session = createSession({ worlds, world: active.id, pack, llm })
 
 const api = new Hono()
 api.route('/', readRoutes(session))
@@ -69,6 +80,32 @@ console.log(
     `cognition=${cfg.models.cognition} referee=${cfg.models.referee} narration=${cfg.models.narration} suggest=${cfg.models.suggest}`,
 )
 serve({ fetch: app.fetch, hostname: HOST, port: PORT })
+
+/**
+ * 扫 `content/*.json`：文件名即世界 id，标题从内容包里读。
+ * 读不到或不是合法 JSON 只让标题退回 id —— 选中它时 `reset` 才报 `E_INVALID_CONTENT`。
+ */
+function listWorlds(): WorldOption[] {
+  const names = readdirSync(CONTENT_DIR).filter((name) => name.endsWith('.json'))
+  const worlds: WorldOption[] = []
+  for (const name of names.sort()) {
+    const id = basename(name, '.json')
+    // 与 `contentPathFor` 同一口径：不合规的文件名不是世界，直接跳过
+    if (!WORLD_ID.test(id)) continue
+    const contentPath = contentPathFor(id)
+    worlds.push({ id, title: titleOf(contentPath) ?? id, dir: join('data', id), contentPath })
+  }
+  return worlds
+}
+
+function titleOf(path: string): string | undefined {
+  try {
+    const pack = JSON.parse(readFileSync(path, 'utf8')) as { title?: unknown }
+    return typeof pack.title === 'string' && pack.title.trim() !== '' ? pack.title : undefined
+  } catch {
+    return undefined
+  }
+}
 
 /** 托管 packages/web/dist：先给文件，再 SPA fallback；`resolve` 后必须仍在 dist 内（防目录穿越）。 */
 async function serveWeb(c: Context): Promise<Response> {

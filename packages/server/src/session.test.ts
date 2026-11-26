@@ -115,8 +115,22 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 })
 })
 
+/**
+ * 单世界的会话：`worlds` 只有 starter-town。
+ * 世界 id 与目录/内容包解耦，换包的用例才需要两个世界。
+ */
+function singleWorld(dir: string, contentPath: string, value: ContentPack, llm: Llm, timeoutMs?: number): Session {
+  return createSession({
+    worlds: [{ id: 'starter-town', title: value.title, dir, contentPath }],
+    world: 'starter-town',
+    pack: value,
+    llm,
+    ...(timeoutMs === undefined ? {} : { timeoutMs }),
+  })
+}
+
 function makeSession(dir: string, llm: Llm, contentPath = writePack(dir)): Session {
-  return createSession({ dir, contentPath, pack: pack(), llm })
+  return singleWorld(dir, contentPath, pack(), llm)
 }
 
 /** 每个用例一份临时内容包：保存用例绝不碰仓库里的 `content/`。 */
@@ -128,7 +142,7 @@ function writePack(dir: string, value: ContentPack = pack()): string {
 
 function makeFocusSession(dir: string, llm: Llm = stubLlm(), names?: Record<string, string>): Session {
   const value = twoPersonPack(names)
-  return createSession({ dir, contentPath: writePack(dir, value), pack: value, llm })
+  return singleWorld(dir, writePack(dir, value), value, llm)
 }
 
 const noProgress = (): void => {}
@@ -220,7 +234,7 @@ describe('createSession', () => {
         return { text: verdictFor('p0'), toolCalls: [], inputTokens: 0, outputTokens: 0, model: 'stub/referee' }
       },
     })
-    const session = createSession({ dir, contentPath: writePack(dir), pack: pack(), llm, timeoutMs: 20 })
+    const session = singleWorld(dir, writePack(dir), pack(), llm, 20)
 
     const failure = await session.beat('我推门进去。', new AbortController().signal, noProgress).catch((error: Error) => error)
     expect(failure).toMatchObject({ code: 'E_MODEL_CALL' })
@@ -380,17 +394,17 @@ describe('createSession', () => {
     const prompts: string[] = []
     const dir = tmpDir()
     const value = furnishedPack()
-    const session = createSession({
+    const session = singleWorld(
       dir,
-      contentPath: writePack(dir, value),
-      pack: value,
-      llm: stubLlm({
+      writePack(dir, value),
+      value,
+      stubLlm({
         referee: async (req) => {
           prompts.push(req.messages[0]?.content ?? '')
           return { text: verdictFor('p0'), toolCalls: [], inputTokens: 0, outputTokens: 0, model: 'stub/referee' }
         },
       }),
-    })
+    )
     await session.beat('我看了看柜台。', new AbortController().signal, noProgress)
 
     // scene 散文本身可以提柜台，所以只取“在场”那一行断言
@@ -465,11 +479,11 @@ describe('内容保存', () => {
     const systems: string[] = []
     const dir = tmpDir()
     const contentPath = writePack(dir)
-    const scoped = createSession({
+    const scoped = singleWorld(
       dir,
       contentPath,
-      pack: pack(),
-      llm: stubLlm({
+      pack(),
+      stubLlm({
         cognition: async (req) => {
           systems.push(req.system ?? '')
           return {
@@ -481,7 +495,7 @@ describe('内容保存', () => {
           }
         },
       }),
-    })
+    )
     const next = pack()
     const ann = next.characters[0]
     if (ann === undefined) throw new Error('fixture 里没有 ann')
@@ -504,17 +518,17 @@ describe('内容保存', () => {
     const held = gate()
     const dir = tmpDir()
     const contentPath = writePack(dir)
-    const session = createSession({
+    const session = singleWorld(
       dir,
       contentPath,
-      pack: pack(),
-      llm: stubLlm({
+      pack(),
+      stubLlm({
         referee: async () => {
           await held.wait
           return { text: verdictFor('p0'), toolCalls: [], inputTokens: 0, outputTokens: 0, model: 'stub/referee' }
         },
       }),
-    })
+    )
     const before = readFileSync(contentPath)
     const pending = session.beat('我推门进去。', new AbortController().signal, noProgress)
     let code = ''
@@ -610,5 +624,115 @@ describe('聚焦（对谁说）', () => {
     expect(res.beat).not.toHaveProperty('playerTo')
     const notes = session.authorBeat(res.seq)?.notes ?? []
     expect(notes.some((note) => note.includes('聚焦失败') && note.includes('玩家自己'))).toBe(true)
+  })
+})
+
+describe('换世界（开新局选包）', () => {
+  interface TwoWorlds {
+    session: Session
+    dirA: string
+    dirB: string
+    pathB: string
+    packA: ContentPack
+    packB: ContentPack
+  }
+
+  /** 两个世界各一份临时目录与内容包：starter-town 是当前，other 是可选。 */
+  function twoWorldSession(): TwoWorlds {
+    const root = tmpDir()
+    const dirA = join(root, 'starter-town')
+    const dirB = join(root, 'other')
+    const packA = pack()
+    const packB: ContentPack = { ...pack(), title: '另一间酒馆' }
+    const pathA = join(root, 'a.json')
+    const pathB = join(root, 'b.json')
+    writeFileSync(pathA, JSON.stringify(packA, null, 2))
+    writeFileSync(pathB, JSON.stringify(packB, null, 2))
+    const session = createSession({
+      worlds: [
+        { id: 'starter-town', title: packA.title, dir: dirA, contentPath: pathA },
+        { id: 'other', title: packB.title, dir: dirB, contentPath: pathB },
+      ],
+      world: 'starter-town',
+      pack: packA,
+      llm: stubLlm(),
+    })
+    return { session, dirA, dirB, pathB, packA, packB }
+  }
+
+  it("reset('other')：标题换成新包、新目录落日志、旧目录两份日志字节不变", async () => {
+    const { session, dirA, dirB, packB } = twoWorldSession()
+    await session.beat('我推门进去。', new AbortController().signal, noProgress)
+    const journalA = readFileSync(join(dirA, 'journal.jsonl'))
+    const passageA = readFileSync(join(dirA, 'passage.jsonl'))
+
+    session.reset('other')
+
+    expect(session.view().title).toBe(packB.title)
+    // 新世界从零开始：日志是新目录自己的，第一拍才落盘
+    expect(session.view().beats).toHaveLength(0)
+    expect(session.view().clock).toBe(0)
+
+    await session.beat('我推门进去。', new AbortController().signal, noProgress)
+
+    expect(openStore(dirB).readJournal()).toHaveLength(1)
+    expect(openStore(dirB).readPassage()).toHaveLength(1)
+    expect(readFileSync(join(dirA, 'journal.jsonl')).equals(journalA)).toBe(true)
+    expect(readFileSync(join(dirA, 'passage.jsonl')).equals(passageA)).toBe(true)
+  })
+
+  it("reset('nope') / reset('../x')：E_UNKNOWN_WORLD，当前世界与日志都不动", async () => {
+    for (const world of ['nope', '../x']) {
+      const { session, dirA, packA } = twoWorldSession()
+      await session.beat('我推门进去。', new AbortController().signal, noProgress)
+      const journalA = readFileSync(join(dirA, 'journal.jsonl'))
+      const passageA = readFileSync(join(dirA, 'passage.jsonl'))
+      let thrown: unknown
+      try {
+        session.reset(world)
+      } catch (error) {
+        thrown = error
+      }
+
+      expect(thrown).toMatchObject({ code: 'E_UNKNOWN_WORLD' })
+      expect(session.view().title).toBe(packA.title)
+      expect(session.view().beats).toHaveLength(1)
+      expect(readFileSync(join(dirA, 'journal.jsonl')).equals(journalA)).toBe(true)
+      expect(readFileSync(join(dirA, 'passage.jsonl')).equals(passageA)).toBe(true)
+    }
+  })
+
+  it('目标包内容非法：E_INVALID_CONTENT + errors，当前世界与日志都不动', async () => {
+    const { session, dirA, pathB, packA, packB } = twoWorldSession()
+    await session.beat('我推门进去。', new AbortController().signal, noProgress)
+    const journalA = readFileSync(join(dirA, 'journal.jsonl'))
+    // core 只有三个字：validatePack 必报
+    const ann = packB.characters[0]
+    if (ann === undefined) throw new Error('fixture 里没有 ann')
+    writeFileSync(pathB, JSON.stringify({ ...packB, characters: [{ ...ann, core: '老板娘' }] }))
+    let thrown: unknown
+    try {
+      session.reset('other')
+    } catch (error) {
+      thrown = error
+    }
+
+    expect(thrown).toMatchObject({ code: 'E_INVALID_CONTENT' })
+    const errors = (thrown as { errors?: string[] }).errors ?? []
+    expect(errors.join('')).toContain('core')
+    expect(session.view().title).toBe(packA.title)
+    expect(session.view().beats).toHaveLength(1)
+    expect(readFileSync(join(dirA, 'journal.jsonl')).equals(journalA)).toBe(true)
+  })
+
+  it('view().worlds：按 id 升序，active 恰好一条，切换后跟着挪', () => {
+    const { session } = twoWorldSession()
+    const worlds = session.view().worlds ?? []
+    expect(worlds.map((world) => world.id)).toEqual(['other', 'starter-town'])
+    expect(worlds.filter((world) => world.active).map((world) => world.id)).toEqual(['starter-town'])
+
+    session.reset('other')
+
+    expect((session.view().worlds ?? []).filter((world) => world.active).map((world) => world.id)).toEqual(['other'])
   })
 })

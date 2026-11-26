@@ -30,7 +30,12 @@ function tmpDir(): string {
 function session(llm: Llm): Session {
   const dir = tmpDir()
   const { pack } = loadContentPack(STARTER_TOWN_PATH)
-  return createSession({ dir, contentPath: STARTER_TOWN_PATH, pack, llm })
+  return createSession({
+    worlds: [{ id: 'starter-town', title: pack.title, dir, contentPath: STARTER_TOWN_PATH }],
+    world: 'starter-town',
+    pack,
+    llm,
+  })
 }
 
 const verdictFor = (claimId: string): string =>

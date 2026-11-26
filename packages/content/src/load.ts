@@ -8,8 +8,20 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { validatePack, type ContentPack } from '@ai-world/core'
 
+/** 世界 id 就是文件名：只允许小写字母、数字与连字符，防止拼进别的路径。 */
+const WORLD_ID = /^[a-z0-9-]+$/
+
+/** `content/` 目录的绝对路径：服务端启动时在这里扫出可开的世界。 */
+export const CONTENT_DIR = fileURLToPath(new URL('../../../content/', import.meta.url))
+
+/** `content/<world>.json` 的绝对路径；id 不合规直接抛，不做任何路径拼接。 */
+export function contentPathFor(world: string): string {
+  if (!WORLD_ID.test(world)) throw new Error(`世界 id 不合规：${world}`)
+  return fileURLToPath(new URL(`../../../content/${world}.json`, import.meta.url))
+}
+
 /** 仓库根的默认世界内容。 */
-export const STARTER_TOWN_PATH = fileURLToPath(new URL('../../../content/starter-town.json', import.meta.url))
+export const STARTER_TOWN_PATH = contentPathFor('starter-town')
 
 /** 键排序后的 JSON：同一份内容不论键序如何，哈希都相同。 */
 function canonical(value: unknown): string {

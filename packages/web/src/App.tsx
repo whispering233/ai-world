@@ -1,5 +1,5 @@
-import { Alert, Modal } from 'antd'
-import { lazy, Suspense, useEffect, useReducer, useRef } from 'react'
+import { Alert, Modal, Select } from 'antd'
+import { lazy, Suspense, useEffect, useReducer, useRef, useState } from 'react'
 import type { BeatView, SessionView } from '@ai-world/shared'
 import { fetchSession, postBeat, resetSession } from './api.ts'
 import type { BeatFrame } from './api.ts'
@@ -43,7 +43,8 @@ interface AppState {
 }
 
 type Action =
-  | { type: 'loaded'; session: SessionView }
+  /** `newGame`：开新局换了世界，旧世界的草稿与在途文本不能带过去（`reload()` 不吃这一支） */
+  | { type: 'loaded'; session: SessionView; newGame?: boolean }
   | { type: 'load-failed' }
   | { type: 'draft'; draft: string }
   | { type: 'target'; target: string | null; all?: boolean }
@@ -122,7 +123,15 @@ function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'loaded': {
       const { session } = action
-      return { ...state, session, beats: session.beats, inFlight: session.inFlight, loadFailed: false, pendingTo: null }
+      return {
+        ...state,
+        session,
+        beats: session.beats,
+        inFlight: session.inFlight,
+        loadFailed: false,
+        pendingTo: null,
+        ...(action.newGame === true ? { draft: '', pendingText: null } : {}),
+      }
     }
     case 'load-failed':
       return { ...state, loadFailed: true }
@@ -196,6 +205,8 @@ async function settle(): Promise<SessionView | null> {
 
 export function App() {
   const [state, dispatch] = useReducer(reducer, undefined, initialState)
+  /** 新局弹窗里选中的包；null = 当前世界（服务端有 `worlds` 时才可能换成别的） */
+  const [newWorld, setNewWorld] = useState<string | null>(null)
   const inFlightRequest = useRef<AbortController | null>(null)
 
   useEffect(() => {
@@ -271,15 +282,21 @@ export function App() {
     }
   }
 
-  async function startNewGame() {
+  async function startNewGame(world?: string) {
     dispatch({ type: 'dialog', dialog: 'none' })
     try {
-      await resetSession()
-      dispatch({ type: 'loaded', session: await fetchSession() })
+      await resetSession(world)
+      // 换了世界就是换了世界：草稿与在途文本都属于旧世界，随新局一起作废
+      dispatch({ type: 'loaded', session: await fetchSession(), newGame: true })
+      setNewWorld(null)
     } catch {
       dispatch({ type: 'load-failed' })
     }
   }
+
+  // 旧服务端没有 `worlds`：不渲染选包，退化成「重开当前世界」
+  const worlds = state.session?.worlds ?? []
+  const activeWorld = worlds.find((world) => world.active)?.id ?? null
 
   // 两个壳共用同一个输入节点：发送逻辑只有下面这一个 `send`
   // 选项只取最近一拍：更早的提示已经跟当前现场无关
@@ -369,14 +386,29 @@ export function App() {
       {/* 开新局不可撤销：取消在左、红色「开新局」在右，没有第三种出路 */}
       <Modal
         open={state.dialog === 'new-game'}
-        onCancel={() => dispatch({ type: 'dialog', dialog: 'none' })}
+        onCancel={() => {
+          setNewWorld(null)
+          dispatch({ type: 'dialog', dialog: 'none' })
+        }}
         title="新的一局"
         cancelText="取消"
         okText="开新局"
         okButtonProps={{ danger: true }}
-        onOk={() => void startNewGame()}
+        onOk={() => void startNewGame(newWorld ?? undefined)}
       >
         <p className="text-body">开新局会清空这一局的全部记录，不可撤销。</p>
+        {/* 旧服务端没有 `worlds`：不渲染选包，行为与以前一样（重开当前世界） */}
+        {worlds.length > 0 && (
+          <div className="mt-4">
+            <p className="text-meta text-ink-soft">内容包</p>
+            <Select
+              className="mt-1 w-full"
+              options={worlds.map((world) => ({ value: world.id, label: world.title }))}
+              value={newWorld ?? activeWorld}
+              onChange={(value) => setNewWorld(value)}
+            />
+          </div>
+        )}
       </Modal>
 
       <Modal

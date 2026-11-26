@@ -47,6 +47,16 @@ export interface BeatView {
   hints?: string[]
 }
 
+/**
+ * 可开的一个世界（内容包）。名字避开作者投影的 `WorldView`（那是账本快照）。
+ */
+export interface WorldOptionView {
+  id: string
+  title: string
+  /** 本局正在用的那一份；`worlds` 里恰好一条为真 */
+  active: boolean
+}
+
 export interface SessionView {
   title: string
   /** 首屏散文：来自 `ContentPack.opening`；缺失时前端回退场景卡 */
@@ -56,6 +66,11 @@ export interface SessionView {
   state: PlayerStateView
   beats: BeatView[]
   inFlight: boolean
+  /**
+   * 可开的世界（按 id 升序）。
+   * 可选是硬约束：`core/view.ts` 的 `playerView()` 是纯函数投影，必选会迫使它去读 `content/`。
+   */
+  worlds?: WorldOptionView[]
 }
 
 /* ── SSE 帧 ───────────────────────────────────────────── */
