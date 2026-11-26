@@ -41,10 +41,12 @@ progress*  →  (passage → state → done)  |  error
 
 | 项 | 约定 |
 | :--- | :--- |
-| 请求体 | 无 |
-| 行为 | 与 `/api/beat` 互斥；清空 `data/<world>/journal.jsonl` 与 `passage.jsonl`，按**磁盘上当前内容包**重建世界与人物 |
-| 响应 | `{code:"0", data:{title, clock, clockText}}` |
-| 语义 | 内容编辑的**唯一生效路径**：保存内容后必须开新局，新内容才进入运行时 |
+| 请求体 | `{ world?: string }`；缺省 = 当前世界 |
+| world 校验 | 必须在启动扫描到的世界列表里（`content/<world>.json` 存在且文件名匹配 `^[a-z0-9-]+$`）；`world` 不是字符串 → `E_INVALID_BODY`，是字符串但不在列表里 → `E_UNKNOWN_WORLD`（均 400） |
+| 行为 | 与 `/api/beat` 互斥；切到 `data/<world>/`，清空该目录下 `journal.jsonl` 与 `passage.jsonl`，按 `content/<world>.json` 重建世界与人物 |
+| 失败 | 内容校验失败返回 `E_INVALID_CONTENT` + `data.errors`；当前世界与两份日志均未改变 |
+| 响应 | `{code:"0", data:{title, clock, clockText}}`（切包后 title 是新包的） |
+| 语义 | 内容编辑与**换世界**的唯一生效路径：保存内容 / 选另一个包后必须开新局 |
 | 不可撤销 | 是。前端必须二次确认 |
 
 ## 5. 示例帧

@@ -27,7 +27,8 @@ pnpm serve        # 单进程：API + 静态资源
 
 - 开发态两个终端：服务端常驻持有世界，前端改代码热更新，互不重启。
 - 世界数据在 `data/<world>/`（`journal.jsonl` + `passage.jsonl`）；内容在 `content/<world>.json`（git 跟踪）。
-- `POST /api/reset` = 开新局：清两条日志、按磁盘上的内容包重建。前端必须二次确认。
+- `POST /api/reset {world?}` = 开新局：切到该世界的存档目录、清两条日志、按磁盘上的内容包重建；不带 `world` 就是重开当前世界。前端必须二次确认。
+- 换世界：进程启动读 `AI_WORLD`（缺省 `starter-town`），之后玩家在「新的一局」里选包（列表来自 `GET /api/session`）。
 - 作者壳：顶栏 `⋯` 菜单「作者视图」或 `Ctrl/Cmd+Shift+D`；切换不重置任何状态。
 - 内容编辑只在新局生效；保存后顶栏常驻“内容已变更，未生效”。
 - `--network-family-autoselection-attempt-timeout=2000` 对服务端**同样不是可选项**（Node 默认 250ms 选路上限会提前掉断握手，报 `ETIMEDOUT`）；`dev:server` / `serve` / `play` 已带好，手敲命令容易漏。
@@ -38,6 +39,7 @@ pnpm serve        # 单进程：API + 静态资源
 ```sh
 rm -rf data                              # 从干净世界开始；不复用上一轮账本
 node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types scripts/play.ts --beats 30
+AI_WORLD=westworld pnpm play --beats 20  # 换世界：读 content/westworld.json，写 data/westworld/
 ```
 
 - 出现 `你> ` 后，**一行输入 = 一拍**：写你说的或做的事都算

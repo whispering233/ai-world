@@ -17,6 +17,7 @@
 | state | 是 | PlayerState | | 见 §2.1 |
 | beats | 是 | BeatView[] | | 按 `seq` 升序，含全部已发生的拍 |
 | inFlight | 是 | boolean | | 是否有拍正在结算（重连后用来恢复等待态） |
+| worlds | 否 | `{id,title,active}[]` | 按 `id` 升序 | 可选世界列表；由服务端在 `session.view()` 里补上，`playerView()` 纯函数投影不产生它，缺省表示“只有当前世界可选” |
 
 ### 2.1 PlayerState
 
@@ -44,6 +45,16 @@
 | hints | 否 | string[] | | 本拍生成的动作提示（≤3 条）；失败时缺省，不影响正文 |
 
 **数据来源**：`journal.jsonl`（取 `claims` 里 `actor === player` 的文本、`clock`）与 `passage.jsonl`（取 `text`、`source`）按 `PassageEntry.beatSeq` 连接；旧日志无 `beatSeq` 时按 `clock` 顺序回退匹配。
+
+### 2.3 WorldView
+
+| 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
+| :--- | :--- | :--- | :--- | :--- |
+| id | 是 | string | `^[a-z0-9-]+$` | 包文件名（不含 `.json`），用作选择参数 |
+| title | 是 | string | | 该包 `ContentPack.title`；读不到时退回 id |
+| active | 是 | boolean | | 当前世界；恰好一条为 true |
+
+`worlds[].id` 是**包名**，不是实体 / 物品 / 地点 id，不受上面的禁止清单约束；界面只展示 `title`。
 
 ## 3. 静态资源
 

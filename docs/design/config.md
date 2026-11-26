@@ -75,4 +75,5 @@ provider 一律取 settings.json 的 defaultProvider
 | 单拍上下文上限 | 16k tokens | `docs/design/30-cognition.md` |
 | 折场阈值 | 12 拍 / 16k / 地点变化 / 时间跳跃 240 分钟 | `packages/core/src/scene.ts` |
 | 检索半衰期 | 48 分钟 | `packages/core/src/character.ts` |
-| 试玩存档目录 | `data/starter-town/` | `scripts/play.ts` |
+| 世界选择 | `AI_WORLD` 环境变量，缺省 `starter-town` | `packages/server/src/index.ts`、`scripts/play.ts` |
+| 试玩存档目录 | `data/<world>/` | `scripts/play.ts` |

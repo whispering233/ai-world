@@ -52,11 +52,18 @@
 | [baseline-23.md](research/baseline-23.md) | C7 后带道具的 20 拍基线：空结果 69%、transfer 13、hard/double 0；coat/rag 已入账 |
 | [focus-20.md](research/focus-20.md) | 20 拍定向 focus：claims=2、认知调用 20、空结果 47.5%、段落 20/20 ≤3 |
 | [auto-focus.md](research/auto-focus.md) | 没选目标时按正文唯一显示名/别名自动聚焦；单字名误命中 |
+| [westworld-refs.md](research/westworld-refs.md) | 《西部世界》内容包选型：Generative Agents / AI Town / Concordia / gen0cide-westworld 九项目对照，可抄的是信任账本与记忆过期口径 |
 | [explicit-all-browser.md](research/explicit-all-browser.md) | “自动 / 所有人”两态浏览器验证；显式所有人发 `all:true` |
 | [stale-names-browser.md](research/stale-names-browser.md) | 作者改名后的旧称呼 warning；非阻断、单字名误报 |
 | [material-flow-audit.md](research/material-flow-audit.md) | C7 前的物质流审计：只有银元/威士忌换手；缺“物品在某表面上”的状态。后续见 props-12 / baseline-23 |
 | [fact-structure.md](research/fact-structure.md) | fact 的 actor/kind 6 拍 smoke：10/10 覆盖、kind 分布与样本，不是密度回归 |
 | [storylet-probe.md](research/storylet-probe.md) | 裁判对非人 actor 世界事件的 6 次裁决；填肉 3 条；10 拍 A/B v1/v2/v3（v1 净收益为负，v2 落账 2/2 但空转拍未降，v3 顶掉玩家动作）；3 次重复与 R1 后重测（§16–§19）的结论：抽卡无收益，瓶颈在骨架与账本状态不相容 |
+
+## reference/
+
+| 文件 | 内容 |
+| :--- | :--- |
+| [westworld-canon.md](reference/westworld-canon.md) | 《西部世界》设定底本：12 人物 / 8 地点 / 7 概念 / 可复用台词 / 文字模拟的可行性边界 |
 
 ## 其他
 
