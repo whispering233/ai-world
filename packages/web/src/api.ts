@@ -120,9 +120,17 @@ export async function fetchSession(): Promise<SessionView> {
   return readEnvelope<SessionView>(await fetch('/api/session'))
 }
 
-/** 开新局。不可撤销，二次确认在调用方。 */
-export async function resetSession(): Promise<void> {
-  await readEnvelope<unknown>(await fetch('/api/reset', { method: 'POST' }))
+/** 开新局。不可撤销，二次确认在调用方。`world` 缺省 = 重开当前世界。 */
+export async function resetSession(world?: string): Promise<void> {
+  await readEnvelope<unknown>(
+    await fetch('/api/reset', {
+      method: 'POST',
+      // 没选包就不发 body，也不带 content-type：服务端把空 body 当成“重开当前世界”
+      ...(world === undefined
+        ? {}
+        : { headers: { 'content-type': 'application/json' }, body: JSON.stringify({ world }) }),
+    }),
+  )
 }
 
 /* ── 作者壳：只在切到作者视图时才请求（docs/design/60-server.md §6） ── */

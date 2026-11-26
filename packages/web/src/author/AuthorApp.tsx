@@ -162,6 +162,8 @@ export function AuthorApp({ beats, pendingText, pendingTo, opening, scene, onMod
       >
         {contentOpen && (
           <ContentEditor
+            // 换世界后强制重挂载：编辑器里缓的是**旧包**的 JSON，存下去会写进新世界
+            key={session?.content.path ?? 'pending'}
             onSaved={() => {
               setContentOpen(false)
               setSaved(true)

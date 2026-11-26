@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { parseSseFrames, postBeat, readSseFrames, toBeatFrame } from './api.ts'
+import { parseSseFrames, postBeat, readSseFrames, resetSession, toBeatFrame } from './api.ts'
 import type { SseFrame } from './api.ts'
 
 const PROGRESS = 'event: progress\ndata: {"elapsedMs":1000,"clockText":"第 2 天 · 夜"}'
@@ -56,6 +56,34 @@ describe('postBeat 请求体', () => {
   // `all:false` 就是「自动」，与不传完全一样：不在 body 里留一个无意义的键
   it('all:false 与空 to 都不上车', async () => {
     expect(await bodyOf({ all: false, to: '' })).toEqual({ text: '我推门进去。' })
+  })
+})
+
+describe('resetSession 请求体', () => {
+  async function initOf(world?: string): Promise<RequestInit> {
+    const calls: { url: string; init: RequestInit }[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init: RequestInit) => {
+        calls.push({ url, init })
+        return Response.json({ code: '0', msg: 'success', data: { title: '测试酒馆' } })
+      }) as unknown as typeof fetch,
+    )
+    await resetSession(world)
+    return calls[0]?.init ?? {}
+  }
+
+  it('带 world 时发 JSON body 并带 content-type', async () => {
+    const init = await initOf('westworld')
+    expect(init.headers).toEqual({ 'content-type': 'application/json' })
+    expect(JSON.parse(String(init.body))).toEqual({ world: 'westworld' })
+  })
+
+  // 没选包就是“重开当前世界”：不带 body，也不带 content-type
+  it('缺省时不发 body、不带 content-type', async () => {
+    const init = await initOf()
+    expect(init.body).toBeUndefined()
+    expect(init.headers).toBeUndefined()
   })
 })
 

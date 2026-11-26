@@ -15,6 +15,7 @@ import type {
   PromptCallView,
   SessionView,
   UsageView,
+  WorldOptionView,
 } from '@ai-world/shared'
 import {
   authorView,
@@ -41,15 +42,24 @@ import {
   type Scene,
   type World,
 } from '@ai-world/core'
-import { contentHash, loadContentPack } from '@ai-world/content'
+import { contentHash } from '@ai-world/content'
 import { inferFocus } from './focus.ts'
 import { emptyUsage, withBeatScope, type BeatSink } from './llm.ts'
 
-export interface SessionOptions {
+export interface WorldOption {
+  id: string
+  title: string
   /** data/<world>/：journal 与 passage 落在这里 */
   dir: string
   /** content/<world>.json：本项目唯一可写的文件，保存与开新局都读它 */
   contentPath: string
+}
+
+export interface SessionOptions {
+  /** 可开的世界：开新局只能在这些里面选 */
+  worlds: readonly WorldOption[]
+  /** 本局启动用的世界 id，必须在 `worlds` 里 */
+  world: string
   pack: ContentPack
   llm: Llm
   /** 一拍从拿锁到出结果的总时限，缺省 180s（见 60-server.md §4）；测试与慢机器的旋钮 */
@@ -91,7 +101,12 @@ export interface Session {
     /** 显式「所有人」：跳过 `to` 解析与正文推断（C11）；与 `to` 互斥，路由层已拦 */
     all?: boolean,
   ): Promise<BeatOutcome>
-  reset(): void
+  /**
+   * 开新局：缺省重开当前世界。
+   * `world` 不在 `worlds` 里抛 `E_UNKNOWN_WORLD`；目标内容包校验失败抛 `E_INVALID_CONTENT` + `errors`。
+   * 两种失败都不动当前世界，也不碰任何一份日志。
+   */
+  reset(world?: string): void
   inFlight(): boolean
 }
 
@@ -114,6 +129,10 @@ interface State {
 }
 
 export function createSession(opts: SessionOptions): Session {
+  // 当前世界是 dir / contentPath 的唯一来源：切世界只改这一个变量，不留影子副本
+  const initial = opts.worlds.find((w) => w.id === opts.world)
+  if (initial === undefined) throw new Error(`worlds 里没有「${opts.world}」`)
+  let active: WorldOption = initial
   let { pack } = opts
   let activeHash = contentHash(pack)
   let participants = roster(pack)
@@ -129,7 +148,7 @@ export function createSession(opts: SessionOptions): Session {
   const notes = new Map<number, string[]>()
   const prompts: { seq: number; calls: PromptCallView[] }[] = []
 
-  let store = openStore(opts.dir)
+  let store = openStore(active.dir)
   let state = boot()
   let busy = false
 
@@ -154,7 +173,7 @@ export function createSession(opts: SessionOptions): Session {
   }
 
   function view(): SessionView {
-    return playerView({
+    const view = playerView({
       title: pack.title,
       opening: pack.opening,
       player: pack.player,
@@ -167,6 +186,15 @@ export function createSession(opts: SessionOptions): Session {
       passages: state.passages,
       inFlight: busy,
     })
+    // `playerView` 是纯函数投影，不碰 `content/`：世界列表只能在这里补
+    return { ...view, worlds: worldViews() }
+  }
+
+  /** 可开的世界：按 id 升序，`active` 恰好一条。 */
+  function worldViews(): WorldOptionView[] {
+    return [...opts.worlds]
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      .map((w) => ({ id: w.id, title: w.title, active: w.id === active.id }))
   }
 
   /**
@@ -213,12 +241,12 @@ export function createSession(opts: SessionOptions): Session {
 
   function content(): ContentStatusView {
     const disk = diskHash()
-    return { path: opts.contentPath, activeHash, diskHash: disk, changed: activeHash !== disk }
+    return { path: active.contentPath, activeHash, diskHash: disk, changed: activeHash !== disk }
   }
 
   function diskHash(): string {
     try {
-      return contentHash(JSON.parse(readFileSync(opts.contentPath, 'utf8')) as ContentPack)
+      return contentHash(JSON.parse(readFileSync(active.contentPath, 'utf8')) as ContentPack)
     } catch {
       // 读不到或不是 JSON：与生效版本必然不同，作者壳显示“未生效”，不会静默说“没变”
       return ''
@@ -226,7 +254,7 @@ export function createSession(opts: SessionOptions): Session {
   }
 
   function contentText(): string {
-    return readFileSync(opts.contentPath, 'utf8')
+    return readFileSync(active.contentPath, 'utf8')
   }
 
   function saveContent(text: string): SavedContent {
@@ -248,10 +276,10 @@ export function createSession(opts: SessionOptions): Session {
     if (errors.length > 0) {
       throw Object.assign(coded('E_INVALID_CONTENT', `内容校验失败：${errors.join('；')}`), { errors })
     }
-    const tmp = join(dirname(opts.contentPath), `.${basename(opts.contentPath)}.tmp`)
+    const tmp = join(dirname(active.contentPath), `.${basename(active.contentPath)}.tmp`)
     writeFileSync(tmp, text)
     // 先写临时文件再 rename：rename 是原子的，不会留下半份内容包
-    renameSync(tmp, opts.contentPath)
+    renameSync(tmp, active.contentPath)
     return { saved: true, activeHash, diskHash: diskHash() }
   }
 
@@ -387,22 +415,54 @@ export function createSession(opts: SessionOptions): Session {
     }
   }
 
-  function reset(): void {
+  function reset(world?: string): void {
     if (busy) throw coded('E_BEAT_IN_FLIGHT', '上一拍还在结算')
+    const target = world === undefined ? active : opts.worlds.find((w) => w.id === world)
+    if (target === undefined) throw coded('E_UNKNOWN_WORLD', `没有内容包「${world ?? ''}」`)
+    // 读盘与校验都在切世界之前：内容坏了就什么都不动，既不切目录也不留半局。
     // 新局用磁盘上的那一份：保存只写盘，生效靠重开（docs/design/60-server.md §5）。
-    // 读盘放在清日志之前：内容坏了就整拍不动，不留半局。
-    const reloaded = loadContentPack(opts.contentPath)
+    const reloaded = readPack(target.contentPath)
+    active = target
     pack = reloaded.pack
     activeHash = reloaded.hash
     participants = roster(pack)
     // 只清这两份日志：本局的全部世界状态就是它们，内容与人物来自内容包
     store.close()
-    rmSync(join(opts.dir, JOURNAL), { force: true })
-    rmSync(join(opts.dir, PASSAGE), { force: true })
-    store = openStore(opts.dir)
+    rmSync(join(active.dir, JOURNAL), { force: true })
+    rmSync(join(active.dir, PASSAGE), { force: true })
+    store = openStore(active.dir)
     state = boot()
     notes.clear()
     prompts.length = 0
+  }
+
+  /** 开新局要读的内容包：读不到 / 不是 JSON / 校验失败都是 `E_INVALID_CONTENT` + `errors`。 */
+  function readPack(path: string): { pack: ContentPack; hash: string } {
+    let text: string
+    try {
+      text = readFileSync(path, 'utf8')
+    } catch (error) {
+      throw invalidContent([`读不到内容包 ${path}：${(error as Error).message}`])
+    }
+    let next: ContentPack
+    try {
+      next = JSON.parse(text) as ContentPack
+    } catch (error) {
+      throw invalidContent([`内容包 ${path} 不是合法 JSON：${(error as Error).message}`])
+    }
+    let errors: string[]
+    try {
+      errors = validatePack(next)
+    } catch (error) {
+      // 校验器自己崩了也算“内容不合法”：这里绝不把 500 抛给开新局的人
+      errors = [`内容结构无法校验：${(error as Error).message}`]
+    }
+    if (errors.length > 0) throw invalidContent(errors)
+    return { pack: next, hash: contentHash(next) }
+  }
+
+  function invalidContent(errors: string[]): Error {
+    return Object.assign(coded('E_INVALID_CONTENT', `内容校验失败：${errors.join('；')}`), { errors })
   }
 
   return {
@@ -411,7 +471,7 @@ export function createSession(opts: SessionOptions): Session {
     authorBeat,
     content,
     contentText,
-    contentPath: () => opts.contentPath,
+    contentPath: () => active.contentPath,
     saveContent,
     beat,
     reset,
