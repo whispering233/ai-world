@@ -5,8 +5,9 @@ export interface EmptyStateProps {
   state: PlayerStateView
 }
 
-/** 首屏示例：说或做的样子，不是选项——点不了，也不能替玩家决定（决策 #46） */
-const EXAMPLES = ['我把银元推过去。', '我问安账本的事。', '我走到门口听雨。']
+/** 首屏示例：说或做的样子，不是选项——点不了，也不能替玩家决定（决策 #46）。
+ * 示例属于界面，不属于内容包：写具体人名/物品就会在另一个世界里指向不存在的东西。 */
+const EXAMPLES = ['我先看看这地方。', '我跟身边的人搭句话。', '我往门口走。']
 
 /** 有 opening 时排在开篇之后，没有 opening 时排进场景卡 */
 export function SayExamples() {

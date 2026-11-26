@@ -16,8 +16,13 @@
 - 作者壳改显示名后，扫描本次编辑的 `core`/`voice`/`beliefs`/`drives`/`canon`/`opening`/`scene`/`title`，仍用旧称呼时给非阻断 warning；不自动改正文，单字名会误报。
 - 玩家没给 `to` 时，服务端按本场人物的显示名/别名在正文里唯一匹配自动聚焦；显式 `to` 优先，无效显式不回退；单字名可能误命中。
 - 目标区增加“自动 / 所有人”两态：显式“所有人”发 `all:true`，不再被自动聚焦覆盖；API 拒绝 `all:true` 与非空 `to` 同时出现。
+- 多世界：`content/` 下每个 `.json` 都是一个可开的世界；`GET /api/session.worlds` 下发列表（可选字段），`POST /api/reset {world}` 切包并换到 `data/<world>/`，未知 world 返回 `E_UNKNOWN_WORLD`；“新的一局”弹窗里选包。
+- `content/westworld.json`（甜水镇）：3 地点 / 6 人物 / 4 陈设 / 5 物品，以《西部世界》为参照；20 拍实跑见 [docs/research/westworld-run-20.md](docs/research/westworld-run-20.md)。
+- 试玩器 `--auto` 按世界分表（`starter-town` / `westworld`），未知世界直接报错。
 
 ### Changed
+- 试玩器按 `AI_WORLD` 取内容包（缺省 `starter-town`），现场描述与名字泄漏正则都由内容包生成，不再硬编码酒馆/灯/雨的 id；服务端 `AI_WORLD` 只决定进程首启默认，之后由玩家在「新的一局」里选。
+- 首屏示例改成世界无关的三句（原来的“银元 / 安 / 账本”属于 starter-town，换包后会指向不存在的东西）。
 - 收口文档：README / AGENTS / backlog / docs-map 同步到 baseline-23、focus-20、自动聚焦与显式“所有人”的现状；临时任务清单清空。
 - 等待中的形态：玩家那句话下面出现三条安静的骨架屏（`aria-hidden`，只表示“这一拍在生成”，不出现阶段名）；`prefers-reduced-motion` 下连同光标闪烁一起停掉动画。
 - 作者壳改成**按需加载**（`lazy` + `Suspense`）：玩家壳的首屏脚本从 1.12 MB / gzip 354 kB 降到 **1.03 MB / gzip 326 kB**，作者壳那 94.8 kB（gzip 31 kB）只在切过去时才下载。玩家壳隔离守卫也跟着认动态 `import()`。

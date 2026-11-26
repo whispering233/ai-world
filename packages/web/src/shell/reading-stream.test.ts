@@ -100,8 +100,9 @@ describe('ReadingStream：首屏', () => {
   })
 })
 
-/** 首屏示例：只在这一拍还没开始时出现；是样子，不是可点的选项（决策 #46） */
-const EXAMPLES = ['我把银元推过去。', '我问安账本的事。', '我走到门口听雨。']
+/** 首屏示例：只在这一拍还没开始时出现；是样子，不是可点的选项（决策 #46）。
+ * 与 `EmptyState.tsx` 同字面量：示例不得绑定某个世界的名字或物品。 */
+const EXAMPLES = ['我先看看这地方。', '我跟身边的人搭句话。', '我往门口走。']
 
 function expectsExamples(text: string): void {
   for (const example of EXAMPLES) expect(text).toContain(example)

@@ -5,6 +5,7 @@
  * 用法：
  *   node --experimental-strip-types scripts/play.ts --beats 20
  *   node --experimental-strip-types scripts/play.ts --beats 3 --auto
+ *   AI_WORLD=westworld node --experimental-strip-types scripts/play.ts --beats 20 --auto
  */
 import { randomUUID } from 'node:crypto'
 import { rmSync } from 'node:fs'
@@ -25,41 +26,87 @@ import { healthView } from '@ai-world/core'
 import { openScene, type Scene } from '@ai-world/core'
 import { openStore, replay, replayCharacters } from '@ai-world/core'
 import { seedCharacters } from '@ai-world/core'
-import { loadContentPack, STARTER_TOWN_PATH } from '@ai-world/content'
+import { contentPathFor, loadContentPack } from '@ai-world/content'
 import type { Op, World } from '@ai-world/core'
 
-const { pack } = loadContentPack(STARTER_TOWN_PATH)
+// 试玩器没有界面：包在进程启动时就得定，所以只认环境变量（与服务端同一口径）。
+const WORLD = process.env.AI_WORLD ?? 'starter-town'
+const { pack } = loadContentPack(contentPathFor(WORLD))
 
 const args = new Set(process.argv.slice(2))
 const beatsArg = process.argv.indexOf('--beats')
 const BEATS = beatsArg > 0 ? Number(process.argv[beatsArg + 1] ?? 20) : 20
 const AUTO = args.has('--auto')
 const FRESH = args.has('--fresh')
-const DIR = 'data/starter-town'
+const DIR = `data/${WORLD}`
+
+interface AutoScript {
+  guards: Record<number, string>
+  lines: string[]
+  longProbe: string
+  moveProbe: string
+}
 
 // 探针混合四类：短对话 / 物理动作 / 长动作 / 知识交换；别只喂短对话。
 // 每类守卫只出现一次：减量不能把这些事件一起减掉。
 // 只在“有重复”的拍位插守卫：11 拍循环里同一句还会再出现一次，不会被守卫吞掉。
-const GUARD_LINES: Record<number, string> = {
-  3: '我说明天中午之前，一定把那两枚银元还上。',
-  16: '我要是再听见你提这笔账，今晚就走。',
-  18: '今晚这店我包了，谁也不用再付钱。',
+const STARTER_TOWN: AutoScript = {
+  guards: {
+    3: '我说明天中午之前，一定把那两枚银元还上。',
+    16: '我要是再听见你提这笔账，今晚就走。',
+    18: '今晚这店我包了，谁也不用再付钱。',
+  },
+  lines: [
+    '我推门进去，找了个靠门的位子坐下。',
+    '我在靠墙的桌边坐了一会儿，等雨小一点。',
+    '我走到柜台前，问老板娘还有没有酒。',
+    '我把两枚银元塞进安手里，要一杯威士忌。',
+    '我把自己那杯威士忌喝掉。',
+    '我凑到医生耳边，用只有他能听见的声音说：安把账本藏在柜台下面。',
+    '我把那本账本推到柜台中间。',
+    '我帮安把空杯收进木盆，端到柜台后面。',
+    '我问医生这镇上最近死了几个人。',
+  ],
+  longProbe: '我趴在靠墙的桌上睡了一整夜，天亮才醒。',
+  moveProbe: '我拉开门闩，推门走到街上。',
 }
-const AUTO_LINES = [
-  '我推门进去，找了个靠门的位子坐下。',
-  '我在靠墙的桌边坐了一会儿，等雨小一点。',
-  '我走到柜台前，问老板娘还有没有酒。',
-  '我把两枚银元塞进安手里，要一杯威士忌。',
-  '我把自己那杯威士忌喝掉。',
-  '我凑到医生耳边，用只有他能听见的声音说：安把账本藏在柜台下面。',
-  '我把那本账本推到柜台中间。',
-  '我帮安把空杯收进木盆，端到柜台后面。',
-  '我问医生这镇上最近死了几个人。',
-]
+
+// 西部世界：同一套四类探针。第 11 拍的守卫是知识探针——客人当面把“你们不会真死”说破，
+// 看 host 是不是还守着“这看起来什么都不是”的否认。
+const WESTWORLD: AutoScript = {
+  guards: {
+    2: '我对梅芙说：今晚打烊以后我还会来。',
+    11: '我对赫克托说：这镇上没有一个人会真的死。',
+  },
+  // 节奇：酒馆→立规矩→主街过夜→黑衣人与德洛丽丝→回酒馆（第 11 拍的守卫正好落在赫克托身边）
+  lines: [
+    '我走进酒馆，在吧台要一杯酒。',
+    '我把左轮手枪放在吧台上。',
+    '我走出酒馆，回到主街上。',
+    '我在街口站了一会儿，看那个戴黑帽的人。',
+    '我问黑衣人他在等什么。',
+    '我对德洛丽丝说：我三十年前答应过一个人会回来。',
+    '我走进酒馆，在吧台要一杯酒。',
+    '我请赫克托喝一杯，问他抢酒馆的日子定在哪天。',
+    '我问梅芙认不认得一个三十年前在这条街上的姑娘。',
+  ],
+  longProbe: '我在街边的长凳上躺下，一觉睡到第二天天亮。',
+  moveProbe: '我走出酒馆，回到主街上。',
+}
+
+const AUTO_SCRIPTS: Record<string, AutoScript> = { 'starter-town': STARTER_TOWN, westworld: WESTWORLD }
 // 长动作只跑一次；移动探针放最后一拍，避免出门后污染前面的基线。
-const LONG_PROBE = '我趴在靠墙的桌上睡了一整夜，天亮才醒。'
 const LONG_BEAT = 5
-const FINAL_MOVE_PROBE = '我拉开门闩，推门走到街上。'
+
+function autoScript(world: string): AutoScript {
+  const script = AUTO_SCRIPTS[world]
+  if (script === undefined) throw new Error(`--auto 没有为「${world}」准备脚本；可用：${Object.keys(AUTO_SCRIPTS).join('、')}`)
+  return script
+}
+
+const SCRIPT = AUTO ? autoScript(WORLD) : undefined
+/** 名字汄漏检测：任何实体/物品 id 出现在正文里都算 bug。 */
+const LEAK_IDS = new RegExp(`\\b(${[...Object.keys(pack.names), ...Object.keys(pack.items)].map((id) => id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'g')
 // HealthView 的桶键是 ASCII，体检表沿用 en dash 标签。
 const DURATIONS = [
   ['0-3', '0–3'],
@@ -133,13 +180,13 @@ async function main(): Promise<void> {
   const initialHolds = structuredClone(world.ledger.holds)
 
   for (let i = 1; i <= BEATS; i += 1) {
-    const guard = GUARD_LINES[i]
-    const line = AUTO
+    const guard = SCRIPT?.guards[i]
+    const line = SCRIPT !== undefined
       ? i === BEATS && BEATS >= 10
-        ? FINAL_MOVE_PROBE
+        ? SCRIPT.moveProbe
         : i === LONG_BEAT
-          ? LONG_PROBE
-          : (guard ?? AUTO_LINES[(i - 1) % AUTO_LINES.length] ?? '')
+          ? SCRIPT.longProbe
+          : (guard ?? SCRIPT.lines[(i - 1) % SCRIPT.lines.length] ?? '')
       : await rl?.question('你> ')
     // 自己试玩时用 /quit 收尾，否则 Ctrl+C 会跳过体检表
     if (line !== undefined && ['/quit', '/q'].includes(line.trim())) break
@@ -190,7 +237,9 @@ async function main(): Promise<void> {
   const longActions = verdicts.filter((v) => v.ok && v.duration >= 240)
   const longEmpty = longActions.filter((v) => v.deltas.length === 0)
   const empty = verdicts.filter((v) => v.ok && v.deltas.length === 0)
-  const nameLeaks = deps.store.readPassage().reduce((n, p) => n + (p.text.match(/\b(player|ann|doc|cody|granny)\b/g)?.length ?? 0), 0)
+  const nameLeaks = deps.store
+    .readPassage()
+    .reduce((n, p) => n + (p.text.match(LEAK_IDS)?.length ?? 0), 0)
   const wallMs = Math.round(performance.now() - startedAt)
   const material = committedVerdicts.flatMap((v) =>
     v.deltas.filter((d) => d.op === 'transfer' || d.op === 'consume' || d.op === 'move').map(() => v.actor),
@@ -237,15 +286,15 @@ async function main(): Promise<void> {
 }
 
 function describeScene(world: World): string {
-  const actors = new Set([pack.player, ...pack.characters.map((c) => c.id)])
-  const here = world.ledger.at[pack.player] ?? 'saloon'
-  const present = Object.entries(world.ledger.at)
-    .filter(([ent, place]) => actors.has(ent) && place === here)
-    .map(([ent]) => ent)
-  const lit = world.ledger.phys['lamp']?.['lit'] === true ? '灯还亮着' : '灯已经灭了'
-  const line = `酒馆里：${present.map((ent) => pack.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
-  // 与 packages/server/src/session.ts 的 sceneText 同序：先现场，再地点与在场
-  return [pack.scene?.trim() ?? '', line].filter((text) => text !== '').join('\n')
+  const here = world.ledger.at[pack.player] ?? ''
+  const present = pack.characters
+    .map((c) => c.id)
+    .filter((ent) => world.ledger.at[ent] === here)
+    .map((ent) => pack.names[ent] ?? ent)
+  // 与 packages/server/src/session.ts 的 sceneText 同序、同形：先现场，再地点与在场
+  return [pack.scene?.trim() ?? '', `${pack.world.places[here] ?? here}：${present.join('、')}在场。`]
+    .filter((text) => text !== '')
+    .join('\n')
 }
 
 function describeHoldChanges(
