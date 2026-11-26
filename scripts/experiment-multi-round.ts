@@ -12,6 +12,8 @@
  *   node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-types \
  *     scripts/experiment-multi-round.ts --beats 6 --mode both --tag pilot-1
  *
+ * `--focus`（只接 baseline 臂）：每拍轮流选一个在场人物作为 `playerTo`，量“只叫玩家+目标”是否把场景变哑。
+ *
  * 产物：data/experiment/<tag>/<arm>/{journal.jsonl,passage.jsonl,metrics.jsonl,report.md}
  */
 
@@ -43,6 +45,7 @@ import { seedCharacters } from '@ai-world/core'
 import { loadContentPack, STARTER_TOWN_PATH } from '@ai-world/content'
 import type { EntId, World } from '@ai-world/core'
 import { detectConflicts } from './conflicts.ts'
+import { focusTargetOf } from './focus-target.ts'
 
 const { pack } = loadContentPack(STARTER_TOWN_PATH)
 
@@ -81,6 +84,8 @@ interface BeatMetrics {
   crossTalkChanged: number
   crossTalkRefs: number
   crossTalkEcho: number
+  /** 本拍的定向 focus 目标；没开 `--focus` 或本拍无在场目标时不写这一项 */
+  focusTarget?: EntId
   passageChars: number
   newFacts: string[]
   hints: string[]
@@ -149,7 +154,12 @@ const FORCE = process.argv.includes('--force')
 /** 可选长动作探针：默认不加，避免短对话基线的 clock 被一次睡眠改写。 */
 const LONG = process.argv.includes('--long')
 const UNLOCK = process.argv.includes('--unlock')
+/** 定向 focus 探针：每拍轮流选一个在场人物作为 `playerTo`；默认不加，默认仍是“所有人”。 */
+const FOCUS = process.argv.includes('--focus')
 if (LONG && UNLOCK) throw new Error('--long 与 --unlock 不能同时使用')
+if (FOCUS && (LONG || UNLOCK)) throw new Error('--focus 与 --long / --unlock 不能同时使用')
+// 只接 baseline：cross-talk 自行组 claim，硬塞 focus 会变成另一套调度（决策 #48 只管一拍一目标）。
+if (FOCUS && MODE !== 'baseline') throw new Error(`--focus 只接 baseline 臂（当前 --mode ${MODE}）；请显式加 --mode baseline`)
 const LONG_BEAT = 5
 const LONG_PROBE = '我坐在桌边等雨停，等了四个钟头。'
 /** 解锁探针：先问、再借、再试图拿钥匙；每一步都可能被角色拒绝，成功与否都看账本。 */
@@ -744,6 +754,8 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
   let characters = new Map(seedCharacters(pack).map((c) => [c.id, c]))
   const player = pack.player
   const participants = [player, ...pack.characters.map((c) => c.id)]
+  /** focus 的候选与轮换顺序：内容包里的人物，不含玩家与陈设 */
+  const characterIds = pack.characters.map((c) => c.id)
   let scene: Scene = openScene({ id: 's1', place: world.ledger.at[player] ?? 'saloon', clock: 0, participants })
 
   const metrics: BeatMetrics[] = []
@@ -756,6 +768,8 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         ? LONG_PROBE
         : (AUTO_LINES[(beat - 1) % AUTO_LINES.length] ?? '')
     const clockBefore = world.ledger.clock
+    // 不在场/无目标时是 undefined：那时退回“所有人”，与不加 --focus 的一拍完全相同。
+    const focusTarget = FOCUS ? focusTargetOf({ world, beat, candidates: characterIds, player }) : undefined
     const usageStart = samples.length
     const t0 = performance.now()
     let res: ArmResult
@@ -773,6 +787,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         items: pack.items,
         aliases: pack.aliases,
         playerClaim,
+        ...(focusTarget === undefined ? {} : { playerTo: focusTarget }),
         deps,
       })
       const entry = r.journalSeq > 0 ? store.readJournal().find((e) => e.seq === r.journalSeq) : undefined
@@ -839,6 +854,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
       crossTalkChanged: res.crossTalkChanged,
       crossTalkRefs: res.crossTalkRefs,
       crossTalkEcho: res.crossTalkEcho,
+      ...(focusTarget === undefined ? {} : { focusTarget }),
       passageChars: res.passage.length,
       newFacts: res.verdicts.filter((v) => v.ok).flatMap((v) => v.deltas.filter((d) => d.op === 'fact').map((d) => (d.op === 'fact' ? d.text : ''))),
       hints: res.hints ?? [],
@@ -867,6 +883,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
     console.log(
       `[${arm}] ${beat}/${BEATS} ${fmt(world.ledger.clock)} ${(wallMs / 1000).toFixed(1)}s calls=${calls}` +
         ` claims=${m.claims} no=${m.no} hard=${m.hardConflicts} xrefs=${m.crossTalkRefs}` +
+        (FOCUS ? ` focus=${focusTarget === undefined ? '所有人' : (pack.names[focusTarget] ?? focusTarget)}` : '') +
         (res.notes.length ? ` notes=${res.notes.length}` : ''),
     )
   }
@@ -891,7 +908,9 @@ async function main(): Promise<void> {
           ? [MODE as Arm]
           : []
   if (wanted.length === 0) throw new Error(`--mode 只能是 baseline / self-retry / cross-talk / both / all（当前 ${MODE}）`)
-  console.log(`实验 ${TAG}：${BEATS} 拍，${wanted.join(' + ')}`)
+  // focus 的轮换顺序直接印出来：跑完对 metrics.jsonl 时不用猜第几拍该轮到谁。
+  const focusOrder = pack.characters.map((c) => pack.names[c.id] ?? c.id).join(' → ')
+  console.log(`实验 ${TAG}：${BEATS} 拍，${wanted.join(' + ')}${FOCUS ? `，focus=${focusOrder}（每拍轮换一个在场人物）` : ''}`)
   console.log(`模型：cognition=${CFG.models.cognition} referee=${CFG.models.referee} narration=${CFG.models.narration} suggest=${CFG.models.suggest}`)
   const arms = []
   for (const arm of wanted) {
