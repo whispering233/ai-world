@@ -43,6 +43,10 @@ describe('inferFocus', () => {
     expect(inferFocus({ text: '我坐下。', people: ['ann'], names: { ann: '   ' } })).toBeUndefined()
   })
 
+  it('单字显示名会误命中同字词：这是本轮接受的启发式', () => {
+    expect(inferFocus({ text: '我稍微安心了。', people: ['ann', 'doc'], names })).toBe('ann')
+  })
+
   it('只看传入的 people：不在场的人名字出现也不聚焦', () => {
     expect(inferFocus({ text: '我念叨着道森医生。', people: ['ann'], names })).toBeUndefined()
   })

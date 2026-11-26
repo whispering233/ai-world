@@ -549,7 +549,7 @@ describe('聚焦（对谁说）', () => {
     expect(session.authorBeat(res.seq)?.notes).toEqual([])
   })
 
-  it('不传 to：默认全员调度，玩家 claim 没有 to', async () => {
+  it('不传 to 且正文没提人：默认全员调度，玩家 claim 没有 to', async () => {
     const dir = tmpDir()
     const session = makeFocusSession(dir)
     const res = await session.beat('我推门进去。', signal(), noProgress)
@@ -570,7 +570,7 @@ describe('聚焦（对谁说）', () => {
     expect(session.authorBeat(res.seq)?.notes).toEqual([])
   })
 
-  it('空串 to 与缺省同义：所有人', async () => {
+  it('空串 to 且正文没提人：与缺省同义，所有人', async () => {
     const dir = tmpDir()
     const session = makeFocusSession(dir)
     const res = await session.beat('我推门进去。', signal(), noProgress, '')

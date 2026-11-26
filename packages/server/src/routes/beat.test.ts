@@ -131,12 +131,18 @@ describe('POST /beat：对谁说（to）', () => {
     expect(passage.playerTo).toBe('安')
   })
 
-  it('不定 to 或 to 是空白：都是所有人，passage 帧没有 playerTo', async () => {
+  it('不定 to 或 to 是空白，且正文没提人：都是所有人，passage 帧没有 playerTo', async () => {
     for (const body of ['{"text":"我推门进去。"}', '{"text":"我推门进去。","to":"   "}']) {
       const res = await post(session(stubLlm()), body)
       const passage = JSON.parse(dataOf(await res.text(), 'passage')[0] ?? '{}') as { playerTo?: string }
       expect(passage).not.toHaveProperty('playerTo')
     }
+  })
+
+  it('to 是空白且正文只提到一个人：仍然自动聚焦', async () => {
+    const res = await post(session(stubLlm()), '{"text":"我走到安面前，把银元放下。","to":"   "}')
+    const passage = JSON.parse(dataOf(await res.text(), 'passage')[0] ?? '{}') as { playerTo?: string }
+    expect(passage.playerTo).toBe('安')
   })
 
   it('没发 to 但正文里只提到一个人：那个人就是聚焦目标', async () => {

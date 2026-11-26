@@ -14,6 +14,7 @@
 - 实验脚本新增 `--focus` 定向探针（只接 baseline，每拍轮换一个在场人物；`metrics` 记生效目标与分布）。
 - 起始世界把湿外套、抹布写进 `items`/`holds`，门边钉子作为承载点，铁盒补 `open:false`；12 拍 smoke 里外套挂/取、抹布挪柜台都真实落账。
 - 作者壳改显示名后，扫描本次编辑的 `core`/`voice`/`beliefs`/`drives`/`canon`/`opening`/`scene`/`title`，仍用旧称呼时给非阻断 warning；不自动改正文，单字名会误报。
+- 玩家没给 `to` 时，服务端按本场人物的显示名/别名在正文里唯一匹配自动聚焦；显式 `to` 优先，无效显式不回退；单字名可能误命中。
 
 ### Changed
 - 等待中的形态：玩家那句话下面出现三条安静的骨架屏（`aria-hidden`，只表示“这一拍在生成”，不出现阶段名）；`prefers-reduced-motion` 下连同光标闪烁一起停掉动画。
