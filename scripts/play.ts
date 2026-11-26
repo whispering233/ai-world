@@ -164,7 +164,12 @@ async function main(): Promise<void> {
   let world: World = prior.length > 0 ? replay(prior, structuredClone(pack.world)) : structuredClone(pack.world)
   let characters = prior.length > 0 ? replayCharacters(prior, freshCharacters()) : freshCharacters()
   // 场景上下文不落 journal，续跑从新场景开始；人物记忆已经由 experience 复原。
-  let scene: Scene = openScene({ id: `s${priorBeats + 1}`, place: world.ledger.at[player] ?? 'saloon', clock: world.ledger.clock, participants })
+  let scene: Scene = openScene({
+    id: `s${priorBeats + 1}`,
+    place: world.ledger.at[player] ?? Object.keys(pack.world.places)[0] ?? '',
+    clock: world.ledger.clock,
+    participants,
+  })
 
   if (priorBeats > 0) {
     stdout.write(`续跑：已完成 ${priorBeats} 拍，世界时刻 ${fmt(world.ledger.clock)}，人物 ${characters.size} 位\n`)

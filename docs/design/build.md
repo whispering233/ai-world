@@ -91,8 +91,8 @@ AI_WORLD=westworld pnpm play --beats 20  # 换世界：读 content/westworld.jso
 
 | 路径 | 内容 |
 | :--- | :--- |
-| `data/starter-town/journal.jsonl` | 每拍的 claim / verdict / 观测（**账本的唯一凭据**，可重放） |
-| `data/starter-town/passage.jsonl` | 已发出的叙述文本（只增不改） |
+| `data/<world>/journal.jsonl` | 每拍的 claim / verdict / 观测（**账本的唯一凭据**，可重放） |
+| `data/<world>/passage.jsonl` | 已发出的叙述文本（只增不改） |
 
 `data/` 是追加写的：同一目录连跑两次会把两轮拍混进同一张体检表，重开一局前先删。
 

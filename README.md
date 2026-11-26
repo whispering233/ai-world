@@ -17,6 +17,7 @@
 | 浏览器阅读面 | ✅ 单栏散文 + 按需抽屉，正文档位 17px / 1.85；上滚不抢位置，新拍到达可一键回底 |
 | 作者视图 | ✅ 三栏：拍列表 / 同一份正文 / claims·verdicts·账本·体检·内容编辑；**也能直接发拍** |
 | 物质流 / 知识通胀 | ⚠️ 物质流已能成交（银元/威士忌/抹布/外套）；知识通胀未复现，见 [backlog.md](docs/design/backlog.md) §2 |
+| 多个世界 | ✅ `content/` 下每个 JSON 是一个世界；「新的一局」里选（甜水镇 / 雨夜酒馆），各自独立存档 |
 
 ## 开始玩
 
@@ -29,15 +30,17 @@ pnpm serve     # 打开 http://127.0.0.1:8787
 需要 Node ≥ 22.6 与 pi CLI 的模型凭据（`~/.pi/agent/auth.json`，只读复用）。
 
 - `Enter` 发送，`Shift+Enter` 换行；顶栏「此刻」看你在哪、身上有什么、知道什么。
+- `⋯` → 新的一局里可以换内容包：选另一个包就是另一个世界，也是一份独立存档（`data/<world>/`）。
 - `Ctrl/Cmd+Shift+D` 或 `⋯` 菜单切作者视图；切换不重置阅读位置。
 - 想改前端代码：两个终端跑 `pnpm dev:server` + `pnpm dev:web`，打开 `http://127.0.0.1:5173`（Vite 热更新，`/api` 反代到 8787）。
 
-世界数据在 `data/starter-town/`（`journal.jsonl` + `passage.jsonl`，不入库），内容在 `content/starter-town.json`（git 跟踪）。删掉 `data/starter-town/` 就是干净世界；服务端重启会自动从 journal 重放续跑。
+世界数据在 `data/<world>/`（`journal.jsonl` + `passage.jsonl`，不入库），内容在 `content/<world>.json`（git 跟踪）。开新局时选的包决定读哪个文件、写哪个目录；进程默认包由 `AI_WORLD` 决定（缺省 `starter-town`）。删掉 `data/<world>/` 就是那个世界的干净存档；服务端重启会自动从 journal 重放续跑。
 
 也可以只用 CLI 跑世界层、出体检表：
 
 ```sh
 pnpm play -- --beats 20 --auto
+AI_WORLD=westworld pnpm play -- --beats 20 --auto   # 换世界；读 content/westworld.json，写 data/westworld/
 ```
 
 完整跑法、模型配置与故障处理见 [docs/design/build.md](docs/design/build.md)。
@@ -68,6 +71,7 @@ pnpm play -- --beats 20 --fresh --auto   # 20 拍基线，出体检表
 | [docs/api/00-api-index.md](docs/api/00-api-index.md) | 接口索引与两种投影 |
 | [docs/ui/DESIGN.md](docs/ui/DESIGN.md) | 阅读面与作者视图的布局、视觉、交互契约 |
 | [docs/db/schema.md](docs/db/schema.md) | 数据结构 |
+| [docs/reference/westworld-canon.md](docs/reference/westworld-canon.md) | 《西部世界》设定底本（写内容包时的事实依据） |
 | [docs/design/backlog.md](docs/design/backlog.md) | 延后项、监控阈值、已知失败模式、下一步候选 |
 | [CHANGELOG.md](CHANGELOG.md) | 版本变更 |
 

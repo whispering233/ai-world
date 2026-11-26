@@ -20,6 +20,9 @@
 - 四个服务按**接口**寻址（`clock` / `ledger` / `referee` / `narrate`），不直接 import 具体实现。
 - `BeatInput.claimSource` 是唯一的世界事件注入点（只读账本、产出仍是 claim）；storylet 冻结中，目前只有 `scripts/` 与测试在用。
 - `packages/content/` 只做内容加载与校验；世界内容本体是根 `content/<world>.json`（git 跟踪），不放规则。
+- **世界是一局**：`content/<world>.json` 的文件名就是世界 id（`^[a-z0-9-]+$`）；换包只能通过开新局（`POST /api/reset {world}`），每个世界独立 `data/<world>/`。同一时刻内存里只有一个世界，不存在“切了包但保留旧账本”。
+- `AI_WORLD` 只决定进程首启默认（缺省 `starter-town`），**不是产品入口**；玩家在「新的一局」里选。客户端传来的 `world` 必须先过白名单（不得直接拼路径）。
+- 界面文案与首屏示例不得绑定某个世界的名字/物品（`EmptyState.tsx` 曾写死 starter-town）；`scripts/play.ts --auto` 的脚本按世界分表，没有脚本就直接报错，不许静默复用 starter-town 的输入。
 - 唯一能写文件的入口是 `POST /api/author/content`，且只写 `content/`；`data/` 只能由 store 追加。
 - 聚焦：显式 `to` 优先；没给 `to` 时按正文里唯一的在场显示名/别名自动推断；显式“所有人”用 `all:true`，与 `to` 互斥。只做名字匹配，不解析动作；单字显示名会误命中。
 - 小物（外套/抹布）走 `items`/`holds`；柜台/铁盒/钉子等陈设在 `ledger.at`。同一台面内的坐标不建模，换面才用 `transfer`。

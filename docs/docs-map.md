@@ -53,6 +53,7 @@
 | [focus-20.md](research/focus-20.md) | 20 拍定向 focus：claims=2、认知调用 20、空结果 47.5%、段落 20/20 ≤3 |
 | [auto-focus.md](research/auto-focus.md) | 没选目标时按正文唯一显示名/别名自动聚焦；单字名误命中 |
 | [westworld-refs.md](research/westworld-refs.md) | 《西部世界》内容包选型：Generative Agents / AI Town / Concordia / gen0cide-westworld 九项目对照，可抄的是信任账本与记忆过期口径 |
+| [westworld-run-20.md](research/westworld-run-20.md) | 甜水镇 20 拍实跑：体检表、三段样本、“她记得”的证据，以及人称漂移 / 原始 JSON / `no_rate` 三个未达标项 |
 | [explicit-all-browser.md](research/explicit-all-browser.md) | “自动 / 所有人”两态浏览器验证；显式所有人发 `all:true` |
 | [stale-names-browser.md](research/stale-names-browser.md) | 作者改名后的旧称呼 warning；非阻断、单字名误报 |
 | [material-flow-audit.md](research/material-flow-audit.md) | C7 前的物质流审计：只有银元/威士忌换手；缺“物品在某表面上”的状态。后续见 props-12 / baseline-23 |

@@ -96,6 +96,9 @@ C7 后内容：外套/抹布/钉子/铁盒盖。20 拍：墙钟 66.2s/拍、`no_
 | 首屏体积 | 作者壳已拆出去（1.12 → 1.03 MB / gzip 354 → 326 kB），但主 chunk 仍整包带着 antd + `@ant-design/x` | 弱网下能感知白屏时；下一步只能按组件拆 vendor，代价大 |
 | 每拍全量重读 journal/passage | 长局 O(n²)：`session.beat` 每拍整份 `JSON.parse`，`routes/beat.ts` 为一个 `clockText` 建整份 view，`GET /api/session` 全量下发历史 | 当前几十拍无感，上百拍再动 |
 | 缓存 A/B | 有 before/after 需求时 | 同条件换前缀顺序各跑 6 拍 |
+| 旁白人称 | 20 拍里 5 拍把玩家写成“我/有人”，体检表因此误报“漏写：你”；`10-world-model` §7 假设“第二人称留给旁白”，但 `NARRATOR_SYSTEM` 没有这条规则 | 一行规则 + 同条件 20 拍前后对比（看段落与回声率是否变差） |
+| cognition 原始 JSON 回退 | 甜水镇 3/45 条 NPC 主张把 `inner` 整段当 `outward` 交给裁判（全在德洛丽丝）；本轮未泄漏进正文 | 解析失败时该只取 `outward`、还是整条丢弃，先看 `cognition.ts` 的降级路径 |
+| `no_rate` 偏低 | 甜水镇 20 拍 3.1%（设计期望 15–40%），主张多为说话与走动，账本无可拒 | 与 [baseline-23](../research/baseline-23.md) 同条件对比后再判断是内容还是裁判口径 |
 
 **测法下限**：10 拍单次 A/B 没有分辨率（空转拍在同一配置下实测跨 0–5 个）。要测就同条件跑 3 次以上并报分布，不要用单点下结论。
 

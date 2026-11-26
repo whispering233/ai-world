@@ -82,6 +82,7 @@
 | 49 | **“等一会儿”是普通 claim**：按钮只发送预设等待文本，不改 API、不引入 NPC-only 拍 | 40 / ui |
 | 50 | **世界闭合（v1）**：运行时不创建物品/实体/地点；`Op` 无 create/spawn，`ContentPack` 是唯一来源；新内容只由作者写 `content/`，下一局生效 | 60 / db |
 | 51 | **物品位置用非人实体承载（v1）**：柜台、铁盒、桌子等陈设进 `ledger.at`/`holds`/`phys`，不进 `characters`；对非人实体 `holds` 读作“承载/放置”，不是所有权；陈设不能 move | 10 / db |
+| 52 | **世界是一局**：`content/` 下每个 `<world>.json` 是一个可选世界，换包只能通过开新局（`POST /api/reset {world}`），每个世界独立 `data/<world>/`；同一时刻内存里只有一个世界；`AI_WORLD` 只决定进程首启默认 | 60 / api |
 
 ## 6. 待定
 
