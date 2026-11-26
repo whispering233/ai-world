@@ -184,6 +184,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
           </div>
           <div className="flex flex-col gap-2">
             <h4 className="text-meta text-ink-soft">names</h4>
+            <p className="text-meta text-ink-soft">改显示名只影响玩家投影与上下文标签；core、voice、beliefs、canon 里的旧称呼不会自动改。</p>
             {Object.entries(pack.names ?? {}).map(([id, name]) => (
               <LabeledField key={id} label={id}>
                 <Input
