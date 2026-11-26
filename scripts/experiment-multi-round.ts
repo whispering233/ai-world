@@ -571,8 +571,10 @@ function summaryOf(metrics: readonly BeatMetrics[]): {
   crossTalkRefs: number
   crossTalkEcho: number
   hintBeats: number
+  focusByTarget: Record<EntId, number>
 } {
   const usage = zeroUsage()
+  const focusByTarget: Record<EntId, number> = {}
   const ops: Record<string, number> = {}
   let verdicts = 0
   let no = 0
@@ -591,6 +593,7 @@ function summaryOf(metrics: readonly BeatMetrics[]): {
   let hintBeats = 0
   for (const m of metrics) {
     if (m.hints.length > 0) hintBeats += 1
+    if (m.focusTarget !== undefined) focusByTarget[m.focusTarget] = (focusByTarget[m.focusTarget] ?? 0) + 1
     for (const role of ['cognition', 'referee', 'narration', 'suggest'] as const) {
       const u = usage[role]
       const v = m.usage[role]
@@ -639,6 +642,7 @@ function summaryOf(metrics: readonly BeatMetrics[]): {
     crossTalkRefs,
     crossTalkEcho,
     hintBeats,
+    focusByTarget,
   }
 }
 
@@ -681,6 +685,7 @@ function report(
   row('输出 tokens', (s) => s.usage.cognition.output + s.usage.referee.output + s.usage.narration.output + s.usage.suggest.output)
   row('裁决数', (s) => s.verdicts)
   row('no_rate', (s) => pct(s.noRate))
+  row('focus 生效目标', (s) => Object.entries(s.focusByTarget).map(([id, n]) => `${pack.names[id] ?? id}×${n}`).join('、') || '-')
   row('空结果占比', (s) => pct(s.emptyRate))
   row('长动作占比', (s) => pct(s.longRate))
   row('硬冲突', (s) => s.hardConflicts)
@@ -769,7 +774,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
         : (AUTO_LINES[(beat - 1) % AUTO_LINES.length] ?? '')
     const clockBefore = world.ledger.clock
     // 不在场/无目标时是 undefined：那时退回“所有人”，与不加 --focus 的一拍完全相同。
-    const focusTarget = FOCUS ? focusTargetOf({ world, beat, candidates: characterIds, player }) : undefined
+    const focusTarget = FOCUS ? focusTargetOf({ world, beat, candidates: characterIds, player, place: scene.place }) : undefined
     const usageStart = samples.length
     const t0 = performance.now()
     let res: ArmResult
@@ -826,6 +831,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
     }
 
     const wallMs = Math.round(performance.now() - t0)
+    const effectiveFocus = FOCUS ? res.claims.find((c) => c.actor === player)?.to : undefined
     const beatUsage = usageOf(samples.slice(usageStart))
     const conflicts = detectConflicts(world, res.order, res.verdicts)
     const failedOps = failedOpsOf(world, res.order, res.verdicts)
@@ -848,13 +854,13 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
       hardConflicts: conflicts.hard,
       doubleSpend: conflicts.doubleSpend,
       conflictDetails: conflicts.details,
+      ...(effectiveFocus === undefined ? {} : { focusTarget: effectiveFocus }),
       moveConflicts: conflicts.move,
       physConflicts: conflicts.phys,
       crossTalkCalls: res.crossTalkCalls,
       crossTalkChanged: res.crossTalkChanged,
       crossTalkRefs: res.crossTalkRefs,
       crossTalkEcho: res.crossTalkEcho,
-      ...(focusTarget === undefined ? {} : { focusTarget }),
       passageChars: res.passage.length,
       newFacts: res.verdicts.filter((v) => v.ok).flatMap((v) => v.deltas.filter((d) => d.op === 'fact').map((d) => (d.op === 'fact' ? d.text : ''))),
       hints: res.hints ?? [],
@@ -883,7 +889,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
     console.log(
       `[${arm}] ${beat}/${BEATS} ${fmt(world.ledger.clock)} ${(wallMs / 1000).toFixed(1)}s calls=${calls}` +
         ` claims=${m.claims} no=${m.no} hard=${m.hardConflicts} xrefs=${m.crossTalkRefs}` +
-        (FOCUS ? ` focus=${focusTarget === undefined ? '所有人' : (pack.names[focusTarget] ?? focusTarget)}` : '') +
+        (FOCUS ? ` focus=${m.focusTarget === undefined ? '所有人' : (pack.names[m.focusTarget] ?? m.focusTarget)}` : '') +
         (res.notes.length ? ` notes=${res.notes.length}` : ''),
     )
   }
