@@ -183,7 +183,7 @@ describe('STARTER_TOWN：物品位置（陈设）', () => {
   })
 
   it('陈设不是人物：ann 手上只有一只杯子，账本与酒瓶已挪到陈设上', () => {
-    expect(pack.world.ledger.holds['ann']).toEqual({ cup: 1 })
+    expect(pack.world.ledger.holds['ann']).toEqual({ cup: 1, rag: 1 })
     const people = new Set(pack.characters.map((c) => c.id))
     for (const fixture of ['counter', 'strongbox', 'table', 'hook']) expect(people.has(fixture)).toBe(false)
     expect(validatePack(pack)).toEqual([])

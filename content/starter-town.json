@@ -22,7 +22,8 @@
       },
       "holds": {
         "ann": {
-          "cup": 1
+          "cup": 1,
+          "rag": 1
         },
         "counter": {
           "whiskey": 3,
