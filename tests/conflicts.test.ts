@@ -56,6 +56,37 @@ describe('detectConflicts：真的不够才算双花', () => {
     expect(report.details[0]).toContain('ann')
     expect(report.details[0]).toContain('whiskey')
   })
+
+  it('先由 ann 收下，再由 ann 付出：顺序决定谁失败', () => {
+    const w = world({ counter: { whiskey: 1 } })
+    const verdicts: Verdict[] = [
+      verdict('c1', 'counter', [{ op: 'transfer', from: 'counter', to: 'ann', item: 'whiskey', n: 1 }]),
+      verdict('c2', 'ann', [{ op: 'transfer', from: 'ann', to: 'player', item: 'whiskey', n: 1 }]),
+    ]
+
+    // counter 先落地：ann 有货，付出成功
+    expect(detectConflicts(w, ['counter', 'ann'], verdicts).doubleSpend).toBe(0)
+    // ann 先落地：她还没有货，付出失败，且失败归到 ann 那条 claim
+    const early = detectConflicts(w, ['ann', 'counter'], verdicts)
+    expect(early.doubleSpend).toBe(1)
+    expect(early.details[0]).toContain('c2')
+    expect(early.details[0]).toContain('ann')
+  })
+
+  it('失败的 transfer 不在 deltas[0] 时也按索引对上', () => {
+    const w = world({ ann: { whiskey: 0 } })
+    const verdicts: Verdict[] = [
+      verdict('c1', 'ann', [
+        { op: 'fact', text: '杯子已经空了' },
+        { op: 'transfer', from: 'ann', to: 'doc', item: 'whiskey', n: 1 },
+      ]),
+    ]
+
+    const report = detectConflicts(w, ['ann'], verdicts)
+
+    expect(report.doubleSpend).toBe(1)
+    expect(report.details[0]).toContain('whiskey')
+  })
 })
 
 describe('detectConflicts：move / phys 只算落账的 verdict', () => {
@@ -88,7 +119,7 @@ describe('detectConflicts：move / phys 只算落账的 verdict', () => {
       // 实体不存在 → op 失败，整条 verdict 不落账
       verdict('c3', 'granny', [
         { op: 'phys', who: 'nobody', key: 'closed', value: false },
-        { op: 'phys', who: 'door', key: 'closed', value: true },
+        { op: 'phys', who: 'door', key: 'closed', value: 2 },
       ]),
     ]
 
@@ -97,6 +128,6 @@ describe('detectConflicts：move / phys 只算落账的 verdict', () => {
     expect(report.phys).toBe(1)
     expect(report.doubleSpend).toBe(0)
     expect(report.details).toHaveLength(1)
-    expect(report.details[0]).toContain('door|closed')
+    expect(report.details[0]).toBe('物质冲突：door|closed = true / false')
   })
 })

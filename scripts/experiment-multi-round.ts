@@ -74,6 +74,7 @@ interface BeatMetrics {
   failedOps: number
   hardConflicts: number
   doubleSpend: number
+  conflictDetails: string[]
   moveConflicts: number
   physConflicts: number
   crossTalkCalls: number
@@ -831,6 +832,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
       failedOps,
       hardConflicts: conflicts.hard,
       doubleSpend: conflicts.doubleSpend,
+      conflictDetails: conflicts.details,
       moveConflicts: conflicts.move,
       physConflicts: conflicts.phys,
       crossTalkCalls: res.crossTalkCalls,
