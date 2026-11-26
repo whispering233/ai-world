@@ -84,9 +84,14 @@ export function validatePack(pack: ContentPack): string[] {
     if (!(place in pack.world.places)) errors.push(`实体 ${ent} 所在地点 ${place} 不在 places 里`)
     if ((pack.names[ent] ?? '').trim() === '') errors.push(`实体 ${ent} 缺少显示名`)
   }
+  // 物品名对整张 items 生效：作者壳能改任一显示名，只查被 holds 引用的那些会放过没上身的物品
+  for (const [item, name] of Object.entries(pack.items ?? {})) {
+    if (typeof name !== 'string' || name.trim() === '') errors.push(`物品 ${item} 缺少显示名`)
+  }
+  // holds 引用了、items 里却整个缺键的物品以前也算“缺显示名”，不因为上面那张表变宽就变成合法
   for (const bag of Object.values(pack.world.ledger.holds)) {
     for (const item of Object.keys(bag)) {
-      if ((pack.items[item] ?? '').trim() === '') errors.push(`物品 ${item} 缺少显示名`)
+      if (!(item in (pack.items ?? {}))) errors.push(`物品 ${item} 缺少显示名`)
     }
   }
 

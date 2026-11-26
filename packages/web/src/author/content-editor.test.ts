@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * 作者壳的地点与显示名表单：只能改显示值，保存仍是**整份** pack。
+ * 作者壳的地点、实体与物品显示名表单：只能改显示值，保存仍是**整份** pack。
  * 这里盯的是"改一处会不会带走别处"——`world.ambient`、`world.ledger`、`aliases` 与作者壳还不认识的
  * 顶层字段必须原样回到提交的 JSON 里，否则点一次保存就静默删掉半个内容包。
  *
@@ -122,6 +122,30 @@ describe('ContentEditor 的地点与显示名', () => {
     expect(submitted.title).toBe(pack.title)
     expect(submitted.canon).toEqual(pack.canon)
     expect(submitted.characters).toEqual(pack.characters)
+  }, 30_000)
+
+  it('改一个 item 名后保存：新值进 body，其余 item、id 集合与未知字段原样', async () => {
+    const onSaved = vi.fn()
+    const { unmount } = render(createElement(ContentEditor, { onSaved }))
+
+    fireEvent.change(await screen.findByLabelText('物品 whiskey 的显示名'), { target: { value: '威士忌酒' } })
+    fireEvent.click(screen.getByRole('button', { name: /保\s*存/ }))
+
+    await waitFor(() => expect(api.saveContent).toHaveBeenCalledTimes(1))
+    unmount()
+
+    const [text] = api.saveContent.mock.calls[0]! as [string]
+    const submitted = JSON.parse(text) as typeof pack
+
+    expect(submitted.items).toEqual({ whiskey: '威士忌酒', cup: '杯子' })
+    // 没改到的 item 与 id 集合不变
+    expect(submitted.items.cup).toBe(pack.items.cup)
+    expect(Object.keys(submitted.items)).toEqual(Object.keys(pack.items))
+
+    expect(submitted.world.ambient).toEqual(pack.world.ambient)
+    expect(submitted.world.ledger).toEqual(pack.world.ledger)
+    expect(submitted.aliases).toEqual(pack.aliases)
+    expect(submitted.futureNote).toEqual(pack.futureNote)
   }, 30_000)
 
   it('保存失败时显示服务端校验错误', async () => {

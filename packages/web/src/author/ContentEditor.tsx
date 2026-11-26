@@ -121,6 +121,11 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
     setPack({ ...pack, names: { ...(pack.names ?? {}), [id]: name } })
   }
 
+  function updateItem(id: string, name: string): void {
+    if (pack === null) return
+    setPack({ ...pack, items: { ...(pack.items ?? {}), [id]: name } })
+  }
+
   function updateCanon(index: number, line: string): void {
     if (pack === null) return
     setPack({ ...pack, canon: pack.canon.map((item, i) => (i === index ? line : item)) })
@@ -191,6 +196,18 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
                   value={name}
                   aria-label={`实体 ${id} 的显示名`}
                   onChange={(event) => updateName(id, event.target.value)}
+                />
+              </LabeledField>
+            ))}
+          </div>
+          <div className="flex flex-col gap-2">
+            <h4 className="text-meta text-ink-soft">items</h4>
+            {Object.entries(pack.items ?? {}).map(([id, name]) => (
+              <LabeledField key={id} label={id}>
+                <Input
+                  value={name}
+                  aria-label={`物品 ${id} 的显示名`}
+                  onChange={(event) => updateItem(id, event.target.value)}
                 />
               </LabeledField>
             ))}
