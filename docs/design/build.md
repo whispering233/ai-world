@@ -83,6 +83,8 @@ node --network-family-autoselection-attempt-timeout=2000 --experimental-strip-ty
 
 `scripts/experiment-multi-round.ts --long` 在第 5 拍插入“等雨四个钟头”；实测 duration 240、clock 9→249、`fmt` 从子夜变拂晓。默认不加，避免改写短对话基线。
 
+`scripts/experiment-multi-round.ts --focus --mode baseline` 每拍轮换一个在场人物作为 `playerTo`；只接 baseline，与 `--long`/`--unlock` 互斥。默认不加。
+
 ## 4. 产物位置
 
 | 路径 | 内容 |
