@@ -47,7 +47,7 @@
 | **phys 键漂移** | 同一状态多种键（`closed` / `bolted`），或键里塞了位置（`blocking_counter`） | 开放口袋 + 无登记；`apply` 不校验键名 |
 | **phys 键粘住** | 只写过 `true`、从没写回 `false`（`door.bolted`） | 键没有解除动作，账本也没有状态过期机制 |
 | **事实残留脏数据** | `facts/beat` 高于 1.0：动作细节、重复寒暄、主语归属错 | 已加可选 `actor`/`kind`，但字段覆盖不等于语义正确；baseline-21 为 1.25，重复/语义问题仍需人工抽样 |
-| **物质流薄** | 有 `transfer`/`consume`，但净持有变化很小，远少于 `know/fact` | M1 后 12 拍 material 7、5/5 `transfer` 涉及陈设；baseline-20 第 6 拍已成交一杯威士忌；baseline-21 transfer 10、consume 0；铁盒解锁是角色 gate |
+| **物质流薄** | 有 `transfer`/`consume`，但净持有变化很小，远少于 `know/fact` | M1 后 12 拍 material 7、5/5 `transfer` 涉及陈设；baseline-20 第 6 拍已成交一杯威士忌；C7 后 12 拍 coat 2 次、rag 1 次、失败 op 0；铁盒解锁是角色 gate |
 | **知识通胀** | `know` 占全部写操作七成以上 | 2026-11-26 两次 20 拍分别 2/21（9.5%）与 0/39（0%），**未复现**；继续观察，不先切卡 |
 | **时间测量假象** | 默认 smoke 全短句，`duration` 0–3；容易被误读成“时间钉死” | 跑 `--long` 长动作探针；等雨 4 小时已给 240，睡整夜给过 480；不要加强制下限 |
 
@@ -79,7 +79,7 @@
 
 | 候选 | 现在做它的理由 | 先看什么 |
 | :--- | :--- | :--- |
-| 空结果 / 物质流 | 三次 20 拍空结果 77% / 60.6% / 71%、transfer 8 / 10 / 9；单次波动大，先用分布看，不追单点 | [baseline-22.md](../research/baseline-22.md) |
+| 空结果 / 物质流 | 三次 20 拍空结果 77% / 60.6% / 71%、transfer 8 / 10 / 9；C7 后 12 拍 coat/rag 已被裁判使用，但台面内坐标仍未建模 | [baseline-22.md](../research/baseline-22.md)、[props-12.md](../research/props-12.md) |
 | storylet 骨架与账本状态的相容性（冻结中） | R1 后逐条核对：14 条拒绝里绝大多数有账本依据，瓶颈是骨架没把"闩着/完好/没受力"写进 `when` | [storylet-probe.md](../research/storylet-probe.md) §18 |
 | 世界事件与玩家主张的优先级 | 关键词避让已证伪，但"玩家动作被顶掉"仍没有规则 | [storylet-probe.md](../research/storylet-probe.md) §12 §14 |
 | 折场时压 experience | 上下文预算吃紧时 | `recall` 的检索权重 |
