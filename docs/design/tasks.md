@@ -5,19 +5,10 @@
 
 ## 当前批次
 
-### C9 作者改名后的旧称呼提示
+没有卡片。
 
-**目标**：作者在本次编辑里改 `places`/`names`/`items` 显示名后，如果 `core`/`voice`/`beliefs`/`drives`/`canon`/`opening`/`scene`/`title` 里还出现旧名，给非阻断提示；不自动改正文。
+T2–T5、D、A1/A2、M1、S1、B1、C1、C2、C3、C4、C5、C6、C7、C8、C9、20 拍基线（baseline-23）、定向 focus（focus-20）、道具 smoke（props-12）与作者旧称呼提示（C9）已完成并合并：世界切片、开场、claim 语义、旁白编排、去模板化、`settled` 进度、状态行与“等一会儿”、陈设承载物品、动作提示、硬聚焦、作者 places/names/items 表单、实验双花检测、三次同条件 20 拍基线、20 拍定向 focus、道具入账与带道具 20 拍基线。证据见 [../research/t2t3-smoke.md](../research/t2t3-smoke.md)、[../research/t4t5-smoke.md](../research/t4t5-smoke.md)、[../research/d-detemplate-smoke.md](../research/d-detemplate-smoke.md)、[../research/m1-fixtures-smoke.md](../research/m1-fixtures-smoke.md)、[../research/s1-suggest-smoke.md](../research/s1-suggest-smoke.md)、[../research/b1-focus-smoke.md](../research/b1-focus-smoke.md)、[../research/conflict-detector.md](../research/conflict-detector.md)、[../research/baseline-22.md](../research/baseline-22.md)、[../research/focus-20.md](../research/focus-20.md)、[../research/props-12.md](../research/props-12.md)、[../research/baseline-23.md](../research/baseline-23.md) 与 [../research/stale-names-browser.md](../research/stale-names-browser.md)；A1/A2/S1/B1/C1/C2/C9 另做过真浏览器验证。
 
-**范围**：
-- 新增纯函数（`packages/web/src/author/stale-names.ts`）：比较编辑前/后的三类显示名；扫描正文；旧名出现在新名内部（如“安”→“安妮”）不算残留。
-- `ContentEditor` 在首次读取时保存一份编辑前快照；改名后渲染 `Alert type=warning`，提示“保存不会自动替换”，保存按钮仍可用。
-- 测试：纯函数覆盖前缀/多处/未改名；ContentEditor 覆盖提示出现且保存仍提交。
-- 文档：`ui/DESIGN.md` 内容面板、`CHANGELOG.md`；真浏览器验证一次。
+成交/解锁探针：baseline-20 第 6 拍已完整成交一杯威士忌；8 拍偷钥匙/开铁盒全部被角色守住（内容 gate，不是 op 缺陷）。空结果分类：77 条里 52 纯说话、17 姿态、1 同拍净变化为零、7 道具/位置；C7 后外套/抹布已可入账，台面内坐标仍不建模。
 
-**不做**：不改正文/服务端校验/保存行为；不持久化旧名历史（重开表单后无法再检测此前改名）。
-
-**验收**：`pnpm test`、`pnpm typecheck`、`pnpm build`；真浏览器改 `ann` 显示名后看到提示，保存仍可用；测试后恢复内容/数据。
-
-**依赖**：C8 之后；独立 commit。
-
+C1/C2 的结果：作者壳可改 `places`/`names`/`items` 显示值，空地点名/物品名被 `validatePack` 拒绝；真浏览器保存→开新局后玩家状态行显示“雨夜酒馆 / 安妮”，items 保存写盘；C9 改名后旧称呼提示非阻断。376 测试、typecheck、build 绿。三次 baseline 的段落 ≤3 为 17/12/16（中位数 16），空结果 77%/60.6%/71%，`facts/beat` 0.55/1.25/0.80，后两次 hard/double 0/0；focus-20 空结果 47.5%、段落 20/20、hard/double 0/0；baseline-23（带道具）空结果 69%、transfer 13、hard/double 0/0；时间探针 240/480 分钟。下一批候选在 [backlog.md](backlog.md) §5；切卡前先定优先级。
