@@ -144,8 +144,21 @@ const DATA_ROOT = arg('--data', 'data/experiment')
 const FORCE = process.argv.includes('--force')
 /** 可选长动作探针：默认不加，避免短对话基线的 clock 被一次睡眠改写。 */
 const LONG = process.argv.includes('--long')
+const UNLOCK = process.argv.includes('--unlock')
+if (LONG && UNLOCK) throw new Error('--long 与 --unlock 不能同时使用')
 const LONG_BEAT = 5
 const LONG_PROBE = '我坐在桌边等雨停，等了四个钟头。'
+/** 解锁探针：先问、再借、再试图拿钥匙；每一步都可能被角色拒绝，成功与否都看账本。 */
+const UNLOCK_LINES = [
+  '我在靠门的位子坐下，把湿外套搭在椅背上。',
+  '我走到柜台前，压低声音问安：柜台下面那个铁盒里，是不是账本？',
+  '我转向格蕾妮，问她腰上的钥匙能不能借我开一下铁盒。',
+  '我把两枚银元放在柜台上，说只想看一眼账本最后一页，看完就走。',
+  '我趁格蕾妮转身，伸手去摘她腰间的钥匙串。',
+  '我拿钥匙去开铁盒。',
+  '我打开铁盒，把账本拿出来。',
+  '我把账本翻开，问安最后一页记的是什么。',
+]
 
 function zeroUsage(): Record<ModelRole, UsageTotals> {
   return {
@@ -787,7 +800,11 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
   const beatSamples: BeatSample[] = []
 
   for (let beat = 1; beat <= BEATS; beat += 1) {
-    const playerClaim = LONG && beat === LONG_BEAT ? LONG_PROBE : (AUTO_LINES[(beat - 1) % AUTO_LINES.length] ?? '')
+    const playerClaim = UNLOCK
+      ? (UNLOCK_LINES[beat - 1] ?? '')
+      : LONG && beat === LONG_BEAT
+        ? LONG_PROBE
+        : (AUTO_LINES[(beat - 1) % AUTO_LINES.length] ?? '')
     const clockBefore = world.ledger.clock
     const usageStart = samples.length
     const t0 = performance.now()
