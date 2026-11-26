@@ -139,6 +139,30 @@ describe('POST /beat：对谁说（to）', () => {
     }
   })
 
+  it('没发 to 但正文里只提到一个人：那个人就是聚焦目标', async () => {
+    const res = await post(session(stubLlm()), '{"text":"我走到安面前，把银元放下。"}')
+    const passage = JSON.parse(dataOf(await res.text(), 'passage')[0] ?? '{}') as { playerTo?: string }
+    expect(passage.playerTo).toBe('安')
+  })
+
+  it('没发 to 但正文里提到两个人：不猜，仍是所有人', async () => {
+    const res = await post(session(stubLlm()), '{"text":"我对安和科迪说话。"}')
+    const passage = JSON.parse(dataOf(await res.text(), 'passage')[0] ?? '{}') as { playerTo?: string }
+    expect(passage).not.toHaveProperty('playerTo')
+  })
+
+  it('显式 to 优先：正文只提到安，to 点的是科迪', async () => {
+    const res = await post(session(stubLlm()), '{"text":"我看看安，却什么也没说。","to":"科迪"}')
+    const passage = JSON.parse(dataOf(await res.text(), 'passage')[0] ?? '{}') as { playerTo?: string }
+    expect(passage.playerTo).toBe('科迪')
+  })
+
+  it('显式 to 对不上人不回退自动聚焦：正文提到安也仍是所有人', async () => {
+    const res = await post(session(stubLlm()), '{"text":"我朝安那边喊了一声。","to":"不存在"}')
+    const passage = JSON.parse(dataOf(await res.text(), 'passage')[0] ?? '{}') as { playerTo?: string }
+    expect(passage).not.toHaveProperty('playerTo')
+  })
+
   it('to 不是字符串：400 E_INVALID_BODY', async () => {
     for (const body of ['{"text":"我推门进去。","to":1}', '{"text":"我推门进去。","to":null}', '{"text":"我推门进去。","to":{}}']) {
       const res = await post(session(stubLlm()), body)

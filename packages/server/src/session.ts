@@ -42,6 +42,7 @@ import {
   type World,
 } from '@ai-world/core'
 import { contentHash, loadContentPack } from '@ai-world/content'
+import { inferFocus } from './focus.ts'
 import { emptyUsage, withBeatScope, type BeatSink } from './llm.ts'
 
 export interface SessionOptions {
@@ -175,13 +176,24 @@ export function createSession(opts: SessionOptions): Session {
     if (name === '') return {}
     const failed = (why: string): { note: string } => ({ note: `聚焦失败（本拍按所有人结算）：${why}` })
     if (name === pack.names[pack.player]) return failed('目标是玩家自己')
-    const place = state.world.ledger.at[pack.player] ?? ''
-    const hits = roster(pack).filter(
-      (ent) => ent !== pack.player && (state.world.ledger.at[ent] ?? '') === place && pack.names[ent] === name,
-    )
+    const hits = presentPeople(pack, state.world).filter((ent) => pack.names[ent] === name)
     const only = hits[0]
     if (hits.length === 1 && only !== undefined) return { focus: only }
     return hits.length === 0 ? failed(`当前地点没有叫「${name}」的人`) : failed(`「${name}」重名，无法唯一匹配`)
+  }
+
+  /**
+   * 没发 `to` 时的自动聚焦（C10）：按玩家原话里的唯一人名补目标。
+   * 显式 `to` 失效时**不**走到这里——那是玩家点错了人，静默改成别人比“所有人”更糟。
+   */
+  function inferFocusFromClaim(text: string, note: string | undefined): EntId | undefined {
+    if (note !== undefined) return undefined
+    return inferFocus({
+      text,
+      people: presentPeople(pack, state.world),
+      names: pack.names,
+      ...(pack.aliases === undefined ? {} : { aliases: pack.aliases }),
+    })
   }
 
   function content(): ContentStatusView {
@@ -264,8 +276,10 @@ export function createSession(opts: SessionOptions): Session {
   ): Promise<BeatOutcome> {
     if (busy) throw coded('E_BEAT_IN_FLIGHT', '上一拍还在结算')
     busy = true
-    // 聚焦先解析：对不上就退回所有人并留注记，不阻挠本拍（决策 #48）
-    const { focus, note: focusNote } = resolveFocus(to)
+    const playerClaim = clip(text)
+    // 聚焦先解析：显式 to 优先；对不上就退回所有人并留注记，不阻挠本拍（决策 #48）
+    const { focus: explicit, note: focusNote } = resolveFocus(to)
+    const focus = explicit ?? inferFocusFromClaim(playerClaim, focusNote)
     const startedAt = performance.now()
     // 客户端断开与总时限合成一个 signal：超时走与模型失败同一条降级路径，世界不动
     const deadline = AbortSignal.timeout(opts.timeoutMs ?? BEAT_TIMEOUT_MS)
@@ -281,7 +295,6 @@ export function createSession(opts: SessionOptions): Session {
       calls: [],
     }
     const scoped = withBeatScope(opts.llm, signal, sink)
-    const playerClaim = clip(text)
     try {
       const res = await runBeat({
         world: state.world,
@@ -394,6 +407,12 @@ export function createSession(opts: SessionOptions): Session {
 /** 场景参与者：玩家 + 内容包里的人物（账本里的灯、门不算人）。 */
 function roster(pack: ContentPack): EntId[] {
   return [pack.player, ...pack.characters.map((c) => c.id)]
+}
+
+/** 玩家当前地点的人物（不含玩家自己）：聚焦的候选集。 */
+function presentPeople(pack: ContentPack, world: World): EntId[] {
+  const place = world.ledger.at[pack.player] ?? ''
+  return roster(pack).filter((ent) => ent !== pack.player && (world.ledger.at[ent] ?? '') === place)
 }
 
 /**
