@@ -174,7 +174,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
         </section>
 
         <section className="mb-8 flex flex-col gap-3">
-          <h3 className="text-meta text-ink-soft">地点与显示名</h3>
+          <h3 className="text-meta text-ink-soft">地点、实体与物品显示名</h3>
           <div className="flex flex-col gap-2">
             <h4 className="text-meta text-ink-soft">places</h4>
             {Object.entries(pack.world?.places ?? {}).map(([id, name]) => (

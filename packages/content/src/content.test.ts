@@ -44,6 +44,16 @@ describe('validatePack', () => {
       items: Object.fromEntries(Object.entries(pack.items).filter(([id]) => id !== 'whiskey')),
     }
     expect(validatePack(missing)).toEqual(['物品 whiskey 缺少显示名'])
+
+    // cup 被柜台和桌子同时持有：缺键也只能报一次
+    const noCup: ContentPack = {
+      ...pack,
+      items: Object.fromEntries(Object.entries(pack.items).filter(([id]) => id !== 'cup')),
+    }
+    expect(validatePack(noCup).filter((line) => line === '物品 cup 缺少显示名')).toHaveLength(1)
+
+    // 形状不对时不按条目遍历，也不抛
+    expect(validatePack({ ...pack, items: 'abc' as unknown as Record<string, string> })).toContain('items 必须是对象')
   })
 
   it('core 过长、heat 越界、实体不在 at 里：三处各报一条，互不遮蔽', () => {
