@@ -31,6 +31,15 @@ interface EditableCharacter {
 }
 
 /**
+ * `world` 里只有 `places` 会动（id → 人读的名字）；`ledger`/`facts`/`ambient` 与以后加的键
+ * 一律靠展开原样带回，不在这里声明。
+ */
+export interface EditableWorld {
+  places?: Record<string, string>
+  [key: string]: unknown
+}
+
+/**
  * 作者壳自己声明的最小内容包类型：web 拿不到 `@ai-world/core`，也不能为此加依赖。
  * 只列出会动的字段；没声明的字段靠展开复制原样回到提交的 JSON 里。
  */
@@ -38,7 +47,7 @@ export interface EditablePack {
   title: string
   opening?: string
   scene?: string
-  world: unknown
+  world: EditableWorld
   characters: EditableCharacter[]
   canon: string[]
   player: string
@@ -102,6 +111,16 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
     })
   }
 
+  function updatePlace(id: string, name: string): void {
+    if (pack === null) return
+    setPack({ ...pack, world: { ...pack.world, places: { ...pack.world.places, [id]: name } } })
+  }
+
+  function updateName(id: string, name: string): void {
+    if (pack === null) return
+    setPack({ ...pack, names: { ...pack.names, [id]: name } })
+  }
+
   function updateCanon(index: number, line: string): void {
     if (pack === null) return
     setPack({ ...pack, canon: pack.canon.map((item, i) => (i === index ? line : item)) })
@@ -147,6 +166,34 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
               onChange={(event) => setPack({ ...pack, scene: event.target.value })}
             />
           </LabeledField>
+        </section>
+
+        <section className="mb-8 flex flex-col gap-3">
+          <h3 className="text-meta text-ink-soft">地点与显示名</h3>
+          <div className="flex flex-col gap-2">
+            <h4 className="text-meta text-ink-soft">places</h4>
+            {Object.entries(pack.world.places ?? {}).map(([id, name]) => (
+              <LabeledField key={id} label={id}>
+                <Input
+                  value={name}
+                  aria-label={`地点 ${id} 的显示名`}
+                  onChange={(event) => updatePlace(id, event.target.value)}
+                />
+              </LabeledField>
+            ))}
+          </div>
+          <div className="flex flex-col gap-2">
+            <h4 className="text-meta text-ink-soft">names</h4>
+            {Object.entries(pack.names).map(([id, name]) => (
+              <LabeledField key={id} label={id}>
+                <Input
+                  value={name}
+                  aria-label={`实体 ${id} 的显示名`}
+                  onChange={(event) => updateName(id, event.target.value)}
+                />
+              </LabeledField>
+            ))}
+          </div>
         </section>
 
         <section className="mb-8">
