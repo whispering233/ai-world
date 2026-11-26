@@ -46,39 +46,37 @@
 | 孤独无变化 | 独处一整天毫无变化 | 长动作签名阈值未生效 |
 | **phys 键漂移** | 同一状态多种键（`closed` / `bolted`），或键里塞了位置（`blocking_counter`） | 开放口袋 + 无登记；`apply` 不校验键名 |
 | **phys 键粘住** | 只写过 `true`、从没写回 `false`（`door.bolted`） | 键没有解除动作，账本也没有状态过期机制 |
-| **事实残留脏数据** | `facts/beat` 仍高于 1.0：动作细节、重复寒暄、主语归属错 | 已加可选 `actor`/`kind`，但字段覆盖不等于语义正确；旧 fact 仍靠文本，密度也尚未重测 |
-| **物质流薄** | 有 `transfer`/`consume`，但净持有变化很小，远少于 `know/fact` | M1 后 12 拍 material 7、5/5 `transfer` 涉及陈设；baseline-20 第 6 拍已成交一杯威士忌；铁盒解锁是角色 gate |
-| **知识通胀** | `know` 占全部写操作七成以上 | 2026-11-26 的 20 拍只有 2/21（9.5%），**未复现**；继续观察，不先切卡 |
+| **事实残留脏数据** | `facts/beat` 高于 1.0：动作细节、重复寒暄、主语归属错 | 已加可选 `actor`/`kind`，但字段覆盖不等于语义正确；baseline-21 为 1.25，重复/语义问题仍需人工抽样 |
+| **物质流薄** | 有 `transfer`/`consume`，但净持有变化很小，远少于 `know/fact` | M1 后 12 拍 material 7、5/5 `transfer` 涉及陈设；baseline-20 第 6 拍已成交一杯威士忌；baseline-21 transfer 10、consume 0；铁盒解锁是角色 gate |
+| **知识通胀** | `know` 占全部写操作七成以上 | 2026-11-26 两次 20 拍分别 2/21（9.5%）与 0/39（0%），**未复现**；继续观察，不先切卡 |
 | **时间测量假象** | 默认 smoke 全短句，`duration` 0–3；容易被误读成“时间钉死” | 跑 `--long` 长动作探针；等雨 4 小时已给 240，睡整夜给过 480；不要加强制下限 |
 
-## 4. 20 拍回归基线（2026-11-26）
+## 4. 20 拍回归基线（baseline-21，2026-11-26）
 
-命令：`experiment-multi-round.ts --beats 20 --mode baseline --tag baseline-20 --force`；默认短句，不含 `--long`。完整证据见 [baseline-20.md](../research/baseline-20.md)，长动作见 [time-probe-smoke.md](../research/time-probe-smoke.md)。
+命令：`experiment-multi-round.ts --beats 20 --mode baseline --tag baseline-21 --force`；默认短句，C3 新检测器。完整证据见 [baseline-21.md](../research/baseline-21.md)；上一轮 [baseline-20.md](../research/baseline-20.md) 保留为历史口径（旧检测器，hard/double 不可直接对比）。
 
-| 项 | 值 | 说明 |
+| 项 | baseline-21 | baseline-20（旧检测器） |
 | :--- | :--- | :--- |
-| 拍数 / 折场 | 20 / 1 | 第 12 拍末折场 |
-| `clock` 推进 | 30 分钟 | 默认短句，无长动作 |
-| 裁决 / `no_rate` | 100 / 5.0% | 低于 15% 下限，拒绝偏少 |
-| 空结果占比 | 77.0% | 纯对话没有 delta 仍是常态 |
-| duration 分桶 | 0–3: 100 | 短句基线；长动作另测 240/480 |
-| 提交 claim | 95 / 100 | 5 条被拒绝；item/持有错误 0 |
-| 写操作 | `fact` 11、`transfer` 8、`phys` 2、`know` 2、`rel` 0、`consume` 0、`move` 0 | 物质仍以杯子/银元为主 |
-| `facts/beat` | **0.55** | 首次低于 1.0 |
-| `fact/claim` | 0.11 | 比 W3 的 0.99 低 |
-| `know_rate` | 9.5%（2/21） | 当前样本没有知识通胀 |
-| 硬冲突 / 双花 | 1 / 1（第 17 拍） | **旧口径**；当时 `detectConflicts` 用拍前持有核对整拍，误报。C3 已改为按 `commit` 结算，旧数字不可与新指标直接对比 |
-| 动作提示 | 20/20 拍，60 条 | 无 id/引擎词 |
-| 段落 ≤3 的拍 | 17/20 | 3 拍为 4 段 |
-| 每拍墙钟 | 60.9s | 输入 248.4k / 输出 151.5k |
+| 拍数 / 折场 | 20 / 1（第 12 拍末） | 20 / 1 |
+| `clock` 推进 | 27 分钟 | 30 分钟 |
+| 裁决 / `no_rate` | 99 / 7.1% | 100 / 5.0% |
+| 空结果占比 | **60.6%** | 77.0% |
+| 写操作 | `fact` 25、`transfer` 10、`phys` 3、`rel` 1、`know` 0 | `fact` 11、`transfer` 8、`phys` 2、`know` 2 |
+| `facts/beat` | **1.25** | 0.55 |
+| `fact/claim` | 0.25 | 0.11 |
+| `know_rate` | 0%（0/39） | 9.5%（2/21） |
+| 硬冲突 / 双花 | **0 / 0** | 1 / 1（旧检测器误报） |
+| 动作提示 | 20/20 拍，60 条 | 20/20 拍，60 条 |
+| 段落 ≤3 的拍 | **12/20** | 17/20 |
+| 每拍墙钟 | 54.8s | 60.9s |
 
-旧 `world-baseline`（2026-11-21，含 480 分钟长动作）的 11.0% / 60.0% / 1.20 已不能直接对比；它只保留为历史证据，后续判据用本表和 [time-probe-smoke.md](../research/time-probe-smoke.md)。
+旧 `world-baseline`（2026-11-21，含 480 分钟长动作）的 11.0% / 60.0% / 1.20 不能直接对比；长动作见 [time-probe-smoke.md](../research/time-probe-smoke.md)。
 
 ## 5. 下一步候选（按性价比排序）
 
 | 候选 | 现在做它的理由 | 先看什么 |
 | :--- | :--- | :--- |
-| 空结果 / 物质流 | 2026-11-26 的 20 拍：空结果 77%、transfer 8、no_rate 5%；时间与知识通胀都不是当前主要问题 | [baseline-20.md](../research/baseline-20.md) |
+| 空结果 / 物质流 | 2026-11-26 的 baseline-21：空结果 60.6%、transfer 10、no_rate 7.1%；时间与知识通胀都不是当前主要问题 | [baseline-21.md](../research/baseline-21.md) |
 | storylet 骨架与账本状态的相容性（冻结中） | R1 后逐条核对：14 条拒绝里绝大多数有账本依据，瓶颈是骨架没把"闩着/完好/没受力"写进 `when` | [storylet-probe.md](../research/storylet-probe.md) §18 |
 | 世界事件与玩家主张的优先级 | 关键词避让已证伪，但"玩家动作被顶掉"仍没有规则 | [storylet-probe.md](../research/storylet-probe.md) §12 §14 |
 | 折场时压 experience | 上下文预算吃紧时 | `recall` 的检索权重 |
