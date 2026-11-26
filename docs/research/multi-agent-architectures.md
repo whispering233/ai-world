@@ -203,6 +203,6 @@ pnpm experiment:multi-round -- --beats 6 --mode all --tag pilot-1
 - [00-master-design](../design/00-master-design.md)：决策 #5、#25、#30，§7 “不做第二写入口 / 不做多 agent 自由写世界”
 - [10-world-model](../design/10-world-model.md)：三表、五条不变式、记忆不对称
 - [20-referee](../design/20-referee.md)：裁判契约、批量结算、三种 verdict
-- [50-llm](../design/50-llm.md)：pi-ai 接入、三个模型角色、缓存前缀
+- [50-llm](../design/50-llm.md)：pi-ai 接入、四个模型角色、缓存前缀
 - [backlog](../design/backlog.md)：storylet/导演层、per-character agent、作者/调试模式
 - [ui/DESIGN](../ui/DESIGN.md)：玩家阅读面布局

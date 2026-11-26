@@ -19,7 +19,7 @@ pnpm test          # vitest，全绿才能提交
 ## 2. 服务端与阅读面
 
 ```sh
-pnpm dev:server   # http://127.0.0.1:8787，持有世界内存态；启动日志打印三个角色的模型串
+pnpm dev:server   # http://127.0.0.1:8787，持有世界内存态；启动日志打印四个角色的模型串
 pnpm dev:web      # http://127.0.0.1:5173，/api 反代到 8787
 pnpm build        # vite build → packages/web/dist
 pnpm serve        # 单进程：API + 静态资源
@@ -103,7 +103,7 @@ config/models.json 显式值 > PI_MODEL 环境变量 > ~/.pi/agent/settings.json
 provider 一律取 settings.json 的 defaultProvider
 ```
 
-`config/models.json` 只写要覆盖的角色（`cognition` 人物认知 / `referee` 裁判 / `narration` 渲染）；三个角色缺省指向同一模型。启动第一行会打印实际使用的模型串，调错立刻可见。
+`config/models.json` 只写要覆盖的角色（`cognition` 人物认知 / `referee` 裁判 / `narration` 渲染 / `suggest` 动作提示）；四个角色缺省指向同一模型。启动第一行会打印实际使用的模型串，调错立刻可见。
 
 换供应商只改配置，不改代码。凭据从 `~/.pi/agent/auth.json` 只读解析，本程序不改写 pi 的登录状态。
 

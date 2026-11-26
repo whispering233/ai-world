@@ -13,10 +13,10 @@
 | 逐拍推进对白 | ✅ 每拍 50–70 秒（真实模型，并发认知 + 裁判 + 渲染） |
 | 可验证账本 | ✅ 所在 / 持有 / 物质键 / 关系 / 知识 / 结构化事实，全部可重放 |
 | 叙事只增不改 | ✅ 已发出的正文不回改 |
-| 时间流动 | ⚠️ 以最长的动作推进；20 拍实测推进约 9 小时（含一次 8 小时长动作） |
+| 时间流动 | ✅ 以最长的动作推进；默认 20 拍推进 27–32 分钟，长动作探针 240/480 分钟 |
 | 浏览器阅读面 | ✅ 单栏散文 + 按需抽屉，正文档位 17px / 1.85；上滚不抢位置，新拍到达可一键回底 |
 | 作者视图 | ✅ 三栏：拍列表 / 同一份正文 / claims·verdicts·账本·体检·内容编辑；**也能直接发拍** |
-| 物质流 / 知识通胀 | ⚠️ 已知偏薄，见 [backlog.md](docs/design/backlog.md) §1 |
+| 物质流 / 知识通胀 | ⚠️ 物质流已能成交（银元/威士忌/抹布/外套）；知识通胀未复现，见 [backlog.md](docs/design/backlog.md) §2 |
 
 ## 开始玩
 
@@ -54,7 +54,7 @@ pnpm play -- --beats 20 --fresh --auto   # 20 拍基线，出体检表
 
 前端 chrome 是 `antd` 6 + `@ant-design/x` 2（不自绘基础件）；层叠、色板与排版口径见 [docs/ui/DESIGN.md](docs/ui/DESIGN.md) §0。
 
-实验脚本（一次性，证据落 `data/`，不入库）：`scripts/experiment-storylet.ts`（`--run N` / `--report`）、`scripts/probe-storylet.ts`、`scripts/probe-storylet-fill.ts`；结论见 [docs/research/storylet-probe.md](docs/research/storylet-probe.md)。
+实验脚本（一次性，证据落 `data/`，不入库）：`scripts/experiment-multi-round.ts`（`--beats` / `--focus` / `--long` / `--unlock`）、`scripts/experiment-storylet.ts`（`--run N` / `--report`）、`scripts/probe-storylet.ts`、`scripts/probe-storylet-fill.ts`；结论见 [docs/research/storylet-probe.md](docs/research/storylet-probe.md) 与 [baseline-23.md](docs/research/baseline-23.md)。
 
 约束见 [AGENTS.md](AGENTS.md)：只有裁判能写账本、人物没有技能表、时间只有一个出口、玩家视图不出现引擎语义。
 

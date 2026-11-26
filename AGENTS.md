@@ -21,6 +21,8 @@
 - `BeatInput.claimSource` 是唯一的世界事件注入点（只读账本、产出仍是 claim）；storylet 冻结中，目前只有 `scripts/` 与测试在用。
 - `packages/content/` 只做内容加载与校验；世界内容本体是根 `content/<world>.json`（git 跟踪），不放规则。
 - 唯一能写文件的入口是 `POST /api/author/content`，且只写 `content/`；`data/` 只能由 store 追加。
+- 聚焦：显式 `to` 优先；没给 `to` 时按正文里唯一的在场显示名/别名自动推断；显式“所有人”用 `all:true`，与 `to` 互斥。只做名字匹配，不解析动作；单字显示名会误命中。
+- 小物（外套/抹布）走 `items`/`holds`；柜台/铁盒/钉子等陈设在 `ledger.at`。同一台面内的坐标不建模，换面才用 `transfer`。
 - 依赖方向单向：`shared ← core ← content ← server ← web`；`web` 只依赖 `shared`，由 pnpm 严格 node_modules 强制，不靠自觉。
 - 包入口是 `.ts` 源码（`exports` 指向 `src/index.ts`，无构建步骤）；发布时才逐包加 `build` 并把该包切到 `dist`。
 - `scripts/` 放可丢弃的驱动脚本：试玩器、测速。它们不进任何包。
@@ -46,6 +48,8 @@
 - `<html class="ai-world-theme">` 与 `AntdProvider` 的 `cssVar.key` 必须同字面量：antd 6 不把 `--ant-*` 注入 `:root`，不同步会让全站语义色静默变透明。
 - `@ant-design/cssinjs` 必须与 antd 内部读的同一实例（当前 2.2.0），否则 `<StyleProvider layer>` 静默失效（只有图标进层）。
 - 色值不许进组件：色板只在 `theme/AntdProvider.tsx`（浅 `defaultAlgorithm` / 深 `darkAlgorithm`，不自定 seed），组件里只用 `paper` / `paper-2` / `ink` / `ink-soft` / `rule` / `accent` 这几个映射名。
+- 目标 chips 必须区分 `自动` / `所有人` / 在场者：自动才推断，显式所有人发 `all:true`；不要退回“null = 所有人”的旧语义。
+- 作者改显示名后的旧称呼 warning 只比较本次表单会话，只提示、不自动改正文；单字名会误报。
 - antd 6 改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` 用 `orientation`、`Timeline` 用 `title`/`content`。写错只 `console.error`，界面照常。
 - `@ant-design/x` 的 `CodeHighlighter` 会给产物加 **+238 kB gzip**（`react-syntax-highlighter` + `mermaid`）：只用得着它的复制按钮就不值，除非代码只在已懒加载的作者壳里。
 - 正文档位（17px / 1.85 / 段距 24px / 列宽 40rem）在 `tokens.css`；jsdom 不算布局也不算层叠，UI 卡必须跑真浏览器。
@@ -61,6 +65,7 @@
 讨论与返工风险 → 更新 `docs/` → 切 `docs/design/tasks.md` 任务卡 → 临时 worktree + 分支执行 → 独立验证 → 清卡 → 合并。
 
 一次只做一张卡；每张卡独立 commit，可单独回滚。测试前清掉 `PI_MODEL`，否则环境变量会覆盖 settings，config 用例会假红。
+`docs/design/tasks.md` 只保留未完成卡片：完成后删除卡片，历史在 git/CHANGELOG，不把完成清单堆回临时文件。
 测试文件名只用 `.test.ts`：`vitest.config.ts` 的 `include` 不认 `.tsx`，组件测试用 `createElement` 写（`.tsx` 会被静默跳过，看着“全绿”其实一条没跑）。
 `scripts/play.ts` 与服务端共用 `data/<world>`，**没有锁**：跑试玩器前先确认服务没在跑，否则两边各自算 seq。
 

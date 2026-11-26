@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { effectiveTarget } from './target.ts'
 
 describe('effectiveTarget', () => {
-  it('没有目标时是所有人', () => {
+  it('没有具体目标时保留 null（自动/广播由状态决定）', () => {
     expect(effectiveTarget(null, ['安'])).toBeNull()
   })
 

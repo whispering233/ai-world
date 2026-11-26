@@ -23,7 +23,7 @@ packages/server   Hono + @hono/node-server
   ├── 有 journal → replay(journal, world) + replayCharacters(journal, characters)
   └── 无 journal → 用内容包的初始 world 与人物
 openScene（新场景，participants = 内容包全部人物 + 玩家）
-启动日志一行：监听地址、世界标题、拍数、三个角色的模型串
+启动日志一行：监听地址、世界标题、拍数、四个角色的模型串
 ```
 
 场景上下文**不落盘**，续跑从新场景开始；人物记忆由 `journal.experience` 复原。`play.ts` 按同样顺序 boot（`loadContentPack` → `replay` / `replayCharacters` → `openScene`），但 boot 与 CLI 循环各自持有，不共用 `session.ts`。

@@ -9,7 +9,7 @@
 | [20-referee.md](design/20-referee.md) | 裁判契约、批量结算、三种 verdict、体检指标 |
 | [30-cognition.md](design/30-cognition.md) | 人物四层、单次调用、成长三道闸、检索与预算 |
 | [40-time-and-loop.md](design/40-time-and-loop.md) | clock / busyUntil / 一拍、时长归属、时间唯一出口 |
-| [50-llm.md](design/50-llm.md) | pi-ai 接入、三个模型角色、Context 入档、测试策略 |
+| [50-llm.md](design/50-llm.md) | pi-ai 接入、四个模型角色、Context 入档、测试策略 |
 | [60-server.md](design/60-server.md) | 服务端进程、一拍生命周期、中止语义、内容生命周期、两种壳、包结构与组件方案 |
 | [backlog.md](design/backlog.md) | 延后项与触发条件、监控指标、已知失败模式、下一步候选、UI 待办（说话人分层、思考过程反馈） |
 | [build.md](design/build.md) | 环境、游玩、模型配置、产物位置、故障处理 |
@@ -39,7 +39,22 @@
 | [t2t3-smoke.md](research/t2t3-smoke.md) | T2/T3 合并后的 10 拍 smoke：拍速、no_rate、空结果、两个冲突的口径，以及对 T4/T5 的输入 |
 | [t4t5-smoke.md](research/t4t5-smoke.md) | T4/T5 合并后的 12 拍 smoke：NPC 拒绝归零、段落 2–5、折场一次、85% 空结果与 token 口径 |
 | [d-detemplate-smoke.md](research/d-detemplate-smoke.md) | D 去模板化后的 12 拍 smoke：`清了清` 12→5、段落 9/12 ≤3、78% 空结果与单次运行局限 |
-| [material-flow-audit.md](research/material-flow-audit.md) | 三份 journal 的物质流审计：只有银元/威士忌换手；缺“物品在某表面上”的状态，不是裁判不写 transfer |
+| [baseline-20.md](research/baseline-20.md) | 20 拍基线（C7 前，旧检测器）：空结果 77%、facts/beat 0.55；hard/double 1/1 为检测器误报 |
+| [baseline-21.md](research/baseline-21.md) | 新检测器 20 拍：空结果 60.6%、facts/beat 1.25、hard/double 0 |
+| [baseline-22.md](research/baseline-22.md) | 第三次同条件 20 拍：空结果 71%、段落 16/20、hard/double 0 |
+| [m1-fixtures-smoke.md](research/m1-fixtures-smoke.md) | 陈设承载物品 12 拍：transfer 5 全涉及柜台/桌子，硬冲突 0 |
+| [s1-suggest-smoke.md](research/s1-suggest-smoke.md) | 动作提示 12 拍：hints 36 条、无 id/引擎词 |
+| [b1-focus-smoke.md](research/b1-focus-smoke.md) | 显式硬聚焦：本拍只有玩家+目标的 claim |
+| [props-12.md](research/props-12.md) | 外套/抹布/钉子/盒盖 12 拍：coat/rag 真实落账，失败 op 0 |
+| [time-probe-smoke.md](research/time-probe-smoke.md) | 长动作探针：240/480 分钟，时间不钉死 |
+| [unlock-probe.md](research/unlock-probe.md) | 偷钥匙/开铁盒 8 拍：全被角色守住，解锁是内容 gate |
+| [empty-classification.md](research/empty-classification.md) | baseline-20 空结果分类：77% 主要不是缺陷 |
+| [baseline-23.md](research/baseline-23.md) | C7 后带道具的 20 拍基线：空结果 69%、transfer 13、hard/double 0；coat/rag 已入账 |
+| [focus-20.md](research/focus-20.md) | 20 拍定向 focus：claims=2、认知调用 20、空结果 47.5%、段落 20/20 ≤3 |
+| [auto-focus.md](research/auto-focus.md) | 没选目标时按正文唯一显示名/别名自动聚焦；单字名误命中 |
+| [explicit-all-browser.md](research/explicit-all-browser.md) | “自动 / 所有人”两态浏览器验证；显式所有人发 `all:true` |
+| [stale-names-browser.md](research/stale-names-browser.md) | 作者改名后的旧称呼 warning；非阻断、单字名误报 |
+| [material-flow-audit.md](research/material-flow-audit.md) | C7 前的物质流审计：只有银元/威士忌换手；缺“物品在某表面上”的状态。后续见 props-12 / baseline-23 |
 | [fact-structure.md](research/fact-structure.md) | fact 的 actor/kind 6 拍 smoke：10/10 覆盖、kind 分布与样本，不是密度回归 |
 | [storylet-probe.md](research/storylet-probe.md) | 裁判对非人 actor 世界事件的 6 次裁决；填肉 3 条；10 拍 A/B v1/v2/v3（v1 净收益为负，v2 落账 2/2 但空转拍未降，v3 顶掉玩家动作）；3 次重复与 R1 后重测（§16–§19）的结论：抽卡无收益，瓶颈在骨架与账本状态不相容 |
 
