@@ -36,6 +36,10 @@
 - `ann` 的 core 提到抹布，C7 同时给了 `ann.rag`；本轮没有出现“安抓不到抹布”的拒绝。
 - 12 拍不是回归证明；它只证明新内容在真实裁判回合里可用。
 
+## 后续
+
+带道具的完整 20 拍见 [baseline-23.md](baseline-23.md)：空结果 69.0%、transfer 13、hard/double 0/0。
+
 ## 风险
 
 - `strongbox.open` 与 `locked` 没有不变量；本轮没有触发矛盾，但以后需要观察 `locked=true + open=true`。

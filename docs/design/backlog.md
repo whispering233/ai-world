@@ -74,12 +74,16 @@
 
 `--focus` 只接 baseline，每拍轮换一个在场人物；20/20 拍 claims=2（玩家+目标），目标各 5 拍，没有退回所有人。认知调用 20（默认 80）、每拍 34.4s（默认 67.1s）、空结果 47.5%（默认 71.0%）、段落 20/20 ≤3（默认 16/20）；`facts/beat` 0.65（默认 0.80）、`transfer` 5（默认 9）。硬冲突/双花/失败 op 全 0。完整证据见 [focus-20.md](../research/focus-20.md)。
 
+### 4.2 带道具基线（baseline-23）
+
+C7 后内容：外套/抹布/钉子/铁盒盖。20 拍：墙钟 66.2s/拍、`no_rate` 6.0%、空结果 69.0%、`facts/beat` 0.85、`transfer` 13、hard/double 0/0、段落 15/20。外套 `player→hook`、两块抹布 `ann/granny→counter`、一块 `counter→strongbox` 各 1 次；`hook` 未被 move，`hard/double` 0。完整证据见 [baseline-23.md](../research/baseline-23.md)。
+
 
 ## 5. 下一步候选（按性价比排序）
 
 | 候选 | 现在做它的理由 | 先看什么 |
 | :--- | :--- | :--- |
-| 空结果 / 物质流 | 三次 20 拍空结果 77% / 60.6% / 71%、transfer 8 / 10 / 9；C7 后 12 拍 coat/rag 已被裁判使用，但台面内坐标仍未建模 | [baseline-22.md](../research/baseline-22.md)、[props-12.md](../research/props-12.md) |
+| 空结果 / 物质流 | C7 后 20 拍空结果 69%、transfer 13、`facts/beat` 0.85；coat/rag/hook 已被裁判使用，台面内坐标仍未建模 | [baseline-23.md](../research/baseline-23.md)、[props-12.md](../research/props-12.md) |
 | storylet 骨架与账本状态的相容性（冻结中） | R1 后逐条核对：14 条拒绝里绝大多数有账本依据，瓶颈是骨架没把"闩着/完好/没受力"写进 `when` | [storylet-probe.md](../research/storylet-probe.md) §18 |
 | 世界事件与玩家主张的优先级 | 关键词避让已证伪，但"玩家动作被顶掉"仍没有规则 | [storylet-probe.md](../research/storylet-probe.md) §12 §14 |
 | 折场时压 experience | 上下文预算吃紧时 | `recall` 的检索权重 |
