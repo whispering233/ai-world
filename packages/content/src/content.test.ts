@@ -66,6 +66,14 @@ describe('validatePack：账本子对象', () => {
     expect(validatePack({ world: { ledger: { at: [] } } } as unknown as ContentPack)).toEqual(['world.ledger.at 缺失'])
   })
 
+  it('地点显示名为空时拒绝保存', () => {
+    const broken: ContentPack = {
+      ...pack,
+      world: { ...pack.world, places: { ...pack.world.places, saloon: '' } },
+    }
+    expect(validatePack(broken)).toContain('地点 saloon 缺少显示名')
+  })
+
   it('坏掉的 clock / holds / phys / rel / knows 各报一条', () => {
     const broken: ContentPack = {
       ...pack,

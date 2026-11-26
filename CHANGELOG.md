@@ -10,6 +10,7 @@
 - `packages/web/src/shell/composer.test.ts`：`Sender` 的 Enter 发送 / Shift+Enter 换行 / 流式期间不可重复发送。
 - 开发者依赖：`jsdom` + `@testing-library/react`（只需 stub `matchMedia` 与 `ResizeObserver`）。
 - 作者视图也能发拍：两壳共用同一个 `Composer` 节点（`AuthorApp` 只多一个 `composer: ReactNode`），发送后作者投影跟着 `beats.length` 刷新。
+- 作者壳可直接编辑地点与实体显示名（`places` / `names` 的值，不改 id）；保存仍校验整份内容包。
 
 ### Changed
 - 等待中的形态：玩家那句话下面出现三条安静的骨架屏（`aria-hidden`，只表示“这一拍在生成”，不出现阶段名）；`prefers-reduced-motion` 下连同光标闪烁一起停掉动画。

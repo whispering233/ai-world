@@ -81,7 +81,6 @@
 | 空结果 / 物质流 | 2026-11-26 的 20 拍：空结果 77%、transfer 8、no_rate 5%；时间与知识通胀都不是当前主要问题 | [baseline-20.md](../research/baseline-20.md) |
 | storylet 骨架与账本状态的相容性（冻结中） | R1 后逐条核对：14 条拒绝里绝大多数有账本依据，瓶颈是骨架没把"闩着/完好/没受力"写进 `when` | [storylet-probe.md](../research/storylet-probe.md) §18 |
 | 世界事件与玩家主张的优先级 | 关键词避让已证伪，但"玩家动作被顶掉"仍没有规则 | [storylet-probe.md](../research/storylet-probe.md) §12 §14 |
-| `places`/`names` 进作者表单 | 显示名错一个字，正文就会漏 id | [api/30-api-author.md](../api/30-api-author.md) §3 |
 | 折场时压 experience | 上下文预算吃紧时 | `recall` 的检索权重 |
 | “被直接作用者”接线 | 聚焦模式已用 `focus` 占住调度（决策 #48，B1 已实现）；**玩家动手但不选目标**时，对方仍不会被叫到 | 口径未定：本拍谁被作用只有裁判之后才知道；只能取上一拍 deltas 或解析玩家原话 |
 | 玩家看不到自己被拒绝的理由 | 拒绝理由只进 NPC experience 与作者视图；玩家只能从正文推断 | 半天；先定是否给一句“为什么没成”，且不能泄漏 NPC 私有状态 |
