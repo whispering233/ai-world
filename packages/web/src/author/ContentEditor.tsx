@@ -3,6 +3,7 @@ import { Alert, Button, Collapse, Input, InputNumber } from 'antd'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ApiError, fetchAuthorContent, saveContent } from '../api.ts'
+import { staleDisplayNames } from './stale-names.ts'
 
 /** 表单里"标签在上、控件在下"只有这一种排法，就地为它写一个，不为它再立一个公共件。 */
 function LabeledField({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
@@ -63,6 +64,8 @@ export interface ContentEditorProps {
 /** 内容表单：只编辑作者字段，世界结构只读；保存是显式按钮，不做失焦保存。 */
 export function ContentEditor({ onSaved }: ContentEditorProps) {
   const [pack, setPack] = useState<EditablePack | null>(null)
+  // 编辑前快照只活这一份表单：重开表单就没有旧名可比，这是卡内接受的限制
+  const [initial, setInitial] = useState<EditablePack | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
 
@@ -72,7 +75,10 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
       (data) => {
         if (!alive) return
         try {
-          setPack(JSON.parse(data.text) as EditablePack)
+          const parsed = JSON.parse(data.text) as EditablePack
+          setPack(parsed)
+          // 再解析一次而不是 structuredClone：clone 失败不该被误报成“不是合法 JSON”
+          setInitial(JSON.parse(data.text) as EditablePack)
         } catch {
           setErrors(['磁盘上的内容包不是合法 JSON'])
         }
@@ -86,7 +92,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
     }
   }, [])
 
-  if (pack === null) {
+  if (pack === null || initial === null) {
     return (
       <div className="p-4">
         {errors.length === 0 ? (
@@ -97,6 +103,11 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
       </div>
     )
   }
+
+  // 改名后正文里的旧称呼：只用来提示，不拦截保存，也不改文本
+  const staleFields = staleDisplayNames(initial, pack).flatMap((entry) =>
+    entry.fields.map((field) => `${entry.from} → ${entry.to}：${field}`),
+  )
 
   function updateCharacter(index: number, patch: Partial<EditableCharacter>): void {
     if (pack === null) return
@@ -175,6 +186,22 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
 
         <section className="mb-8 flex flex-col gap-3">
           <h3 className="text-meta text-ink-soft">地点、实体与物品显示名</h3>
+          {staleFields.length > 0 && (
+            <Alert
+              type="warning"
+              showIcon
+              title="正文里还有改名前的旧称呼"
+              description={
+                <>
+                  <p>
+                    {staleFields.slice(0, 3).join('；')}
+                    {staleFields.length > 3 ? ` 等 ${staleFields.length - 3} 处` : ''}
+                  </p>
+                  <p>保存不会自动替换正文，旧称呼仍需手动改。</p>
+                </>
+              }
+            />
+          )}
           <div className="flex flex-col gap-2">
             <h4 className="text-meta text-ink-soft">places</h4>
             {Object.entries(pack.world?.places ?? {}).map(([id, name]) => (

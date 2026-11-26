@@ -148,6 +148,34 @@ describe('ContentEditor 的地点与显示名', () => {
     expect(submitted.futureNote).toEqual(pack.futureNote)
   }, 30_000)
 
+  it('改 ann 的显示名后提示正文里的旧称呼，保存仍提交（不阻断）', async () => {
+    // 默认包里 ann 的正文不含“安”，这里把旧称呼写进 core，才能看到提示
+    const stalePack = structuredClone(pack)
+    const ann = stalePack.characters[0]!
+    ann.core = '安擦杯子，不抬头。'
+    api.fetchAuthorContent.mockResolvedValueOnce({
+      text: JSON.stringify(stalePack, null, 2),
+      activeHash: 'h1',
+      diskHash: 'h1',
+    })
+
+    const onSaved = vi.fn()
+    const { unmount } = render(createElement(ContentEditor, { onSaved }))
+
+    fireEvent.change(await screen.findByLabelText('实体 ann 的显示名'), { target: { value: '安妮' } })
+    expect(await screen.findByText('正文里还有改名前的旧称呼')).toBeDefined()
+    expect(screen.getByText('安 → 安妮：ann 的 core')).toBeDefined()
+    expect(screen.getByText('保存不会自动替换正文，旧称呼仍需手动改。')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: /保\s*存/ }))
+    await waitFor(() => expect(api.saveContent).toHaveBeenCalledTimes(1))
+    expect(onSaved).toHaveBeenCalledTimes(1)
+    unmount()
+
+    const [text] = api.saveContent.mock.calls[0]! as [string]
+    expect((JSON.parse(text) as typeof pack).characters[0]!.core).toBe('安擦杯子，不抬头。')
+  }, 30_000)
+
   it('保存失败时显示服务端校验错误', async () => {
     api.saveContent.mockRejectedValueOnce(new ApiError('E_INVALID_CONTENT', '内容校验失败', ['地点 saloon 缺少显示名']))
     const { unmount } = render(createElement(ContentEditor, { onSaved: () => {} }))
