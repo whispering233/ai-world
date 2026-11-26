@@ -77,7 +77,8 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
         try {
           const parsed = JSON.parse(data.text) as EditablePack
           setPack(parsed)
-          setInitial(structuredClone(parsed))
+          // 再解析一次而不是 structuredClone：clone 失败不该被误报成“不是合法 JSON”
+          setInitial(JSON.parse(data.text) as EditablePack)
         } catch {
           setErrors(['磁盘上的内容包不是合法 JSON'])
         }
