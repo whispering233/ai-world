@@ -159,23 +159,33 @@ describe('validatePack：opening 与 scene', () => {
 })
 
 describe('STARTER_TOWN：物品位置（陈设）', () => {
-  it('柜台 / 铁盒 / 桌子都在 saloon，各自承载的物品与锁态正确', () => {
+  it('柜台 / 铁盒 / 桌子 / 钉子都在 saloon，各自承载的物品与锁态正确', () => {
     const { ledger } = pack.world
-    expect([ledger.at['counter'], ledger.at['strongbox'], ledger.at['table']]).toEqual(['saloon', 'saloon', 'saloon'])
+    expect([ledger.at['counter'], ledger.at['strongbox'], ledger.at['table'], ledger.at['hook']]).toEqual([
+      'saloon',
+      'saloon',
+      'saloon',
+      'saloon',
+    ])
     expect(ledger.holds['counter']).toEqual({ whiskey: 3, cup: 2 })
     expect(ledger.holds['strongbox']).toEqual({ 'ledger-book': 1 })
     expect(ledger.holds['table']).toEqual({ cup: 1 })
-    expect(ledger.phys['strongbox']).toEqual({ locked: true })
+    expect(ledger.holds['player']).toEqual({ 'silver-dollar': 2, coat: 1 })
+    expect(ledger.holds['granny']).toEqual({ keys: 1, rag: 1 })
+    expect(ledger.phys['strongbox']).toEqual({ locked: true, open: false })
     expect(pack.items['cup']).toBe('杯子')
+    expect(pack.items['coat']).toBe('湿外套')
+    expect(pack.items['rag']).toBe('抹布')
     expect(pack.names['counter']).toBe('柜台')
     expect(pack.names['strongbox']).toBe('铁盒')
     expect(pack.names['table']).toBe('桌子')
+    expect(pack.names['hook']).toBe('门边钉子')
   })
 
   it('陈设不是人物：ann 手上只有一只杯子，账本与酒瓶已挪到陈设上', () => {
-    expect(pack.world.ledger.holds['ann']).toEqual({ cup: 1 })
+    expect(pack.world.ledger.holds['ann']).toEqual({ cup: 1, rag: 1 })
     const people = new Set(pack.characters.map((c) => c.id))
-    for (const fixture of ['counter', 'strongbox', 'table']) expect(people.has(fixture)).toBe(false)
+    for (const fixture of ['counter', 'strongbox', 'table', 'hook']) expect(people.has(fixture)).toBe(false)
     expect(validatePack(pack)).toEqual([])
   })
 })
