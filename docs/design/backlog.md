@@ -51,32 +51,31 @@
 | **知识通胀** | `know` 占全部写操作七成以上 | 2026-11-26 两次 20 拍分别 2/21（9.5%）与 0/39（0%），**未复现**；继续观察，不先切卡 |
 | **时间测量假象** | 默认 smoke 全短句，`duration` 0–3；容易被误读成“时间钉死” | 跑 `--long` 长动作探针；等雨 4 小时已给 240，睡整夜给过 480；不要加强制下限 |
 
-## 4. 20 拍回归基线（baseline-21，2026-11-26）
+## 4. 20 拍回归基线（三次：baseline-20/21/22，2026-11-26）
 
-命令：`experiment-multi-round.ts --beats 20 --mode baseline --tag baseline-21 --force`；默认短句，C3 新检测器。完整证据见 [baseline-21.md](../research/baseline-21.md)；上一轮 [baseline-20.md](../research/baseline-20.md) 保留为历史口径（旧检测器，hard/double 不可直接对比）。
+命令：`experiment-multi-round.ts --beats 20 --mode baseline --tag baseline-2x --force`；默认短句。baseline-20 用旧检测器，hard/double 不可与后两次直接对比；完整证据见 [baseline-20.md](../research/baseline-20.md)、[baseline-21.md](../research/baseline-21.md)、[baseline-22.md](../research/baseline-22.md)。
 
-| 项 | baseline-21 | baseline-20（旧检测器） |
-| :--- | :--- | :--- |
-| 拍数 / 折场 | 20 / 1（第 12 拍末） | 20 / 1 |
-| `clock` 推进 | 27 分钟 | 30 分钟 |
-| 裁决 / `no_rate` | 99 / 7.1% | 100 / 5.0% |
-| 空结果占比 | **60.6%** | 77.0% |
-| 写操作 | `fact` 25、`transfer` 10、`phys` 3、`rel` 1、`know` 0 | `fact` 11、`transfer` 8、`phys` 2、`know` 2 |
-| `facts/beat` | **1.25** | 0.55 |
-| `fact/claim` | 0.25 | 0.11 |
-| `know_rate` | 0%（0/39） | 9.5%（2/21） |
-| 硬冲突 / 双花 | **0 / 0** | 1 / 1（旧检测器误报） |
-| 动作提示 | 20/20 拍，60 条 | 20/20 拍，60 条 |
-| 段落 ≤3 的拍 | **12/20** | 17/20 |
-| 每拍墙钟 | 54.8s | 60.9s |
+| 项 | baseline-20 | baseline-21 | baseline-22 |
+| :--- | ---: | ---: | ---: |
+| 拍数 / 折场 | 20 / 1 | 20 / 1 | 20 / 1 |
+| `clock` 推进 | 30 分钟 | 27 分钟 | 32 分钟 |
+| 裁决 / `no_rate` | 100 / 5.0% | 99 / 7.1% | 100 / 8.0% |
+| 空结果占比 | 77.0% | 60.6% | 71.0% |
+| `fact` / `transfer` / `phys` / `know` | 11 / 8 / 2 / 2 | 25 / 10 / 3 / 0 | 16 / 9 / 2 / 0 |
+| `facts/beat` | 0.55 | 1.25 | 0.80 |
+| `know_rate` | 9.5% | 0% | 0% |
+| 硬冲突 / 双花 | 1 / 1（旧检测器） | 0 / 0 | 0 / 0 |
+| 动作提示 | 20/20 拍，60 条 | 20/20 拍，60 条 | 20/20 拍，60 条 |
+| 段落 ≤3 的拍 | 17/20 | 12/20 | 16/20 |
+| 每拍墙钟 | 60.9s | 54.8s | 67.1s |
 
-旧 `world-baseline`（2026-11-21，含 480 分钟长动作）的 11.0% / 60.0% / 1.20 不能直接对比；长动作见 [time-probe-smoke.md](../research/time-probe-smoke.md)。
+旧 `world-baseline`（2026-11-21，含 480 分钟长动作）的 11.0% / 60.0% / 1.20 不能直接对比；长动作见 [time-probe-smoke.md](../research/time-probe-smoke.md)。三次段落中位数 16/20，不切结构化段落上限卡。
 
 ## 5. 下一步候选（按性价比排序）
 
 | 候选 | 现在做它的理由 | 先看什么 |
 | :--- | :--- | :--- |
-| 空结果 / 物质流 | 2026-11-26 的 baseline-21：空结果 60.6%、transfer 10、no_rate 7.1%；时间与知识通胀都不是当前主要问题 | [baseline-21.md](../research/baseline-21.md) |
+| 空结果 / 物质流 | 三次 20 拍空结果 77% / 60.6% / 71%、transfer 8 / 10 / 9；单次波动大，先用分布看，不追单点 | [baseline-22.md](../research/baseline-22.md) |
 | storylet 骨架与账本状态的相容性（冻结中） | R1 后逐条核对：14 条拒绝里绝大多数有账本依据，瓶颈是骨架没把"闩着/完好/没受力"写进 `when` | [storylet-probe.md](../research/storylet-probe.md) §18 |
 | 世界事件与玩家主张的优先级 | 关键词避让已证伪，但"玩家动作被顶掉"仍没有规则 | [storylet-probe.md](../research/storylet-probe.md) §12 §14 |
 | 折场时压 experience | 上下文预算吃紧时 | `recall` 的检索权重 |
