@@ -162,6 +162,8 @@ export interface PostBeatOptions {
   onFrame: (frame: BeatFrame) => void
   /** “对谁说”的在场者显示名；缺省 = 所有人（docs/api/20-api-beat.md §1） */
   to?: string
+  /** 显式「所有人」（C11）：与 `to` 互斥，二选一由调用方保证，这里不抛也不纠正 */
+  all?: boolean
 }
 
 /**
@@ -172,7 +174,12 @@ export async function postBeat(text: string, options: PostBeatOptions): Promise<
   const response = await fetch('/api/beat', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(options.to === undefined ? { text } : { text, to: options.to }),
+    // 空 `to` 与 `all:false` 都不上车：body 里只有真正生效的那个意图
+    body: JSON.stringify({
+      text,
+      ...(options.to === undefined || options.to === '' ? {} : { to: options.to }),
+      ...(options.all === true ? { all: true } : {}),
+    }),
     signal: options.signal,
   })
   if (!response.ok || response.body === null) {

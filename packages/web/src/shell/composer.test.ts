@@ -52,8 +52,12 @@ async function mount(options: {
   inFlight?: boolean
   settled?: boolean
   state?: PlayerStateView
-  /** “对谁说”的当前目标；`null` = 所有人 */
+  /** “对谁说”当前点名的显示名；`null` = 没点名 */
   target?: string | null
+  /** 「自动」选中态；缺省与 App 一致：没点名且不是显式所有人 */
+  auto?: boolean
+  /** 显式所有人选中态；缺省 false */
+  explicitAll?: boolean
   hints?: string[]
 }) {
   const { Composer } = await import('./Composer.tsx')
@@ -62,6 +66,10 @@ async function mount(options: {
   const onWait = vi.fn()
   const onDraftChange = vi.fn()
   const onTargetChange = vi.fn()
+  const onAuto = vi.fn()
+  const onAll = vi.fn()
+  const target = options.target ?? null
+  const explicitAll = options.explicitAll ?? false
   const { container, unmount } = render(
     createElement(Composer, {
       draft: options.draft,
@@ -73,14 +81,18 @@ async function mount(options: {
       settled: options.settled ?? false,
       elapsedMs: 0,
       state: options.state,
-      target: options.target ?? null,
+      target,
+      auto: options.auto ?? (!explicitAll && target === null),
+      explicitAll,
       onTargetChange,
+      onAuto,
+      onAll,
       ...(options.hints === undefined ? {} : { hints: options.hints }),
     }),
   )
   const textarea = container.querySelector('textarea')
   if (textarea === null) throw new Error('Sender 没有渲染出 textarea')
-  return { container, textarea, onSend, onStop, onWait, onDraftChange, onTargetChange, unmount }
+  return { container, textarea, onSend, onStop, onWait, onDraftChange, onTargetChange, onAuto, onAll, unmount }
 }
 
 function waitButton(container: HTMLElement): HTMLButtonElement | undefined {
@@ -258,18 +270,30 @@ describe('Composer 的目标 chips', () => {
     )
   }
 
-  it('状态行右侧是「所有人」+ 在场者显示名', async () => {
+  function checked(chip: HTMLElement | undefined): boolean {
+    return chip?.className.includes('ant-tag-checkable-checked') === true
+  }
+
+  it('状态行右侧是「自动」+「所有人」+ 在场者显示名', async () => {
     const { container, unmount } = await mount({ draft: '', state: { ...playerState, here: ['安', '道森医生'] } })
-    for (const label of ['所有人', '安', '道森医生']) expect(chipOf(container, label)).toBeDefined()
+    for (const label of ['自动', '所有人', '安', '道森医生']) expect(chipOf(container, label)).toBeDefined()
     // 每个人只是一个 chip，不多出“你”自己
-    expect(container.querySelectorAll('.ant-tag-checkable')).toHaveLength(3)
+    expect(container.querySelectorAll('.ant-tag-checkable')).toHaveLength(4)
     unmount()
   })
 
-  it('没人在场时只剩「所有人」', async () => {
+  it('没人在场时只剩「自动」与「所有人」', async () => {
     const { container, unmount } = await mount({ draft: '', state: { ...playerState, here: [] } })
+    expect(chipOf(container, '自动')).toBeDefined()
     expect(chipOf(container, '所有人')).toBeDefined()
-    expect(container.querySelectorAll('.ant-tag-checkable')).toHaveLength(1)
+    expect(container.querySelectorAll('.ant-tag-checkable')).toHaveLength(2)
+    unmount()
+  })
+
+  it('默认选中「自动」，不同时选中在场者', async () => {
+    const { container, unmount } = await mount({ draft: '', state: playerState })
+    expect(checked(chipOf(container, '自动'))).toBe(true)
+    expect(checked(chipOf(container, '安'))).toBe(false)
     unmount()
   })
 
@@ -281,28 +305,58 @@ describe('Composer 的目标 chips', () => {
     unmount()
   })
 
-  it('点「所有人」回到 null', async () => {
-    const { container, onTargetChange, onSend, unmount } = await mount({ draft: '我推门进去。', state: playerState, target: '安' })
+  // 「所有人」不是「自动」的别名：它走另一个回调，服务端才不推测（C11）
+  it('点「所有人」调用 onAll，不调用 onTargetChange(null)，也不发送', async () => {
+    const { container, onAll, onTargetChange, onSend, unmount } = await mount({ draft: '我推门进去。', state: playerState })
     fireEvent.click(chipOf(container, '所有人')!)
-    expect(onTargetChange).toHaveBeenCalledWith(null)
+    expect(onAll).toHaveBeenCalledTimes(1)
+    expect(onTargetChange).not.toHaveBeenCalled()
     expect(onSend).not.toHaveBeenCalled()
     unmount()
   })
 
-  it('键盘 Enter/Space 也能选目标，不只是鼠标', async () => {
+  it('点「自动」调用 onAuto，不调用 onTargetChange，也不发送', async () => {
+    const { container, onAuto, onTargetChange, onSend, unmount } = await mount({
+      draft: '我推门进去。',
+      state: playerState,
+      explicitAll: true,
+    })
+    fireEvent.click(chipOf(container, '自动')!)
+    expect(onAuto).toHaveBeenCalledTimes(1)
+    expect(onTargetChange).not.toHaveBeenCalled()
+    expect(onSend).not.toHaveBeenCalled()
+    unmount()
+  })
+
+  it('键盘 Enter/Space 也能选在场者，不只是鼠标', async () => {
     const { onTargetChange, onSend, unmount } = await mount({ draft: '', state: playerState })
     fireEvent.keyDown(screen.getByRole('radio', { name: '安' }), { key: 'Enter' })
     expect(onTargetChange).toHaveBeenCalledWith('安')
-    fireEvent.keyDown(screen.getByRole('radio', { name: '所有人' }), { key: ' ' })
-    expect(onTargetChange).toHaveBeenCalledWith(null)
     expect(onSend).not.toHaveBeenCalled()
     unmount()
   })
 
-  it('选中态跟着 target 走', async () => {
+  it('键盘 Enter 也能选「所有人」与「自动」', async () => {
+    const { onAuto, onAll, unmount } = await mount({ draft: '', state: playerState })
+    fireEvent.keyDown(screen.getByRole('radio', { name: '所有人' }), { key: 'Enter' })
+    expect(onAll).toHaveBeenCalledTimes(1)
+    fireEvent.keyDown(screen.getByRole('radio', { name: '自动' }), { key: ' ' })
+    expect(onAuto).toHaveBeenCalledTimes(1)
+    unmount()
+  })
+
+  it('选中态跟着状态走：点名时「自动」与「所有人」都不选', async () => {
     const { container, unmount } = await mount({ draft: '', state: playerState, target: '安' })
-    expect(chipOf(container, '安')?.className).toContain('ant-tag-checkable-checked')
-    expect(chipOf(container, '所有人')?.className).not.toContain('ant-tag-checkable-checked')
+    expect(checked(chipOf(container, '安'))).toBe(true)
+    expect(checked(chipOf(container, '自动'))).toBe(false)
+    expect(checked(chipOf(container, '所有人'))).toBe(false)
+    unmount()
+  })
+
+  it('选中态跟着状态走：显式所有人时只有「所有人」选中', async () => {
+    const { container, unmount } = await mount({ draft: '', state: playerState, explicitAll: true })
+    expect(checked(chipOf(container, '所有人'))).toBe(true)
+    expect(checked(chipOf(container, '自动'))).toBe(false)
     unmount()
   })
 

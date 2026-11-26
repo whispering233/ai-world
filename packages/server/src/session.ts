@@ -88,6 +88,8 @@ export interface Session {
     onProgress: (elapsedMs: number, phase?: 'settled') => void,
     /** 对谁说：在场者的显示名；空串/缺省 = 所有人（docs/api/20-api-beat.md §1） */
     to?: string,
+    /** 显式「所有人」：跳过 `to` 解析与正文推断（C11）；与 `to` 互斥，路由层已拦 */
+    all?: boolean,
   ): Promise<BeatOutcome>
   reset(): void
   inFlight(): boolean
@@ -196,6 +198,19 @@ export function createSession(opts: SessionOptions): Session {
     })
   }
 
+  /**
+   * 一拍的聚焦：`all` = 玩家显式点的「所有人」（C11），既不解析 `to`、也不按正文推断，
+   * 否则维持 C10：显式 `to` 优先，失效时不回退自动聚焦，只有没给 `to` 才推断。
+   */
+  function beatFocus(text: string, to: string | undefined, all: boolean): { focus?: EntId; note?: string } {
+    if (all) return {}
+    const { focus: explicit, note } = resolveFocus(to)
+    if (explicit !== undefined) return { focus: explicit }
+    const inferred = inferFocusFromClaim(text, note)
+    if (inferred !== undefined) return { focus: inferred }
+    return note === undefined ? {} : { note }
+  }
+
   function content(): ContentStatusView {
     const disk = diskHash()
     return { path: opts.contentPath, activeHash, diskHash: disk, changed: activeHash !== disk }
@@ -273,13 +288,13 @@ export function createSession(opts: SessionOptions): Session {
     clientSignal: AbortSignal,
     onProgress: (elapsedMs: number, phase?: 'settled') => void,
     to?: string,
+    all?: boolean,
   ): Promise<BeatOutcome> {
     if (busy) throw coded('E_BEAT_IN_FLIGHT', '上一拍还在结算')
     busy = true
     const playerClaim = clip(text)
-    // 聚焦先解析：显式 to 优先；对不上就退回所有人并留注记，不阻挠本拍（决策 #48）
-    const { focus: explicit, note: focusNote } = resolveFocus(to)
-    const focus = explicit ?? inferFocusFromClaim(playerClaim, focusNote)
+    // 聚焦先解析：显式 all 不碰；否则显式 to 优先，对不上就退回所有人并留注记，不阻挠本拍（决策 #48）
+    const { focus, note: focusNote } = beatFocus(playerClaim, to, all === true)
     const startedAt = performance.now()
     // 客户端断开与总时限合成一个 signal：超时走与模型失败同一条降级路径，世界不动
     const deadline = AbortSignal.timeout(opts.timeoutMs ?? BEAT_TIMEOUT_MS)

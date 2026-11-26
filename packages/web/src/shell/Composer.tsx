@@ -16,10 +16,16 @@ export interface ComposerProps {
   elapsedMs: number
   /** 同一份玩家投影：地点与持有，不显示 id / heat / rel（ui/DESIGN §3） */
   state?: PlayerStateView
-  /** “对谁说”的当前目标（显示名）；`null` = 所有人 */
+  /** “对谁说”的当前目标（显示名）；`null` = 没有点名的人 */
   target?: string | null
+  /** 自动：按正文唯一人名推断目标（C11 的默认态） */
+  auto?: boolean
+  /** 玩家显式点的「所有人」：广播，不推断 */
+  explicitAll?: boolean
   /** 选择只改目标，不发送（ui/DESIGN §3） */
   onTargetChange?: (target: string | null) => void
+  onAuto?: () => void
+  onAll?: () => void
   /** 最近一拍生成的动作提示（≤3 条）：点选只填入输入框，不发送（ui/DESIGN §3） */
   hints?: string[]
 }
@@ -55,7 +61,7 @@ function mmss(ms: number): string {
  * 等待期只给 `loading`（发送按钮换成停止），不用 `disabled`——那会把输入框一起锁灰，
  * 而设计只要求「不许重复发送」；重复发送在 `onSubmit` 入口再拦一道。
  */
-export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFlight, settled, elapsedMs, state, target, onTargetChange, hints }: ComposerProps) {
+export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFlight, settled, elapsedMs, state, target, auto, explicitAll, onTargetChange, onAuto, onAll, hints }: ComposerProps) {
   const holds = state?.holds.map((item) => `${item.name}×${item.count}`).join('、') ?? ''
   return (
     <div className="shrink-0 border-t border-rule bg-paper">
@@ -77,8 +83,10 @@ export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFligh
               {state.place} · 你身上：{holds === '' ? '空手' : holds}
             </span>
             {/* 目标 chips：只改状态，不发送；目标只影响发送时（所以等待中也不锁） */}
+            {/* 「自动」与「所有人」是两个不同的意图：前者让服务端按正文推断，后者不推断（C11） */}
             <div role="radiogroup" aria-label="对谁说" className="flex flex-wrap items-center gap-1">
-              <TargetChip label="所有人" checked={target === null || target === undefined} onSelect={() => onTargetChange?.(null)} />
+              <TargetChip label="自动" checked={auto === true} onSelect={() => onAuto?.()} />
+              <TargetChip label="所有人" checked={explicitAll === true} onSelect={() => onAll?.()} />
               {/* 显示名不保证唯一（重名时服务端会让聚焦失败）：key 加下标，不让 React 报重复 key */}
               {state.here.map((name, index) => (
                 <TargetChip key={`${name}-${index}`} label={name} checked={target === name} onSelect={() => onTargetChange?.(name)} />
