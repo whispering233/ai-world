@@ -24,8 +24,10 @@ import {
   createNarrator,
   createSuggester,
   healthView,
+  JOURNAL_FILE,
   openScene,
   openStore,
+  PASSAGE_FILE,
   playerView,
   replay,
   replayCharacters,
@@ -114,9 +116,7 @@ export interface Session {
 const PROMPT_BEATS = 3
 const PLAYER_TEXT_MAX = 500
 const ROLES: ModelRoleName[] = ['cognition', 'referee', 'narration', 'suggest']
-/** journal.jsonl / passage.jsonl 是 schema 里的存储契约（docs/db/schema.md §3 §4） */
-const JOURNAL = 'journal.jsonl'
-const PASSAGE = 'passage.jsonl'
+/** 两条日志的文件名由 `@ai-world/core` 的 store 导出（docs/db/schema.md §3 §4）。 */
 /** 一拍总时限：只等客户端断开不够，provider 挂死会永远占着锁（60 §4） */
 const BEAT_TIMEOUT_MS = 180_000
 
@@ -193,7 +193,10 @@ export function createSession(opts: SessionOptions): Session {
   /** 可开的世界：按 id 升序，`active` 恰好一条。 */
   function worldViews(): WorldOptionView[] {
     return [...opts.worlds]
-      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      .sort((a, b) => {
+        if (a.id < b.id) return -1
+        return a.id > b.id ? 1 : 0
+      })
       .map((w) => ({ id: w.id, title: w.title, active: w.id === active.id }))
   }
 
@@ -428,8 +431,8 @@ export function createSession(opts: SessionOptions): Session {
     participants = roster(pack)
     // 只清这两份日志：本局的全部世界状态就是它们，内容与人物来自内容包
     store.close()
-    rmSync(join(active.dir, JOURNAL), { force: true })
-    rmSync(join(active.dir, PASSAGE), { force: true })
+    rmSync(join(active.dir, JOURNAL_FILE), { force: true })
+    rmSync(join(active.dir, PASSAGE_FILE), { force: true })
     store = openStore(active.dir)
     state = boot()
     notes.clear()

@@ -14,7 +14,7 @@ import { basename, extname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { serve } from '@hono/node-server'
 import { Hono, type Context } from 'hono'
-import { createLlm, resolveModelConfig, readonlyPiCredentials } from '@ai-world/core'
+import { createLlm, dataDir, resolveModelConfig, readonlyPiCredentials } from '@ai-world/core'
 import { CONTENT_DIR, contentPathFor, loadContentPack } from '@ai-world/content'
 import { createSession, type WorldOption } from './session.ts'
 import { authorRoutes } from './routes/author.ts'
@@ -91,7 +91,7 @@ function listWorlds(): WorldOption[] {
     // 与 `contentPathFor` 同一口径：不合规的文件名不是世界，直接跳过
     if (!WORLD_ID.test(id)) continue
     const contentPath = contentPathFor(id)
-    worlds.push({ id, title: titleOf(contentPath) ?? id, dir: join('data', id), contentPath })
+    worlds.push({ id, title: titleOf(contentPath) ?? id, dir: dataDir(id), contentPath })
   }
   return worlds
 }

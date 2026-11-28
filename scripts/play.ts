@@ -24,6 +24,7 @@ import { createLlmReferee } from '@ai-world/core'
 import { healthView } from '@ai-world/core'
 import { openScene, type Scene } from '@ai-world/core'
 import { openStore, replay, replayCharacters } from '@ai-world/core'
+import { dataDir, JOURNAL_FILE, PASSAGE_FILE } from '@ai-world/core'
 import { seedCharacters } from '@ai-world/core'
 import { contentPathFor, loadContentPack } from '@ai-world/content'
 import type { Op, World } from '@ai-world/core'
@@ -37,7 +38,7 @@ const beatsArg = process.argv.indexOf('--beats')
 const BEATS = beatsArg > 0 ? Number(process.argv[beatsArg + 1] ?? 20) : 20
 const AUTO = args.has('--auto')
 const FRESH = args.has('--fresh')
-const DIR = `data/${WORLD}`
+const DIR = dataDir(WORLD)
 
 interface AutoScript {
   guards: Record<number, string>
@@ -141,8 +142,8 @@ async function main(): Promise<void> {
   })
   // --fresh 显式重开一局：只清 world 的两条日志，不碰其它目录。
   if (FRESH) {
-    rmSync(join(DIR, 'journal.jsonl'), { force: true })
-    rmSync(join(DIR, 'passage.jsonl'), { force: true })
+    rmSync(join(DIR, JOURNAL_FILE), { force: true })
+    rmSync(join(DIR, PASSAGE_FILE), { force: true })
   }
   const deps: BeatDeps = {
     referee: createLlmReferee(llm),

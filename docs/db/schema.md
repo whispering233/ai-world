@@ -24,6 +24,8 @@
 
 ## 3. `journal`（事件日志，append-only）
 
+落盘为 `data/<world>/journal.jsonl`，一行一条 JSON；文件名由 `packages/core/src/store.ts` 的 `JOURNAL_FILE` 定义。
+
 | 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
 | :--- | :--- | :--- | :--- | :--- |
 | seq | 是 | number | | 一拍（或一次折场）一条；新记录取**已有最大 seq + 1**（坏行占位不回退序号） |
@@ -49,6 +51,8 @@
 telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它不影响账本。
 
 ## 4. `passage`（呈现文本）
+
+落盘为 `data/<world>/passage.jsonl`，一行一条 JSON；文件名由 `packages/core/src/store.ts` 的 `PASSAGE_FILE` 定义。
 
 | 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
 | :--- | :--- | :--- | :--- | :--- |

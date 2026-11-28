@@ -28,6 +28,8 @@ openScene（新场景，participants = 内容包全部人物 + 玩家）
 
 场景上下文**不落盘**，续跑从新场景开始；人物记忆由 `journal.experience` 复原。`play.ts` 按同样顺序 boot（`loadContentPack` → `replay` / `replayCharacters` → `openScene`），但 boot 与 CLI 循环各自持有，不共用 `session.ts`。
 
+`data/<world>/`、`journal.jsonl`、`passage.jsonl` 三个名字由 `packages/core/src/store.ts` 导出（`dataDir()` / `JOURNAL_FILE` / `PASSAGE_FILE`），服务端与 `play.ts` 只引用不重写：`reset()` 与 `--fresh` 都靠它们删旧局，改名只改一处。
+
 **启动必须打印实际模型串**：调错模型要当场可见，不能等到第一拍失败。
 
 ## 3. 一拍的生命周期
