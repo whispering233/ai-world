@@ -21,6 +21,17 @@
 - 试玩器 `--auto` 按世界分表（`starter-town` / `westworld`），未知世界直接报错。
 
 ### Changed
+- 模型配置只剩一个出口：`resolveModelConfig()` 自己读 `AI_WORLD_CONFIG` 与 pi 的默认模型，7 个启动入口不再各拼一遍 `~/.pi/agent` 与配置路径。`config/models.json` 改为空模板（仓库不再钉任何模型串），`readPiDefaultModel` 的 provider 侧补上 `PI_PROVIDER`（原来只读 `settings.json`，缺文件时连已拿到的 `PI_MODEL` 一起丢掉）。
+- 两条链都取不到模型时**启动报错退出**，不再回退内置的 `FALLBACK_MODEL`（`docs/design/config.md` §1.1 的“代码里不出现具体模型串”从文档变成事实）。
+- `DEFAULT_RETRY` 与 `DEFAULT_SESSION_PREFIX` 各归一处；`ModelConfig.retry` / `sessionIdPrefix` 解析后总有值，6 处 `...(cfg.retry ? … : {})` 与 2 处 `?? 'play'` 收掉。
+- `journal.jsonl` / `passage.jsonl` / `data/<world>` 收敛到 `core/store.ts`（`JOURNAL_FILE` / `PASSAGE_FILE` / `dataDir()`）：改名时 `reset()` 与 `--fresh` 不会再静默删不到旧局。
+- 世界 id 白名单与缺省世界收敛到 `packages/content`（`isWorldId()` / `DEFAULT_WORLD`）。
+- 新增 `routes/http.ts`：`codeOf` / `errorsOf` / `readJsonObject` / `fail` / `success` 各只一份。**不抽共用状态码表**——各路由的 `STATUS` 是策略，表外 code 仍 rethrow 交给 Hono 默认 500。
+- 新增 `tryParseModelJson()`：认知、提示、裁判只共用 try/catch，三处兜底语义（整段当 outward / 返回 `[]` / 无事发生 + notes）原样保留。
+- 新增 `zeroUsageByRole()`（`core/usage.ts`）：四角色空计数器原本在 `server/llm.ts` 与 `scripts/play.ts` 各手抄一遍。
+- `sceneText` 收敛到 `core/content.ts`：服务端与 `scripts/play.ts` 喂同一个 `BeatInput.sceneText`，此前两份已漂移（服务端含玩家、试玩器不含），而 `play.ts` 是产出 `docs/research/` 全部基线的工具。统一到服务端现状，生产行为零变化。
+- `scripts/experiment-multi-round.ts` 删掉与 `core/beat.ts` 逐字相同的 `describeLedger` 复制体，改为 import。
+- `docs/design/60-server.md` §6 登记“谁在场”的四处口径（玩家抽屉 / 动作提示器 / 聚焦候选集 / 场景描述）及为何不同；顺带修正若干与代码矛盾的注释（指已清空的任务卡、`旧调用点`、`预留给单拍详情`、`不报时缺省`、悬空 JSDoc）。
 - 试玩器按 `AI_WORLD` 取内容包（缺省 `starter-town`），现场描述与名字泄漏正则都由内容包生成，不再硬编码酒馆/灯/雨的 id；服务端 `AI_WORLD` 只决定进程首启默认，之后由玩家在「新的一局」里选。
 - 首屏示例改成世界无关的三句（原来的“银元 / 安 / 账本”属于 starter-town，换包后会指向不存在的东西）。
 - 收口文档：README / AGENTS / backlog / docs-map 同步到 baseline-23、focus-20、自动聚焦与显式“所有人”的现状；临时任务清单清空。
