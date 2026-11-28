@@ -27,11 +27,11 @@ import { zeroUsageByRole } from '@ai-world/core'
 import { openStore, replay, replayCharacters } from '@ai-world/core'
 import { dataDir, JOURNAL_FILE, PASSAGE_FILE } from '@ai-world/core'
 import { seedCharacters } from '@ai-world/core'
-import { contentPathFor, loadContentPack } from '@ai-world/content'
+import { contentPathFor, DEFAULT_WORLD, loadContentPack } from '@ai-world/content'
 import type { Op, World } from '@ai-world/core'
 
 // 试玩器没有界面：包在进程启动时就得定，所以只认环境变量（与服务端同一口径）。
-const WORLD = process.env.AI_WORLD ?? 'starter-town'
+const WORLD = process.env.AI_WORLD ?? DEFAULT_WORLD
 const { pack } = loadContentPack(contentPathFor(WORLD))
 
 const args = new Set(process.argv.slice(2))

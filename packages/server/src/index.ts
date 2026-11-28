@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url'
 import { serve } from '@hono/node-server'
 import { Hono, type Context } from 'hono'
 import { createLlm, dataDir, resolveModelConfig, readonlyPiCredentials } from '@ai-world/core'
-import { CONTENT_DIR, contentPathFor, loadContentPack } from '@ai-world/content'
+import { CONTENT_DIR, contentPathFor, DEFAULT_WORLD, isWorldId, loadContentPack } from '@ai-world/content'
 import { createSession, type WorldOption } from './session.ts'
 import { authorRoutes } from './routes/author.ts'
 import { beatRoutes } from './routes/beat.ts'
@@ -24,10 +24,6 @@ import { resetRoutes } from './routes/reset.ts'
 
 const HOST = '127.0.0.1'
 const PORT = 8787
-/** 缺省世界：只在启动时读一次，进程不记玩家选过什么 */
-const DEFAULT_WORLD = 'starter-town'
-/** 世界 id 就是内容包文件名：与 `contentPathFor` 的校验同一口径 */
-const WORLD_ID = /^[a-z0-9-]+$/
 const DIST = resolve(fileURLToPath(new URL('../../web/dist/', import.meta.url)))
 
 const TYPES: Record<string, string> = {
@@ -88,8 +84,8 @@ function listWorlds(): WorldOption[] {
   const worlds: WorldOption[] = []
   for (const name of names.sort()) {
     const id = basename(name, '.json')
-    // 与 `contentPathFor` 同一口径：不合规的文件名不是世界，直接跳过
-    if (!WORLD_ID.test(id)) continue
+    // 不合规的文件名不是世界，直接跳过（白名单与 `contentPathFor` 同一口径）
+    if (!isWorldId(id)) continue
     const contentPath = contentPathFor(id)
     worlds.push({ id, title: titleOf(contentPath) ?? id, dir: dataDir(id), contentPath })
   }
