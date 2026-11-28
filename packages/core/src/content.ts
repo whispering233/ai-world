@@ -176,3 +176,24 @@ export function validatePack(pack: ContentPack): string[] {
 
   return errors
 }
+
+/**
+ * 场景的静态描述：作者写的现场 + 当前地点的在场者。
+ *
+ * 服务端与 `scripts/play.ts` 喂的是**同一个消费点**（`BeatInput.sceneText`），所以只有这一份实现；
+ * 试玩器因此与服务端同源，它的体检表数字才能代表服务端行为。
+ *
+ * **含玩家自己**：这回答的是“屋子里有谁”，不是“你能跟谁说话”——后者是
+ * `beat.ts` 的 `suggestInput.here`，那里必须排除玩家。
+ * 只列人：账本里还有门、灯、柜台这类非人实体（docs/design/10-world-model.md §10），
+ * 它们是现场的物件，不是在场者。
+ */
+export function sceneText(pack: ContentPack, world: World): string {
+  const here = world.ledger.at[pack.player] ?? ''
+  const present = [pack.player, ...pack.characters.map((character) => character.id)]
+    .filter((ent) => world.ledger.at[ent] === here)
+    .map((ent) => pack.names[ent] ?? ent)
+  return [pack.scene?.trim() ?? '', `${world.places[here] ?? here}：${present.join('、')}在场。`]
+    .filter((line) => line !== '')
+    .join('\n')
+}

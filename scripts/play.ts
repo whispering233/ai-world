@@ -24,6 +24,7 @@ import { createLlmReferee } from '@ai-world/core'
 import { healthView } from '@ai-world/core'
 import { openScene, type Scene } from '@ai-world/core'
 import { zeroUsageByRole } from '@ai-world/core'
+import { sceneText } from '@ai-world/core'
 import { openStore, replay, replayCharacters } from '@ai-world/core'
 import { dataDir, JOURNAL_FILE, PASSAGE_FILE } from '@ai-world/core'
 import { seedCharacters } from '@ai-world/core'
@@ -196,7 +197,7 @@ async function main(): Promise<void> {
       characters,
       player,
       beatIndex: priorBeats + i,
-      sceneText: describeScene(world),
+      sceneText: sceneText(pack, world),
       canon: pack.canon,
       names: pack.names,
       items: pack.items,
@@ -283,18 +284,6 @@ async function main(): Promise<void> {
   stdout.write('  1) 你还想不想跟这个人说第 21 句话？\n')
   stdout.write('  2) 它做过至少 1 次你没预料、但事后觉得合理的事吗？\n')
   stdout.write('  3) 3 件事里至少 1 件是因为上次的后果才发生的吗？\n')
-}
-
-function describeScene(world: World): string {
-  const here = world.ledger.at[pack.player] ?? ''
-  const present = pack.characters
-    .map((c) => c.id)
-    .filter((ent) => world.ledger.at[ent] === here)
-    .map((ent) => pack.names[ent] ?? ent)
-  // 与 packages/server/src/session.ts 的 sceneText 同序、同形：先现场，再地点与在场
-  return [pack.scene?.trim() ?? '', `${pack.world.places[here] ?? here}：${present.join('、')}在场。`]
-    .filter((text) => text !== '')
-    .join('\n')
 }
 
 function describeHoldChanges(
