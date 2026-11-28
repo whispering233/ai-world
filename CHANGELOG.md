@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 ### Added
+- 目标单选组（`自动` / `所有人` / 在场者）改成真正的 radio 语义：整组只占一个 Tab 停靠点，←/→/Home/End 移动并同时选中，Space/Enter 选中；选中态用 `primary-active`（浅色 6.16:1、深色 7.23:1）。
+- 输入超过 500 字时提示“发送后会被截到 500 字”，按码点计数，与服务端截断口径一致。
+- `tokens.css` 新增两个语义排版类 `meta-line`（次要元信息）与 `dump`（JSON / prompt 转储）；`.blink` / `.fade-in` 进 `@layer components`。
 - `packages/web`：chrome 换成 `antd` 6 + `@ant-design/x` 2（`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Empty` `Segmented` + `Sender`），图标走 `@ant-design/icons`；`@ant-design/cssinjs` 钉在 `2.2.0`（与 antd 内部读同一实例，否则 `<StyleProvider layer>` 静默失效）。
 - `packages/web/src/theme/AntdProvider.tsx`：色板唯一事实源（浅 `defaultAlgorithm` / 深 `darkAlgorithm`、antd 默认色板、`cssVar.key` = `<html class="ai-world-theme">`），`<StyleProvider layer>` 把 antd 运行时样式放进 `@layer antd`。
 - `packages/web/src/theme/layers.test.ts`：层序必须含 `antdx` 且在 `@import "tailwindcss"` 之前；红线是 `Sender` 的工具类漏了会被静默压掉。
@@ -21,6 +24,10 @@
 - 试玩器 `--auto` 按世界分表（`starter-town` / `westworld`），未知世界直接报错。
 
 ### Changed
+- 「此刻」抽屉宽度按视口分档：≥1312px 360px、1200–1311px 320px、更窄全屏；任何宽度都不再覆盖正文文字。
+- 「等一会儿」改成次要按钮，并将要发送的那句话放进 `title` 与 `aria-label`。
+- 系统深浅色改成实时跟随（原来只在启动判一次）；首帧不闪。
+- 作者视图顶栏「累计 cost」改成「本次进程 cost」。
 - 试玩器按 `AI_WORLD` 取内容包（缺省 `starter-town`），现场描述与名字泄漏正则都由内容包生成，不再硬编码酒馆/灯/雨的 id；服务端 `AI_WORLD` 只决定进程首启默认，之后由玩家在「新的一局」里选。
 - 首屏示例改成世界无关的三句（原来的“银元 / 安 / 账本”属于 starter-town，换包后会指向不存在的东西）。
 - 收口文档：README / AGENTS / backlog / docs-map 同步到 baseline-23、focus-20、自动聚焦与显式“所有人”的现状；临时任务清单清空。
@@ -36,6 +43,7 @@
 - `docs/design/backlog.md` §6：组件迁移之后的两条 UI 待办（对话与场景分层、等待反馈），各自卡在一条没定的语义契约上。
 
 ### Fixed
+- 失败后成功重取会话时，错误条不再残留。
 - 实验脚本的冲突检测改为按 `commit` 的真实结算顺序核对：同一拍先收后付不再算双花，回滚 verdict 的 move/phys 不再计入；`metrics.jsonl` 增 `conflictDetails` 便于复核。
 - journal 的 `seq` 改由**已有最大 seq + 1** 推出：中间行坏掉不再回退序号（旧口径会用“可解析行数”重发已存在的 `seq`，让 `/author/beat/:seq` 串拍）。
 - 内容包校验覆盖账本子对象（`clock` / `holds` 数量 / `phys` 值类型 / `rel` 指向与值 / `knows` 形态），且在最外层形状不对时**返回错误而不是 500**；`apply` 对缺失的 `ledger` 子对象就地补空，不再抛 TypeError。
@@ -49,6 +57,7 @@
 - antd 6 的三处改名（`Alert.title` / `Drawer.size` / `Divider.orientation`）：写错时界面正常、只有 `console.error`。
 
 ### Removed
+- `tokens.css` 里与 UA 默认同值的 `:root { color-scheme: light }`；根节点的 `bg-paper text-ink`（`body` 已设同值）。
 - `packages/web/src/ui/` 下 10 个手写基础件：`Banner` `Button` `Collapsible` `DataTable` `Dialog` `EditableList` `Field` `KeyValueList` `NumberField` `TextField`（`ModeSwitch` 留作 `Segmented` 的薄壳）。
 - `tokens.css` 的 `--color-danger`：换成 antd 按钮之后没有使用点。
 
