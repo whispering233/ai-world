@@ -33,11 +33,23 @@
   --leading-prose: 1.85;
 }
 
-@layer base {
-  :root {
-    color-scheme: light;
-  }
+/*
+ * 两个成套语义排版类：次要元信息（时刻、持有、理由、计数）用 `meta-line`，JSON / prompt 转储用 `dump`。
+ * 直接写声明、不用 `@apply` 拼工具类：被引用的 token 一旦被裁，`@apply` 会静默丢样式。
+ */
+@utility meta-line {
+  font-size: var(--text-meta);
+  color: var(--color-ink-soft);
+}
 
+@utility dump {
+  font-size: var(--text-meta);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+@layer base {
   :root[data-theme="dark"] {
     color-scheme: dark;
   }
@@ -57,29 +69,34 @@
   }
 }
 
-/* 等待中的光标闪烁与进场渐显；reduced-motion 时由 main.tsx 摘掉 */
-@keyframes ink-blink {
-  50% {
-    opacity: 0.2;
+/*
+ * 等待中的光标闪烁与进场渐显；reduced-motion 时由 main.tsx 摘掉。
+ * 必须待在 `@layer components`：层外样式的优先级高于所有 layer，`motion-reduce:` 一类覆盖会被静默压掉。
+ */
+@layer components {
+  @keyframes ink-blink {
+    50% {
+      opacity: 0.2;
+    }
   }
-}
 
-.blink {
-  animation: ink-blink 1.1s steps(1, end) infinite;
-}
-
-@keyframes ink-fade {
-  from {
-    opacity: 0;
+  .blink {
+    animation: ink-blink 1.1s steps(1, end) infinite;
   }
-}
 
-.fade-in {
-  animation: ink-fade 0.2s ease-out;
-}
+  @keyframes ink-fade {
+    from {
+      opacity: 0;
+    }
+  }
 
-:root[data-motion="reduced"] .blink,
-:root[data-motion="reduced"] .fade-in,
-:root[data-motion="reduced"] .ant-skeleton * {
-  animation: none;
+  .fade-in {
+    animation: ink-fade 0.2s ease-out;
+  }
+
+  :root[data-motion="reduced"] .blink,
+  :root[data-motion="reduced"] .fade-in,
+  :root[data-motion="reduced"] .ant-skeleton * {
+    animation: none;
+  }
 }

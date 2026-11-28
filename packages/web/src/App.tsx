@@ -329,7 +329,7 @@ export function App() {
     state.session === null ? undefined : { clockText: state.session.clockText, state: state.session.state }
 
   return (
-    <div className="flex h-dvh flex-col bg-paper text-ink">
+    <div className="flex h-dvh flex-col">
       <TopBar
         title={state.session?.title ?? '…'}
         clockText={state.session?.clockText ?? ''}
@@ -342,7 +342,7 @@ export function App() {
       />
 
       {state.mode === 'author' ? (
-        <Suspense fallback={<p className="p-6 text-meta text-ink-soft">正在载入作者视图…</p>}>
+        <Suspense fallback={<p className="p-6 meta-line">正在载入作者视图…</p>}>
           <AuthorApp
             beats={state.beats}
             pendingText={state.pendingText}
@@ -400,7 +400,7 @@ export function App() {
         {/* 旧服务端没有 `worlds`：不渲染选包，行为与以前一样（重开当前世界） */}
         {worlds.length > 0 && (
           <div className="mt-4">
-            <p className="text-meta text-ink-soft">内容包</p>
+            <p className="meta-line">内容包</p>
             <Select
               className="mt-1 w-full"
               options={worlds.map((world) => ({ value: world.id, label: world.title }))}
@@ -419,7 +419,7 @@ export function App() {
       >
         <div className="text-body">
           <p>一句一句写下去，世界一拍一拍回应。</p>
-          <p className="mt-3 text-meta text-ink-soft">调试与账本信息只在作者视图里。</p>
+          <p className="mt-3 meta-line">调试与账本信息只在作者视图里。</p>
         </div>
       </Modal>
     </div>

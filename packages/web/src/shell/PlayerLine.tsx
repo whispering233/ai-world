@@ -5,7 +5,7 @@
 export function PlayerLine({ text, to }: { text: string; to?: string }) {
   return (
     <div>
-      {to !== undefined && <p className="mb-1 text-meta text-ink-soft">你（对{to}）</p>}
+      {to !== undefined && <p className="mb-1 meta-line">你（对{to}）</p>}
       <blockquote className="border-l-2 border-rule pl-4 text-prose leading-prose text-ink-soft">{text}</blockquote>
     </div>
   )

@@ -78,7 +78,7 @@ export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFligh
           </div>
         )}
         {state !== undefined && (
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-meta text-ink-soft">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 meta-line">
             <span>
               {state.place} · 你身上：{holds === '' ? '空手' : holds}
             </span>
@@ -107,7 +107,7 @@ export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFligh
           autoSize={{ minRows: 2, maxRows: 6 }}
           aria-label="你说或做什么"
         />
-        <div className="mt-2 flex items-center justify-between text-meta text-ink-soft">
+        <div className="mt-2 flex items-center justify-between meta-line">
           <span>
             {inFlight ? (
               <>
