@@ -395,6 +395,8 @@ describe('Composer 的目标 chips', () => {
     const { container, unmount } = await mount({ draft: '', state: { ...playerState, here: ['安', '道森医生'] } })
     expect(radios(container).map((chip) => chip.getAttribute('tabindex'))).toEqual(['0', '-1', '-1', '-1'])
     expect(tabStops(container).map((chip) => chip.textContent)).toEqual(['自动'])
+    // 控件内部不许再套第二层可聚焦元素（DESIGN §3）：组里带 tabindex 的节点必须正好是这几个 radio
+    expect(container.querySelector('[role="radiogroup"]')?.querySelectorAll('[tabindex]')).toHaveLength(radios(container).length)
     unmount()
 
     // 一项都没选中（点名的目标已经不在场）：停靠点落回第一项，整组仍然只有一个

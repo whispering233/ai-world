@@ -26,9 +26,9 @@ function darkSnapshot(): boolean {
 }
 
 /**
- * 深浅色只认系统：antd 的算法与 tokens 的 `color-scheme` 用同一个 `dark`，不装两套。
- * `dataset.theme` 只能在 effect 里写——render 期间不碰 DOM；两处共用这一个 `dark`，
- * 所以切系统主题时 React 重渲染与 `<html data-theme>` 同时变，不会一个深一个浅。
+ * 深浅色只认系统：antd 的算法与 `tokens.css` 的 `color-scheme` 用同一个 `dark`，不装两套。
+ * `dataset.theme` 在首帧前先落一次（避免深色系统下先画一帧浅色），之后由这个 effect 跟随 `change`；
+ * 两处读的都是同一个 `darkQuery`，所以 React 与 `<html data-theme>` 不会一个深一个浅。
  */
 function Shell() {
   const dark = useSyncExternalStore(subscribeDark, darkSnapshot)

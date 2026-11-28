@@ -56,7 +56,7 @@ const RULES: Rule[] = [
   {
     name: '规则 4：玩家壳不写颜色字面量（色板只在 antd 主题里，tokens.css 只做映射）',
     pattern: /#[0-9a-f]{3}(?:[0-9a-f]{3})?\b|rgba?\(|hsla?\(/i,
-    violates: 'className="bg-[#faf6ee]"',
+    violates: "style={{ color: '#faf6ee' }}",
     allows: 'className="bg-paper text-ink"',
   },
 ]
