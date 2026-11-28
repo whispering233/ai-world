@@ -191,7 +191,7 @@ chat 应用必须压缩，因为 transcript 线性增长。本项目的上下文
 
 ### 13.1 默认模型跟 pi 走，不写死
 
-优先级：`config/models.json` 显式值 > `PI_MODEL` > `~/.pi/agent/settings.json` 的 `defaultModel` > 兜底常量；provider 取 `defaultProvider`。代码里出现具体模型串即为缺陷——它会让项目停留在某一天的默认档上。
+优先级：`config/models.json` 显式值 > `PI_MODEL` > `~/.pi/agent/settings.json` 的 `defaultModel`；provider 侧是 `PI_PROVIDER` > `~/.pi/agent/settings.json` 的 `defaultProvider`。两侧都取到才拼得出模型串，都取不到就启动报错——**不回退任何内置常量**。仓库自带的 `config/models.json` 是空模板，一个模型串都不钉。
 
 启动必须打印实际模型串。四个角色默认指向同一模型，分角色只表达"这个调用点值得多贵的模型"，不表达"要用不同模型"。
 

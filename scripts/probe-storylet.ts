@@ -13,12 +13,11 @@
  * 输出：data/probe-storylet/probe.jsonl + stdout 表（data/ 在 .gitignore 里）。
  */
 import { mkdirSync, appendFileSync, readFileSync, rmSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { describeLedger } from '@ai-world/core'
 import { createLlm } from '@ai-world/core'
-import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
+import { resolveModelConfig } from '@ai-world/core'
 import { readonlyPiCredentials } from '@ai-world/core'
 import { createLlmReferee, type Claim, type RefereeInput } from '@ai-world/core'
 import { contextOf, openScene } from '@ai-world/core'
@@ -146,13 +145,12 @@ async function main(): Promise<void> {
   rmSync(OUT, { force: true })
   mkdirSync(DIR, { recursive: true })
 
-  const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL
-  const cfg = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json', piDefault)
+  const cfg = resolveModelConfig()
   const llm = createLlm({
     models: cfg.models,
     credentials: readonlyPiCredentials(),
     sessionId: `storylet-probe-${randomUUID()}`,
-    ...(cfg.retry ? { retry: cfg.retry } : {}),
+    retry: cfg.retry,
     onUsage: (s: { input: number; output: number; ms: number; retries: number }) => {
       usage.input += s.input
       usage.output += s.output

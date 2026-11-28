@@ -11,12 +11,11 @@
  */
 import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { runBeat, type BeatDeps } from '@ai-world/core'
 import { fmt } from '@ai-world/core'
 import { createCognition } from '@ai-world/core'
-import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
+import { resolveModelConfig } from '@ai-world/core'
 import { createLlm, type ModelRole } from '@ai-world/core'
 import { createNarrator } from '@ai-world/core'
 import { readonlyPiCredentials } from '@ai-world/core'
@@ -186,8 +185,7 @@ function report(): void {
 
 async function runOne(): Promise<void> {
   rmSync(DIR, { recursive: true, force: true })
-  const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL
-  const cfg = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json', piDefault)
+  const cfg = resolveModelConfig()
   const usage: Record<ModelRole, { input: number; output: number; ms: number; calls: number }> = {
     cognition: { input: 0, output: 0, ms: 0, calls: 0 },
     referee: { input: 0, output: 0, ms: 0, calls: 0 },
@@ -198,7 +196,7 @@ async function runOne(): Promise<void> {
     models: cfg.models,
     credentials: readonlyPiCredentials(),
     sessionId: `storylet-${ARM}-r${RUN}-${randomUUID()}`,
-    ...(cfg.retry ? { retry: cfg.retry } : {}),
+    retry: cfg.retry,
     onUsage: (s) => {
       const u = usage[s.role]
       u.input += s.input

@@ -10,12 +10,11 @@
 import { randomUUID } from 'node:crypto'
 import { readFileSync, readdirSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { basename, extname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { serve } from '@hono/node-server'
 import { Hono, type Context } from 'hono'
-import { FALLBACK_MODEL, createLlm, loadModelConfig, readPiDefaultModel, readonlyPiCredentials } from '@ai-world/core'
+import { createLlm, resolveModelConfig, readonlyPiCredentials } from '@ai-world/core'
 import { CONTENT_DIR, contentPathFor, loadContentPack } from '@ai-world/content'
 import { createSession, type WorldOption } from './session.ts'
 import { authorRoutes } from './routes/author.ts'
@@ -42,14 +41,13 @@ const TYPES: Record<string, string> = {
   '.webmanifest': 'application/manifest+json',
 }
 
-// 默认模型跟着 pi 自己的设置走（settings.json / PI_MODEL），配置文件只做覆盖
-const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL
-const cfg = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json', piDefault)
+// 默认模型跟着 pi 自己的设置走（settings.json / PI_MODEL + PI_PROVIDER），配置文件只做覆盖
+const cfg = resolveModelConfig()
 const llm = createLlm({
   models: cfg.models,
   credentials: readonlyPiCredentials(),
-  sessionId: `${cfg.sessionIdPrefix ?? 'play'}-${randomUUID()}`,
-  ...(cfg.retry ? { retry: cfg.retry } : {}),
+  sessionId: `${cfg.sessionIdPrefix}-${randomUUID()}`,
+  retry: cfg.retry,
 })
 
 // 可开的世界 = `content/` 下的 *.json：标题读不到就退回 id，不让一个坏包拖垮启动

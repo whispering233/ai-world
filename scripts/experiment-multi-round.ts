@@ -19,13 +19,12 @@
 
 import { randomUUID } from 'node:crypto'
 import { appendFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { estimateTokens, runBeat } from '@ai-world/core'
 import { applyDriveHit, remember, type Character, type Experience } from '@ai-world/core'
 import { calledActors, fmt } from '@ai-world/core'
 import { createCognition, type Cognition, type CognitionOutput } from '@ai-world/core'
-import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
+import { resolveModelConfig } from '@ai-world/core'
 import { createLlm, type ModelRole, type UsageSample } from '@ai-world/core'
 import { createNarrator, type NarrationEvent, type Narrator } from '@ai-world/core'
 import { createSuggester } from '@ai-world/core'
@@ -702,8 +701,8 @@ function report(
   lines.push('')
   lines.push('写操作分布：')
   lines.push('')
-  lines.push('| 臂 | ' + ['move', 'transfer', 'consume', 'phys', 'rel', 'fact', 'know'].join(' | ') + ' |')
-  lines.push('| :--- | ' + ['---:', '---:', '---:', '---:', '---:', '---:', '---:'].join(' | ') + ' |')
+  lines.push(`| 臂 | ${['move', 'transfer', 'consume', 'phys', 'rel', 'fact', 'know'].join(' | ')} |`)
+  lines.push(`| :--- | ${['---:', '---:', '---:', '---:', '---:', '---:', '---:'].join(' | ')} |`)
   for (const { arm, summary } of arms) {
     lines.push(`| ${arm} | ${['move', 'transfer', 'consume', 'phys', 'rel', 'fact', 'know'].map((op) => summary.ops[op] ?? 0).join(' | ')} |`)
   }
@@ -741,7 +740,7 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
     models: CFG.models,
     credentials: readonlyPiCredentials(),
     sessionId: `exp-${TAG}-${arm}-${randomUUID()}`,
-    ...(CFG.retry ? { retry: CFG.retry } : {}),
+    retry: CFG.retry,
     onUsage: (sample) => {
       samples.push(sample)
     },
@@ -767,11 +766,9 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
   const beatSamples: BeatSample[] = []
 
   for (let beat = 1; beat <= BEATS; beat += 1) {
-    const playerClaim = UNLOCK
-      ? (UNLOCK_LINES[beat - 1] ?? '')
-      : LONG && beat === LONG_BEAT
-        ? LONG_PROBE
-        : (AUTO_LINES[(beat - 1) % AUTO_LINES.length] ?? '')
+    const autoLine =
+      LONG && beat === LONG_BEAT ? LONG_PROBE : (AUTO_LINES[(beat - 1) % AUTO_LINES.length] ?? '')
+    const playerClaim = UNLOCK ? (UNLOCK_LINES[beat - 1] ?? '') : autoLine
     const clockBefore = world.ledger.clock
     // 不在场/无目标时是 undefined：那时退回“所有人”，与不加 --focus 的一拍完全相同。
     const focusTarget = FOCUS ? focusTargetOf({ world, beat, candidates: characterIds, player, place: scene.place }) : undefined
@@ -900,19 +897,18 @@ async function runArm(arm: Arm): Promise<{ arm: Arm; summary: ReturnType<typeof 
   return { arm, summary, samples: beatSamples, dir }
 }
 
-const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL
-const CFG = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json', piDefault)
+const CFG = resolveModelConfig()
+
+/** `--mode` 的展开：`all` = 三个臂；`both` = baseline + cross-talk。 */
+function wantedArms(mode: string, valid: readonly Arm[]): Arm[] {
+  if (mode === 'all') return [...valid]
+  if (mode === 'both') return ['baseline', 'cross-talk']
+  return valid.includes(mode as Arm) ? [mode as Arm] : []
+}
 
 async function main(): Promise<void> {
   const valid: Arm[] = ['baseline', 'self-retry', 'cross-talk']
-  const wanted: Arm[] =
-    MODE === 'all'
-      ? valid
-      : MODE === 'both'
-        ? ['baseline', 'cross-talk']
-        : valid.includes(MODE as Arm)
-          ? [MODE as Arm]
-          : []
+  const wanted: Arm[] = wantedArms(MODE, valid)
   if (wanted.length === 0) throw new Error(`--mode 只能是 baseline / self-retry / cross-talk / both / all（当前 ${MODE}）`)
   // focus 的轮换顺序直接印出来：跑完对 metrics.jsonl 时不用猜第几拍该轮到谁。
   const focusOrder = pack.characters.map((c) => pack.names[c.id] ?? c.id).join(' → ')

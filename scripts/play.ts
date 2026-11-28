@@ -9,7 +9,6 @@
  */
 import { randomUUID } from 'node:crypto'
 import { rmSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import { stdin, stdout } from 'node:process'
@@ -17,7 +16,7 @@ import { runBeat, type BeatDeps } from '@ai-world/core'
 import { createCognition } from '@ai-world/core'
 import type { Character } from '@ai-world/core'
 import { fmt } from '@ai-world/core'
-import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
+import { resolveModelConfig } from '@ai-world/core'
 import { readonlyPiCredentials } from '@ai-world/core'
 import { createLlm } from '@ai-world/core'
 import { createNarrator } from '@ai-world/core'
@@ -122,14 +121,13 @@ async function main(): Promise<void> {
     narration: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
     suggest: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
   }
-  // 默认模型跟着 pi 自己的设置走（settings.json / PI_MODEL），配置文件只做覆盖
-  const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL
-  const cfg = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json', piDefault)
+  // 默认模型跟着 pi 自己的设置走（settings.json / PI_MODEL + PI_PROVIDER），配置文件只做覆盖
+  const cfg = resolveModelConfig()
   const llm = createLlm({
     models: cfg.models,
     credentials: readonlyPiCredentials(),
-    sessionId: `${cfg.sessionIdPrefix ?? 'play'}-${randomUUID()}`,
-    ...(cfg.retry ? { retry: cfg.retry } : {}),
+    sessionId: `${cfg.sessionIdPrefix}-${randomUUID()}`,
+    retry: cfg.retry,
     onUsage: (s) => {
       const u = usage[s.role]
       u.input += s.input

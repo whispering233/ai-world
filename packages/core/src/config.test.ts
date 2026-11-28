@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from './config.ts'
+import { loadModelConfig, readPiDefaultModel } from './config.ts'
 
 const dirs: string[] = []
 
@@ -14,9 +14,39 @@ function file(content: string | null): string {
   return path
 }
 
+function settings(content: unknown): string {
+  const dir = mkdtempSync(join(tmpdir(), 'ai-world-pi-'))
+  dirs.push(dir)
+  writeFileSync(join(dir, 'settings.json'), JSON.stringify(content))
+  return dir
+}
+
+function emptyDir(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'ai-world-pi-'))
+  dirs.push(dir)
+  return dir
+}
+
 afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 })
 })
+
+/**
+ * 在 pi 会话里跑测试时 `PI_MODEL` / `PI_PROVIDER` 已设置，且优先级高于 settings.json；
+ * 这里临时清掉，避免环境泄漏把用例跑红。
+ */
+function withoutPiEnv(fn: () => void): void {
+  const savedModel = process.env['PI_MODEL']
+  const savedProvider = process.env['PI_PROVIDER']
+  delete process.env['PI_MODEL']
+  delete process.env['PI_PROVIDER']
+  try {
+    fn()
+  } finally {
+    if (savedModel !== undefined) process.env['PI_MODEL'] = savedModel
+    if (savedProvider !== undefined) process.env['PI_PROVIDER'] = savedProvider
+  }
+}
 
 describe('loadModelConfig', () => {
   it('文件不存在时四个角色都指向传入的基准模型', () => {
@@ -29,8 +59,15 @@ describe('loadModelConfig', () => {
     })
   })
 
-  it('不给基准模型时退回常量', () => {
-    expect(loadModelConfig(file(null)).models.cognition).toBe(FALLBACK_MODEL)
+  it('仓库自带的空模板 + 有 pi 默认值：四角色全跟随它', () => {
+    const cfg = loadModelConfig(file(JSON.stringify({ models: {} })), 'pi/base')
+    expect(cfg.models.cognition).toBe('pi/base')
+    expect(cfg.models.suggest).toBe('pi/base')
+  })
+
+  it('空模板且没有 pi 默认值时抛错，不回退内置常量（config.md §1.1）', () => {
+    expect(() => loadModelConfig(file(JSON.stringify({ models: {} })))).toThrow(/未找到模型/)
+    expect(() => loadModelConfig(file(null))).toThrow(/未找到模型/)
   })
 
   it('只覆盖写了的角色，其余跟随基准模型', () => {
@@ -53,32 +90,62 @@ describe('loadModelConfig', () => {
   it('角色写成空字符串时抛错，不静默降级', () => {
     expect(() => loadModelConfig(file(JSON.stringify({ models: { cognition: '  ' } })))).toThrow(/models\.cognition/)
   })
+
+  it('retry 与 sessionIdPrefix 解析后总有值（DEFAULT_RETRY / DEFAULT_SESSION_PREFIX）', () => {
+    const cfg = loadModelConfig(file(JSON.stringify({ models: {} })), 'pi/base')
+    expect(cfg.retry).toEqual({ enabled: true, maxRetries: 2, baseDelayMs: 800 })
+    expect(cfg.sessionIdPrefix).toBe('play')
+  })
+
+  it('文件里只写要改的 retry 字段，其余落回 DEFAULT_RETRY', () => {
+    const cfg = loadModelConfig(file(JSON.stringify({ models: {}, retry: { maxRetries: 5 } })), 'pi/base')
+    expect(cfg.retry).toEqual({ enabled: true, maxRetries: 5, baseDelayMs: 800 })
+  })
 })
 
 describe('readPiDefaultModel：默认值跟着 pi 走', () => {
-  // 在 pi 会话里跑测试时 PI_MODEL 已设置，且优先级高于 settings.json；这里临时清掉，避免环境泄漏把用例跑红。
-  const withoutPiModel = (fn: () => void): void => {
-    const saved = process.env['PI_MODEL']
-    delete process.env['PI_MODEL']
-    try {
-      fn()
-    } finally {
-      if (saved !== undefined) process.env['PI_MODEL'] = saved
-    }
-  }
-
   it('从 settings.json 读出 provider/defaultModel', () => {
-    withoutPiModel(() => {
-      const dir = mkdtempSync(join(tmpdir(), 'ai-world-pi-'))
-      dirs.push(dir)
-      writeFileSync(join(dir, 'settings.json'), JSON.stringify({ defaultProvider: 'opencode-go', defaultModel: 'deepseek-v4.1-flash' }))
-      expect(readPiDefaultModel(dir)).toBe('opencode-go/deepseek-v4.1-flash')
+    withoutPiEnv(() => {
+      expect(readPiDefaultModel(settings({ defaultProvider: 'opencode-go', defaultModel: 'v4.1-flash' }))).toBe(
+        'opencode-go/v4.1-flash',
+      )
     })
   })
 
-  it('没有 settings.json 时返回 undefined，由调用方兜底', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ai-world-pi-'))
-    dirs.push(dir)
-    expect(readPiDefaultModel(dir)).toBeUndefined()
+  it('没有 settings.json 也没有环境变量时返回 undefined，由调用方兜底', () => {
+    withoutPiEnv(() => {
+      expect(readPiDefaultModel(emptyDir())).toBeUndefined()
+    })
+  })
+
+  it('只有环境变量、没有 settings.json 时也能拼出模型串（PI_MODEL 不能因读不到文件被丢掉）', () => {
+    withoutPiEnv(() => {
+      process.env['PI_MODEL'] = 'deepseek-v4.1-flash'
+      process.env['PI_PROVIDER'] = 'opencode-go'
+      expect(readPiDefaultModel(emptyDir())).toBe('opencode-go/deepseek-v4.1-flash')
+    })
+  })
+
+  it('PI_PROVIDER 优先于 settings.json 的 defaultProvider', () => {
+    withoutPiEnv(() => {
+      process.env['PI_PROVIDER'] = 'env-provider'
+      expect(readPiDefaultModel(settings({ defaultProvider: 'file-provider', defaultModel: 'm' }))).toBe(
+        'env-provider/m',
+      )
+    })
+  })
+
+  it('PI_MODEL 优先于 settings.json 的 defaultModel', () => {
+    withoutPiEnv(() => {
+      process.env['PI_MODEL'] = 'env-model'
+      expect(readPiDefaultModel(settings({ defaultProvider: 'p', defaultModel: 'file-model' }))).toBe('p/env-model')
+    })
+  })
+
+  it('只有 PI_MODEL 没有 provider 时返回 undefined（两侧都要有才拼得出串）', () => {
+    withoutPiEnv(() => {
+      process.env['PI_MODEL'] = 'env-model'
+      expect(readPiDefaultModel(emptyDir())).toBeUndefined()
+    })
   })
 })

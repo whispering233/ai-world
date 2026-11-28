@@ -6,10 +6,8 @@
  *
  * 用法：node --experimental-strip-types scripts/probe-storylet-fill.ts
  */
-import { homedir } from 'node:os'
-import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
+import { resolveModelConfig } from '@ai-world/core'
 import { createLlm } from '@ai-world/core'
 import { readonlyPiCredentials } from '@ai-world/core'
 import { fillEvent, SKELETONS } from './storylet-pool.ts'
@@ -28,14 +26,13 @@ const CASES = [
 ]
 
 async function main(): Promise<void> {
-  const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL
-  const cfg = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json', piDefault)
+  const cfg = resolveModelConfig()
   const usage = { input: 0, output: 0, ms: 0, calls: 0 }
   const llm = createLlm({
     models: cfg.models,
     credentials: readonlyPiCredentials(),
     sessionId: `storylet-fill-${randomUUID()}`,
-    ...(cfg.retry ? { retry: cfg.retry } : {}),
+    retry: cfg.retry,
     onUsage: (s) => {
       usage.input += s.input
       usage.output += s.output
