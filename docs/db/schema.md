@@ -73,7 +73,6 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 | drives | 是 | Drive[] | heat 0~1 | `{ id, text, heat }` |
 | beliefs | 是 | Record<EntId, string> | | 可错，可被谎言改写 |
 | experience | 是 | Exp[] | | append-only |
-| busyUntil | 是 | number | ≥ clock | 当前动作完成时刻 |
 
 ## 6. `experience`（人物经验）
 
@@ -104,7 +103,7 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 | title | 是 | string | 非空 | 世界标题；玩家壳顶栏用它 |
 | opening | 否 | string | ≤600 字 | 首屏散文，只给玩家；缺失时前端回退场景卡 |
 | scene | 否 | string | ≤160 字 | 一两句现场描述，进人物/裁判/旁白上下文 |
-| characters | 是 | CharacterSeed[] | 每人 core 200–400 字、voice 非空、drive heat 0..1 | 只存作者字段 `id`/`core`/`voice`/`drives`/`beliefs`；运行时字段 `experience`、`busyUntil` 由 `seedCharacters()` 补空，不写进文件 |
+| characters | 是 | CharacterSeed[] | 每人 core 200–400 字、voice 非空、drive heat 0..1 | 只存作者字段 `id`/`core`/`voice`/`drives`/`beliefs`；运行时字段 `experience` 由 `seedCharacters()` 补空，不写进文件 |
 | names | 是 | Record<EntId, string> | | 人物/实体显示名：id → 人读的名字；覆盖 `ledger.at` 的全部实体 |
 | items | 是 | Record<ItemId, string> | | 物品显示名：id → 人读的名字；覆盖 `ledger.holds` 里出现的物品 |
 | aliases | 否 | Record<EntId, string[]> | | 额外检索词：只用于事实切片匹配“这句话提到谁”，不改显示名 |

@@ -12,7 +12,7 @@
 | clock / clockText | 是 | number / string | 当前时刻 |
 | content | 是 | `{path, activeHash, diskHash, changed}` | `activeHash` = 本局启动时加载的内容哈希；`diskHash` = 磁盘当前；`changed: activeHash !== diskHash` |
 | world | 是 | `{ledger, facts, places, ambient?}` | 原始值，不做显示名替换 |
-| characters | 是 | `{id,name,core?,voice?,drives,beliefs,busyUntil,experienceCount}[]` | 四层状态；`experience` 只给条数，全文走单拍详情 |
+| characters | 是 | `{id,name,core?,voice?,drives,beliefs,experienceCount}[]` | 四层状态；`experience` 只给条数，全文走单拍详情 |
 | journal | 是 | `JournalEntry[]` | `journal.jsonl` 原样 |
 | usage | 是 | `Record<ModelRole, Usage>` | 本次进程累计，非本局累计（进程重启归零，界面须注明） |
 | health | 是 | `HealthView` | 见 §1.1 |

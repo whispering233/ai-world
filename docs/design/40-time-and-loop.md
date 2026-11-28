@@ -5,7 +5,6 @@
 | 概念 | 定义 |
 | :--- | :--- |
 | `clock` | 从创世起的**分钟数**，单调递增 |
-| `busyUntil` | 每个实体"手上这件事完成"的时刻 |
 | `beat` | **一拍**：一次结算 = 一条 `journal` = 一个回放单位 |
 | `scene` | **一个场景**：一次装配 → 若干拍追加 → 一次折场（见 §2） |
 | `fmt(clock)` | 唯一的时间展示出口，如 `第 3 天 · 傍晚` |
@@ -49,7 +48,7 @@ loop:
   if 无当前场景: 装配场景（检索 + canon + 账本切片）
   actors  = 被叫到的人(场景)
   claims  = 收集(actors + 玩家)
-  if claims 为空: clock = min(busyUntil); continue
+  if claims 为空: continue
   r       = referee(claims, 场景切片, 账本, canon)   // 一拍一次
   clockAfter = clock + max(已提交 claim 的 duration)
   账本原子提交(r); 追加渲染(r); 写日志(clockAfter, scene, claims, r)
