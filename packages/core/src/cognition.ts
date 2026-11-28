@@ -5,7 +5,7 @@
  */
 import { recall, type Character, type Experience } from './character.ts'
 import { createFauxLlm, type Llm } from './llm.ts'
-import { parseModelJson } from './model-json.ts'
+import { tryParseModelJson } from './model-json.ts'
 
 export interface CrossTalk {
   /** 自己刚才的公开输出（只含 outward，不含 inner） */
@@ -58,12 +58,7 @@ function field(obj: Record<string, unknown>, key: string): string {
  * 围栏与前后说明文字由 parseModelJson 处理。
  */
 function split(text: string): CognitionOutput {
-  let obj: Record<string, unknown> | undefined
-  try {
-    obj = parseModelJson(text)
-  } catch {
-    obj = undefined
-  }
+  const obj = tryParseModelJson(text)
   const outward = obj ? field(obj, 'outward') : ''
   if (!outward) return { inner: '', outward: clip(text, OUTWARD_MAX) }
 

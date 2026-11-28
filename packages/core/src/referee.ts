@@ -7,7 +7,7 @@
 
 import { apply } from './ledger.ts'
 import type { Llm } from './llm.ts'
-import { parseModelJson } from './model-json.ts'
+import { tryParseModelJson } from './model-json.ts'
 import type { EntId, Op, OpResult, World } from './world.ts'
 
 export type ClaimKind = 'say' | 'act'
@@ -295,14 +295,7 @@ export function createLlmReferee(llm: Llm): Referee {
       // 首选工具调用（参数已被 schema 校验）；模型没用工具时退回文本 JSON。
       // 两条路都不抛：解析不出来就交给 parseRefereeOutput 走“无事发生 + notes”分支。
       const args = res.toolCalls.find((c) => c.name === 'submit_verdict')?.args
-      let raw: unknown = args
-      if (raw === undefined) {
-        try {
-          raw = parseModelJson(res.text)
-        } catch {
-          raw = undefined
-        }
-      }
+      const raw: unknown = args === undefined ? tryParseModelJson(res.text) : args
       return parseRefereeOutput(raw, input.claims).output
     },
   }

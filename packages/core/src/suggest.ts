@@ -6,7 +6,7 @@
  * 它不改账本、不改正文；失败只丢提示。
  */
 import { createFauxLlm, type Llm } from './llm.ts'
-import { parseModelJson } from './model-json.ts'
+import { tryParseModelJson } from './model-json.ts'
 
 /** 一条 hint 的字数上限；按码点算，避免拆坏代理对。 */
 export const HINT_MAX = 3
@@ -65,12 +65,8 @@ function clip(text: string): string {
  * 格式坏或没有 hints 时返回空数组——提示失败不该冒到一拍上去。
  */
 export function parseHints(text: string): string[] {
-  let obj: Record<string, unknown>
-  try {
-    obj = parseModelJson(text)
-  } catch {
-    return []
-  }
+  const obj = tryParseModelJson(text)
+  if (obj === undefined) return []
   const raw = obj['hints']
   if (!Array.isArray(raw)) return []
   const hints: string[] = []
