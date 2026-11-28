@@ -41,12 +41,11 @@ function characters(): Map<EntId, Character> {
     drives: [{ id: 'd1', text: '想把这杯酒卖出去', heat: 0.8 }],
     beliefs: {},
     experience: [],
-    busyUntil: 0,
   })
   return new Map([
     ['ann', mk('ann', '老板娘')],
     ['doc', mk('doc', '医生')],
-    ['player', { id: 'player', drives: [], beliefs: {}, experience: [], busyUntil: 0 }],
+    ['player', { id: 'player', drives: [], beliefs: {}, experience: [] }],
   ])
 }
 

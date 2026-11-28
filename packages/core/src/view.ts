@@ -183,7 +183,6 @@ function characterView(ch: Character, names: Record<EntId, string>): AuthorChara
     voice: ch.voice,
     drives: ch.drives,
     beliefs: ch.beliefs,
-    busyUntil: ch.busyUntil,
     experienceCount: ch.experience.length,
   }
 }

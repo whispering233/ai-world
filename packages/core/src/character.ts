@@ -32,7 +32,6 @@ export interface Character {
   drives: Drive[]
   beliefs: Record<EntId, string>
   experience: Experience[]
-  busyUntil: number
 }
 
 function clamp01(value: number): number {

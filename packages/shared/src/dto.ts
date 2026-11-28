@@ -144,7 +144,6 @@ export interface AuthorCharacterView {
   voice?: string
   drives: { id: string; text: string; heat: number }[]
   beliefs: Record<string, string>
-  busyUntil: number
   /** 只给条数；全文走单拍详情 */
   experienceCount: number
 }

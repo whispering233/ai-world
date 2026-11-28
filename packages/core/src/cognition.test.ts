@@ -11,7 +11,6 @@ function input(over: Partial<CognitionInput> = {}): CognitionInput {
     drives: [{ id: 'd1', text: '不想再欠人情', heat: 0.9 }],
     beliefs: { bob: '他撒过谎' },
     experience: [],
-    busyUntil: 0,
   }
   return { character, sceneText: '他把杯子推过来。', canon: ['屋里只有一盏灯'], now: 100, ...over }
 }
