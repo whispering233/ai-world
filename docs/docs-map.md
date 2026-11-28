@@ -42,6 +42,7 @@
 | [baseline-20.md](research/baseline-20.md) | 20 拍基线（C7 前，旧检测器）：空结果 77%、facts/beat 0.55；hard/double 1/1 为检测器误报 |
 | [baseline-21.md](research/baseline-21.md) | 新检测器 20 拍：空结果 60.6%、facts/beat 1.25、hard/double 0 |
 | [baseline-22.md](research/baseline-22.md) | 第三次同条件 20 拍：空结果 71%、段落 16/20、hard/double 0 |
+| [conflict-detector.md](research/conflict-detector.md) | 实验冲突检测的根因（拍前持有核对误报双花）、修复与验证 |
 | [m1-fixtures-smoke.md](research/m1-fixtures-smoke.md) | 陈设承载物品 12 拍：transfer 5 全涉及柜台/桌子，硬冲突 0 |
 | [s1-suggest-smoke.md](research/s1-suggest-smoke.md) | 动作提示 12 拍：hints 36 条、无 id/引擎词 |
 | [b1-focus-smoke.md](research/b1-focus-smoke.md) | 显式硬聚焦：本拍只有玩家+目标的 claim |

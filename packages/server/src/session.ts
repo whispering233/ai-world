@@ -484,7 +484,12 @@ function roster(pack: ContentPack): EntId[] {
   return [pack.player, ...pack.characters.map((c) => c.id)]
 }
 
-/** 玩家当前地点的人物（不含玩家自己）：聚焦的候选集。 */
+/**
+ * 玩家当前地点的人物（不含玩家自己）：聚焦的候选集。
+ *
+ * 白名单用内容包的人物，而不是本拍参与者：聚焦必须在裁判之前定下来。
+ * 与其余几处在场者口径的差异见 docs/design/60-server.md §6。
+ */
 function presentPeople(pack: ContentPack, world: World): EntId[] {
   const place = world.ledger.at[pack.player] ?? ''
   return roster(pack).filter((ent) => ent !== pack.player && (world.ledger.at[ent] ?? '') === place)

@@ -1,6 +1,10 @@
 /**
  * 人物单次调用（见 docs/design/30-cognition.md §2–§4）：一次调用进出，无阶段、无中间产物。
  *
+ * `CognitionInput.crossTalk` 允许一拍内第二次调用，但那只走 `scripts/` 的实验路径
+ * （docs/research/multi-round-experiment.md），且 pilot 结论不支持默认开启——
+ * 生产路径仍是一次调用。
+ *
  * 只管"想"：拿 llm 换一段 inner/outward，把 outward 记为一条 seen、inner 记为一条 thought。写账本、判 self 闸、动 heat 都不在这里。
  */
 import { recall, type Character, type Experience } from './character.ts'

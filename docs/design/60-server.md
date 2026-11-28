@@ -109,6 +109,19 @@ prompt 只在内存环形缓冲保留最近 3 拍，不落盘（体积 + 隐私�
 | 玩家 | `packages/core/src/view.ts` 的 `playerView()` | 只含显示名与可验证状态；不得出现任何 id 与引擎词 |
 | 作者 | 同文件的 `authorView()` | 原始值全量 |
 
+**“谁在场”有四处口径，各自服务不同的问题，不要合并**：
+
+| 用途 | 位置 | 白名单 | 含玩家 | 回答的问题 |
+| :--- | :--- | :--- | :--- | :--- |
+| 玩家抽屉 | `view.ts` 的 `playerState` | 内容包里的人物 | 否 | 玩家身边还有谁 |
+| 动作提示器 | `beat.ts` 的 `suggestInput` | 本拍场景参与者 | 否 | 你现在能跟谁说话 |
+| 聚焦候选集 | `server/session.ts` 的 `presentPeople` | 内容包里的人物 | 否 | 没点名时目标能是谁 |
+| 场景描述 | `content.ts` 的 `sceneText` | 内容包里的人物 | **是** | 这屋子里有谁 |
+
+四者也承担不同的容错：`ledger.at[player]` 缺失时，`playerState` 与 `presentPeople` 退成空地点，`suggestInput` 退成本拍场景地点；`sceneText` 直接拼地点 id。
+这些都是投影层的容错，不是语义差异。
+唯一**不可**分叉的是 `sceneText`：服务端与 `scripts/play.ts` 喂同一个消费点（`BeatInput.sceneText`），所以它只有一份实现。
+
 隔离靠三层，不靠开关：
 
 1. **投影纯函数**：玩家投影的键集合由 `view.test.ts` 断言。

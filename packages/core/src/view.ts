@@ -62,6 +62,8 @@ function playerState(input: PlayerViewInput): PlayerStateView {
   const atPlace = world.ledger.at[player]
   // 玩家不在任何地点是数据错，但投影崩掉比显示空更糟
   const place = atPlace === undefined ? '' : (world.places[atPlace] ?? atPlace)
+  // 在场者口径：内容包里的人物 ∩ 玩家当前地点，且排除玩家自己。
+  // 动作提示器 / 聚焦候选集 / 场景描述各用别的口径，为什么不同见 docs/design/60-server.md §6。
   const here =
     atPlace === undefined
       ? []
@@ -149,7 +151,7 @@ export interface AuthorViewInput {
   characters: ReadonlyMap<EntId, Character>
   names: Record<EntId, string>
   journal: readonly JournalEntry[]
-  /** 预留给单拍详情；本视图不含 beats */
+  /** 当前没有被 `authorView` 读取：单拍详情走 `Session.authorBeat`。 */
   passages: readonly PassageEntry[]
   content: ContentStatusView
   usage: Record<ModelRoleName, UsageView>

@@ -272,10 +272,6 @@ export const REFEREE_SYSTEM = `你是这个世界的裁判，不是叙述者。�
 
 deltas 只能使用这些 op：move{who,to} / transfer{from,to,item,n} / consume{from,item,n} / phys{who,key,value} / rel{from,to,delta} / fact{text,actor?,kind?} / know{who,fact}。`
 
-/**
- * 裁判输出优先走 submit_verdict 工具；模型没调工具时回退文本 JSON。
- * 信封由工具 schema 校验，单个 op 的合法性仍由 apply() 的前置条件把关。
- */
 /** 裁判的用户消息（工具调用与纯文本回退共用同一段，便于对照测速） */
 export function refereePrompt(input: RefereeInput): string {
   const claims = input.claims.map((c) => ({ claimId: c.id, actor: c.actor, kind: c.kind, text: c.text }))
@@ -283,6 +279,10 @@ export function refereePrompt(input: RefereeInput): string {
   return `${canon}当前时刻（分钟）：${input.clock}\n\n现场：\n${input.context}\n\n待裁决的主张：\n${JSON.stringify(claims, null, 2)}`
 }
 
+/**
+ * 裁判输出优先走 submit_verdict 工具；模型没调工具时回退文本 JSON。
+ * 信封由工具 schema 校验，单个 op 的合法性仍由 apply() 的前置条件把关。
+ */
 export function createLlmReferee(llm: Llm): Referee {
   return {
     async judge(input) {

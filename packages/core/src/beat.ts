@@ -19,7 +19,7 @@ export interface BeatDeps {
   narrator: Narrator
   cognition: Cognition
   store: Store
-  /** 动作提示；旧调用点不传就跳过，也不算降级 */
+  /** 动作提示；CLI 试玩器与 experiment-storylet 不传就跳过，也不算降级 */
   suggester?: Suggester
 }
 
@@ -391,6 +391,7 @@ function suggestInput(input: BeatInput, world: World, out: RefereeOutput): Sugge
   const player = input.player
   const place = world.ledger.at[player] ?? input.scene.place
   // 只列人：账本里还有灯、门、柜台这类实体，它们是陈设不是在场者
+  // 在场者口径：本拍参与者（不是“当前地点里所有人”），排除玩家；为什么不同见 60-server.md §6
   const people = new Set<EntId>([player, ...input.scene.participants])
   const here = Object.entries(world.ledger.at)
     .filter(([ent, at]) => at === place && ent !== player && people.has(ent))

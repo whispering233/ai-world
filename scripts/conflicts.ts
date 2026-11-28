@@ -1,9 +1,8 @@
 /**
  * 实验指标里的冲突检测（纯函数，不属于生产路径）。
  *
- * 旧实现用拍前持有核对整拍 transfer/consume 的总量，于是「同一拍先收后付」会被算成双花：
- * ann 先拿到 3 份 whiskey，再付 1 份出去，拍前持有是 0，总量 1 > 0 就报冲突。
- * 现在一律走 `commit` 的真实结算顺序，只看真正失败的 op 与真正落账的 verdict。
+ * 一律走 `commit` 的真实结算顺序，只看真正失败的 op 与真正落账的 verdict；
+ * 为什么不能用拍前持有核对总量，见 docs/research/conflict-detector.md §1。
  *
  * 指标口径：
  * - doubleSpend：`applied` 中 op 为 transfer/consume 且 `!result.ok` 的条数。

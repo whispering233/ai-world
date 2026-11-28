@@ -1,5 +1,5 @@
 /**
- * 动作提示（见 docs/design/50-llm.md §2、docs/design/tasks.md 的 S1）。
+ * 动作提示（见 docs/design/50-llm.md §2、docs/research/s1-suggest-smoke.md）。
  *
  * 一拍之后给玩家 3 句他现在就能输入的短动作。只读玩家可见的投影（显示名、已知事实）、
  * 本拍玩家自己说的那句与本拍感知摘要：不看裁判意见、不看别人的主张、不看账本 id。

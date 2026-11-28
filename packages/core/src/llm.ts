@@ -46,10 +46,10 @@ export interface ChatResult {
   inputTokens: number
   outputTokens: number
   model: string
-  /** provider 报回的缓存命中量；不报时缺省 */
+  /** provider 报回的缓存命中/写入量；pi-ai 的 usage 里缺这两项时值是 undefined，调用方按 0 处理 */
   cacheRead?: number
   cacheWrite?: number
-  /** 本次调用费用（供应商计价单位）；不报时缺省 */
+  /** 本次调用费用（供应商计价单位）；pi-ai 不报时是 undefined，调用方按 0 处理 */
   cost?: number
   /** 本次调用触发的重试次数 */
   retries?: number
@@ -62,7 +62,7 @@ export interface UsageSample {
   output: number
   cacheRead: number
   cacheWrite: number
-  /** 本次调用费用（供应商计价单位）；不报时缺省 */
+  /** 本次调用费用（供应商计价单位）；pi-ai 不报时是 undefined，调用方按 0 处理 */
   cost?: number
   /** 本次调用总耗时（含重试与退避） */
   ms: number
