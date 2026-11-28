@@ -126,6 +126,8 @@ function reducer(state: AppState, action: Action): AppState {
         session,
         beats: session.beats,
         inFlight: session.inFlight,
+        // 取到了会话就说明这次读是成功的：上一次失败留下的错误条不能继续挂着
+        error: null,
         loadFailed: false,
         pendingTo: null,
         ...(action.newGame === true ? { draft: '', pendingText: null } : {}),

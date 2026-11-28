@@ -91,7 +91,8 @@ export function AuthorApp({ beats, pendingText, pendingTo, opening, scene, onMod
       <header className="flex h-10 shrink-0 items-center justify-between gap-4 border-b border-rule px-4 meta-line">
         <div className="flex items-center gap-4">
           <span>{changed ? '内容已变更，未生效' : '内容已生效'}</span>
-          <span>累计 cost {cost.toFixed(4)}</span>
+          {/* usage 是本次进程累计，不是本局累计（shared/src/dto.ts） */}
+          <span>本次进程 cost {cost.toFixed(4)}</span>
           <span>降级 {session?.health.degraded ?? 0} 条</span>
         </div>
         <div className="flex items-center gap-2">

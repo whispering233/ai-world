@@ -8,6 +8,9 @@ import { READING_COLUMN } from './column.ts'
 /** 「等一会儿」发的是这一句普通输入；服务端照常结算，不改 API（决策 #49） */
 export const WAIT_TEXT = '我等着，看看他们怎么说。'
 
+/** 请求体上限（`docs/api/20-api-beat.md` 的 1–500 字）：超出由服务端截断，客户端只提前告一声 */
+const PLAYER_TEXT_MAX = 500
+
 export interface ComposerProps {
   draft: string
   onDraftChange: (draft: string) => void
@@ -178,18 +181,22 @@ export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFligh
           autoSize={{ minRows: 2, maxRows: 6 }}
           aria-label="你说或做什么"
         />
-        <div className="mt-2 flex items-center justify-between meta-line">
-          <span>
-            {inFlight ? (
-              <>
-                {settled === true ? '这一拍已经定了，正在落笔…' : '世界在回应…'} {mmss(elapsedMs)}
-                <span aria-hidden="true" className="blink">
-                  ▍
-                </span>
-              </>
-            ) : (
-              'Enter 发送 · Shift+Enter 换行'
-            )}
+        <div className="mt-2 flex items-center justify-between gap-3 meta-line">
+          <span className="flex items-center gap-3">
+            <span>
+              {inFlight ? (
+                <>
+                  {settled === true ? '这一拍已经定了，正在落笔…' : '世界在回应…'} {mmss(elapsedMs)}
+                  <span aria-hidden="true" className="blink">
+                    ▍
+                  </span>
+                </>
+              ) : (
+                'Enter 发送 · Shift+Enter 换行'
+              )}
+            </span>
+            {/* 契约是 1–500 字（docs/api/20-api-beat.md）：超出由服务端截断，这里先告一声 */}
+            {draft.length > PLAYER_TEXT_MAX && <span>已 {draft.length} 字，发送后会被截到 {PLAYER_TEXT_MAX} 字</span>}
           </span>
           {/* 等待中不提供：同一时刻只允许一条在途输入 */}
           {!inFlight && (

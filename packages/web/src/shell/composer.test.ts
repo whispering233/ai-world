@@ -425,3 +425,19 @@ describe('Composer 的目标 chips', () => {
     unmount()
   })
 }, 15_000)
+
+/** 字数上限：契约是 1–500 字、超出由服务端截断（docs/api/20-api-beat.md），提示行只说这一事实 */
+describe('Composer 的超长提示', () => {
+  it('刚好 500 字不提示', async () => {
+    const { unmount } = await mount({ draft: '啊'.repeat(500) })
+    expect(screen.queryByText(/发送后会被截到/)).toBeNull()
+    unmount()
+  })
+
+  it('超过 500 字时在提示行说明会被截断，且不改「等一会儿」的文案', async () => {
+    const { container, unmount } = await mount({ draft: '啊'.repeat(501) })
+    expect(screen.getByText('已 501 字，发送后会被截到 500 字')).toBeDefined()
+    expect(waitButton(container)?.textContent).toBe('等一会儿')
+    unmount()
+  })
+}, 15_000)
