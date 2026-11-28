@@ -59,8 +59,10 @@
   cursor: pointer;
 
   &[aria-checked="true"] {
-    background-color: var(--color-accent);
-    border-color: var(--color-accent);
+    /* 用 `primary-active` 而不是 `--color-accent`：浅色 accent 配白字只有 4.10:1，低于 §8 的
+       4.5:1；`primary-active` 两套算法都在 6:1 上下（本文件不许写颜色字面量，所以只记比值）。 */
+    background-color: var(--ant-color-primary-active);
+    border-color: var(--ant-color-primary-active);
     color: var(--ant-color-text-light-solid);
   }
 }
