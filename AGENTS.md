@@ -18,7 +18,7 @@
 
 - `packages/core/` 纯函数：账本、调度、场景、检索、裁判契约、LLM 适配、投影、体检。全部可替换为确定性桩。
 - 四个服务按**接口**寻址（`clock` / `ledger` / `referee` / `narrate`），不直接 import 具体实现。
-- `BeatInput.claimSource` 是唯一的世界事件注入点（只读账本、产出仍是 claim）；storylet 冻结中，目前只有 `scripts/` 与测试在用。
+- `BeatInput.claimSource` 是唯一的世界事件注入点（只读账本、产出仍是 claim）；storylet 冻结中，当前**没有生产实现**，只有测试里的内联桩。
 - `packages/content/` 只做内容加载与校验；世界内容本体是根 `content/<world>.json`（git 跟踪），不放规则。
 - **世界是一局**：`content/<world>.json` 的文件名就是世界 id（`^[a-z0-9-]+$`）；换包只能通过开新局（`POST /api/reset {world}`），每个世界独立 `data/<world>/`。同一时刻内存里只有一个世界，不存在“切了包但保留旧账本”。
 - `AI_WORLD` 只决定进程首启默认（缺省 `starter-town`），**不是产品入口**；玩家在「新的一局」里选。客户端传来的 `world` 必须先过白名单（不得直接拼路径）。

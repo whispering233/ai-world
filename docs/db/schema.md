@@ -94,7 +94,7 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 | ambient | 否 | Record<string, string\|number\|boolean> | | 世界常态声明（只读根常量，与 `places` 同性质，不属于事实流）；改它等于改世界设定 |
 
 显示名不在 `world` 里：它们是作者层 `ContentPack` 的静态映射，不参与 replay，也不进账本。
-`ambient` 只给环境类前因读：键缺失 = 不满足，不默认通过；它不由裁判写，也不进 journal。
+`ambient` 只给环境类前因读：键缺失 = 不满足，不默认通过；它不由裁判写，也不进 journal。当前**无代码消费者**（storylet 冻结，骨架与池实现随探针删除）；保留声明是为了内容包与作者壳的字段稳定。
 
 ## 8. `ContentPack`（作者层，不是运行时状态）
 

@@ -1110,7 +1110,7 @@ describe('runBeat：动作提示', () => {
     expect(store.readPassage()[0]?.hints).toBeUndefined()
   })
 
-  it('不传 suggester：没有提示，也不留 note（CLI 试玩器与 experiment-storylet 不传）', async () => {
+  it('不传 suggester：没有提示，也不留 note（CLI 试玩器不传）', async () => {
     const store = tmpStore()
     const input = base(store, [settled])
     input.playerClaim = '我把银元放在柜台上。'

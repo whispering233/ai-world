@@ -57,7 +57,7 @@ pnpm play -- --beats 20 --fresh --auto   # 20 拍基线，出体检表
 
 前端 chrome 是 `antd` 6 + `@ant-design/x` 2（不自绘基础件）；层叠、色板与排版口径见 [docs/ui/DESIGN.md](docs/ui/DESIGN.md) §0。
 
-实验脚本（一次性，证据落 `data/`，不入库）：`scripts/experiment-multi-round.ts`（`--beats` / `--focus` / `--long` / `--unlock`）、`scripts/experiment-storylet.ts`（`--run N` / `--report`）、`scripts/probe-storylet.ts`、`scripts/probe-storylet-fill.ts`；结论见 [docs/research/storylet-probe.md](docs/research/storylet-probe.md) 与 [baseline-23.md](docs/research/baseline-23.md)。
+实验脚本（一次性，证据落 `data/`，不入库）：`scripts/experiment-multi-round.ts`（`--beats` / `--focus` / `--long` / `--unlock`）；结论见 [docs/research/baseline-23.md](docs/research/baseline-23.md)。storylet 探针与 A/B harness 已随冻结结论撤除，结论保留在 [docs/research/storylet-probe.md](docs/research/storylet-probe.md)。
 
 约束见 [AGENTS.md](AGENTS.md)：只有裁判能写账本、人物没有技能表、时间只有一个出口、玩家视图不出现引擎语义。
 

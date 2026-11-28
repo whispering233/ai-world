@@ -19,7 +19,7 @@ export interface BeatDeps {
   narrator: Narrator
   cognition: Cognition
   store: Store
-  /** 动作提示；CLI 试玩器与 experiment-storylet 不传就跳过，也不算降级 */
+  /** 动作提示；CLI 试玩器不传就跳过，也不算降级 */
   suggester?: Suggester
 }
 
