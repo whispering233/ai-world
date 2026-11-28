@@ -15,7 +15,7 @@ export interface BeatListProps {
  * “20 拍却编到 #22、中间缺 #19”这种跳号。分组用 `clockText`，长局里至少能按时间折叠着找。
  */
 export function BeatList({ beats, selected, onSelect }: BeatListProps) {
-  if (beats.length === 0) return <p className="p-4 text-meta text-ink-soft">还没有拍。</p>
+  if (beats.length === 0) return <p className="p-4 meta-line">还没有拍。</p>
 
   // 新的在上；倒序后第 i 项的拍序是 length - i
   const items: ConversationItemType[] = [...beats].reverse().map((beat, index) => ({
@@ -24,7 +24,7 @@ export function BeatList({ beats, selected, onSelect }: BeatListProps) {
     label: (
       <div className="flex flex-col gap-1">
         <span className="truncate">{summaryOf(beat)}</span>
-        <span className="text-meta text-ink-soft">第 {beats.length - index} 拍</span>
+        <span className="meta-line">第 {beats.length - index} 拍</span>
       </div>
     ),
   }))

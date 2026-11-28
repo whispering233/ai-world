@@ -51,11 +51,17 @@
 - `<html class="ai-world-theme">` 与 `AntdProvider` 的 `cssVar.key` 必须同字面量：antd 6 不把 `--ant-*` 注入 `:root`，不同步会让全站语义色静默变透明。
 - `@ant-design/cssinjs` 必须与 antd 内部读的同一实例（当前 2.2.0），否则 `<StyleProvider layer>` 静默失效（只有图标进层）。
 - 色值不许进组件：色板只在 `theme/AntdProvider.tsx`（浅 `defaultAlgorithm` / 深 `darkAlgorithm`，不自定 seed），组件里只用 `paper` / `paper-2` / `ink` / `ink-soft` / `rule` / `accent` 这几个映射名。
-- 目标 chips 必须区分 `自动` / `所有人` / 在场者：自动才推断，显式所有人发 `all:true`；不要退回“null = 所有人”的旧语义。
+- 目标单选组（chips）必须区分 `自动` / `所有人` / 在场者：自动才推断，显式所有人发 `all:true`；不要退回“null = 所有人”的旧语义。它是**一组单选按钮**：整组只占一个 Tab 停靠点，←/→/Home/End 移动并同时选中。
+- **不要用 `Tag.CheckableTag` 做单选**：它硬编码 `role="checkbox"` 与 `tabIndex=0`（`restProps` 展开在前，覆写不掉），套一层 `role=radio` 的 `span` 会变成 6 颗 chip 占 12 个停靠点。现在是 `<Tag>` 管外观 + 自建 `radiogroup`。
+- `meta-line`（次要元信息）与 `dump`（JSON / prompt 转储）是**唯一成套语义排版类**；布局仍旧用工具类拼，不给 `flex gap-2` 起名。
+- 动画类（`.blink` / `.fade-in`）必须待在 `@layer components`：层外样式的优先级高于所有 layer，`motion-reduce:` 一类覆盖会被静默压掉。
+- `tokens.css` 里**连注释都不能写颜色字面量**（`theme/layers.test.ts` 会红）；要说明比值就只说数字。
 - 作者改显示名后的旧称呼 warning 只比较本次表单会话，只提示、不自动改正文；单字名会误报。
 - antd 6 改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` 用 `orientation`、`Timeline` 用 `title`/`content`。写错只 `console.error`，界面照常。
 - `@ant-design/x` 的 `CodeHighlighter` 会给产物加 **+238 kB gzip**（`react-syntax-highlighter` + `mermaid`）：只用得着它的复制按钮就不值，除非代码只在已懒加载的作者壳里。
 - 正文档位（17px / 1.85 / 段距 24px / 列宽 40rem）在 `tokens.css`；jsdom 不算布局也不算层叠，UI 卡必须跑真浏览器。
+- 「此刻」抽屉的宽度分档（≥1312 → 360px、1200–1311 → 320px、更窄全屏）是按“不覆盖正文文字区”反推的，不是拍的：文字右缘 = `(视口 + 列宽)/2 − 24`，改分界先重算。
+- 系统深浅色：`dataset.theme` 要在**首帧前**先落一次（否则深色系统闪一帧浅色），之后由 effect 跟随 `matchMedia` 的 `change`；两处读同一个 `MQL`，不许各写一套。
 
 ## 发布
 

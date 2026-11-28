@@ -30,8 +30,9 @@ pnpm serve     # 打开 http://127.0.0.1:8787
 需要 Node ≥ 22.6 与 pi CLI 的模型凭据（`~/.pi/agent/auth.json`，只读复用）。
 
 - `Enter` 发送，`Shift+Enter` 换行；顶栏「此刻」看你在哪、身上有什么、知道什么。
+- 输入区上方可指定「对谁说」：`自动`（按正文里的唯一人名推断）/ `所有人` / 某位在场者；键盘 ←/→ 切换，Space 或 Enter 选中。
 - `⋯` → 新的一局里可以换内容包：选另一个包就是另一个世界，也是一份独立存档（`data/<world>/`）。
-- `Ctrl/Cmd+Shift+D` 或 `⋯` 菜单切作者视图；切换不重置阅读位置。
+- `Ctrl/Cmd+Shift+D` 或 `⋯` 菜单切作者视图；切换不重置正文与输入框，滚动位置靠 localStorage 恢复。
 - 想改前端代码：两个终端跑 `pnpm dev:server` + `pnpm dev:web`，打开 `http://127.0.0.1:5173`（Vite 热更新，`/api` 反代到 8787）。
 
 世界数据在 `data/<world>/`（`journal.jsonl` + `passage.jsonl`，不入库），内容在 `content/<world>.json`（git 跟踪）。开新局时选的包决定读哪个文件、写哪个目录；进程默认包由 `AI_WORLD` 决定（缺省 `starter-town`）。删掉 `data/<world>/` 就是那个世界的干净存档；服务端重启会自动从 journal 重放续跑。

@@ -1,7 +1,6 @@
 /**
  * 源码扫描：玩家壳不碰作者壳、不碰引擎包、不碰引擎词、不写颜色字面量。
- *
- * 隔离的第三层是数据懒取，这里的静态扫描是第二层（docs/design/60-server.md §6）。
+ * 基线与理由见 `docs/ui/DESIGN.md` §0 与 `docs/design/60-server.md` §6。
  * 每条规则都喂违规样例与合法样例，防止正则写歪了还"全绿"。
  */
 import { readdirSync, readFileSync } from 'node:fs'
@@ -55,9 +54,9 @@ const RULES: Rule[] = [
     allows: 'const rows = session.beats.length',
   },
   {
-    name: '规则 4：颜色字面量只允许出现在 tokens.css',
+    name: '规则 4：玩家壳不写颜色字面量（色板只在 antd 主题里，tokens.css 只做映射）',
     pattern: /#[0-9a-f]{3}(?:[0-9a-f]{3})?\b|rgba?\(|hsla?\(/i,
-    violates: 'className="bg-[#faf6ee]"',
+    violates: "style={{ color: '#faf6ee' }}",
     allows: 'className="bg-paper text-ink"',
   },
 ]
@@ -124,7 +123,7 @@ describe('玩家壳纪律', () => {
       expect(AUTHOR_IMPORT.test("import { TopBar } from './shell/TopBar.tsx'")).toBe(false)
     })
 
-    it('tokens.css 是颜色的家', () => {
+    it('tokens.css 里只有映射，没有色值', () => {
       expect(readFileSync(join(SOURCE_DIR, 'tokens.css'), 'utf8')).toMatch(/--color-paper:/)
     })
 

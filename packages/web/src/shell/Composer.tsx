@@ -1,7 +1,15 @@
 import { Prompts, Sender } from '@ant-design/x'
 import { Button, Tag } from 'antd'
+import { useRef } from 'react'
+import type { KeyboardEvent } from 'react'
 import type { PlayerStateView } from '@ai-world/shared'
 import { READING_COLUMN } from './column.ts'
+
+/** 「等一会儿」发的是这一句普通输入；服务端照常结算，不改 API（决策 #49） */
+export const WAIT_TEXT = '我等着，看看他们怎么说。'
+
+/** 请求体上限（`docs/api/20-api-beat.md` 的 1–500 字）：超出由服务端截断，客户端只提前告一声 */
+const PLAYER_TEXT_MAX = 500
 
 export interface ComposerProps {
   draft: string
@@ -18,7 +26,7 @@ export interface ComposerProps {
   state?: PlayerStateView
   /** “对谁说”的当前目标（显示名）；`null` = 没有点名的人 */
   target?: string | null
-  /** 自动：按正文唯一人名推断目标（C11 的默认态） */
+  /** 自动：按正文唯一人名推断目标（决策 #48 的默认态） */
   auto?: boolean
   /** 玩家显式点的「所有人」：广播，不推断 */
   explicitAll?: boolean
@@ -30,23 +38,86 @@ export interface ComposerProps {
   hints?: string[]
 }
 
-function TargetChip({ label, checked, onSelect }: { label: string; checked: boolean; onSelect: () => void }) {
-  return (
-    <span
-      role="radio"
-      aria-checked={checked}
-      tabIndex={0}
-      className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-      onKeyDown={(event) => {
-        if (event.key !== 'Enter' && event.key !== ' ') return
+/** 目标单选组的一项：`自动` / `所有人` / 一位在场者的显示名 */
+interface TargetOption {
+  /** React key：显示名不保证唯一（重名时服务端会让聚焦失败），所以不拿 label 当 key */
+  key: string
+  label: string
+  checked: boolean
+  select: () => void
+}
+
+/**
+ * 目标单选组（ui/DESIGN §3 / §8）：整组只占一个 Tab 停靠点，←/→ 移动并同时选中。
+ * 不用 `Tag` 的 checkable（勾选）变体：它硬编码 `role="checkbox"` 与 `tabIndex=0`，覆写不掉，
+ * 整组于是变成每颗 chip 一个停靠点、方向键全无效。这里外层 `span` 管语义与焦点，`Tag` 只管外观。
+ */
+function TargetGroup({ options }: { options: TargetOption[] }) {
+  const nodes = useRef<Array<HTMLSpanElement | null>>([])
+  const checkedIndex = options.findIndex((option) => option.checked)
+  /** roving tabindex：停靠点跟着选中项；一项都没选中（点名的目标已不在场）时落在第一项 */
+  const rovingIndex = checkedIndex === -1 ? 0 : checkedIndex
+
+  function selectAt(index: number) {
+    options[index]?.select()
+    // 指针和焦点要一起走：原生 radio 移动焦点即选中，这里补上被移动后的焦点
+    nodes.current[index]?.focus()
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const last = options.length - 1
+    if (last < 0) return
+    const focusedIndex = nodes.current.findIndex((node) => node === document.activeElement)
+    const from = focusedIndex === -1 ? rovingIndex : focusedIndex
+    switch (event.key) {
+      case 'ArrowLeft':
+      case 'ArrowUp':
         event.preventDefault()
-        onSelect()
-      }}
-    >
-      <Tag.CheckableTag checked={checked} onChange={() => onSelect()}>
-        {label}
-      </Tag.CheckableTag>
-    </span>
+        selectAt(from === 0 ? last : from - 1)
+        return
+      case 'ArrowRight':
+      case 'ArrowDown':
+        event.preventDefault()
+        selectAt(from === last ? 0 : from + 1)
+        return
+      case 'Home':
+        event.preventDefault()
+        selectAt(0)
+        return
+      case 'End':
+        event.preventDefault()
+        selectAt(last)
+        return
+      case ' ':
+      case 'Enter':
+        event.preventDefault()
+        selectAt(from)
+        return
+      default:
+        return
+    }
+  }
+
+  return (
+    // 整组只有一个 onKeyDown：事件从焦点项冒泡到这里，按键一次只走一条路
+    <div role="radiogroup" aria-label="对谁说" className="flex flex-wrap items-center gap-1" onKeyDown={handleKeyDown}>
+      {options.map((option, index) => (
+        <span
+          key={option.key}
+          ref={(node) => {
+            nodes.current[index] = node
+          }}
+          role="radio"
+          aria-checked={option.checked}
+          tabIndex={index === rovingIndex ? 0 : -1}
+          onClick={option.select}
+          className="chip rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          {/* Tag 只留字号与内边距：底色/边框归 `chip` 管，而 `aria-checked` 在外层 span 上 */}
+          <Tag className="border-0 bg-transparent text-inherit">{option.label}</Tag>
+        </span>
+      ))}
+    </div>
   )
 }
 
@@ -56,13 +127,27 @@ function mmss(ms: number): string {
 }
 
 /**
- * 输入区的键盘契约由 `Sender` 自己实现：`submitType="enter"` 时 Enter 发送、Shift+Enter 换行，
- * 且组字期间（compositionstart→compositionend）不发送；`shell/composer.test.ts` 把这三件钉住。
+ * 输入区的键盘契约由 `Sender` 自己实现：`submitType` 用的是默认值 `"enter"`（代码没有显式设），
+ * Enter 发送、Shift+Enter 换行，且组字期间（compositionstart→compositionend）不发送；
+ * `shell/composer.test.ts` 把这三件钉住。
  * 等待期只给 `loading`（发送按钮换成停止），不用 `disabled`——那会把输入框一起锁灰，
  * 而设计只要求「不许重复发送」；重复发送在 `onSubmit` 入口再拦一道。
  */
 export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFlight, settled, elapsedMs, state, target, auto, explicitAll, onTargetChange, onAuto, onAll, hints }: ComposerProps) {
   const holds = state?.holds.map((item) => `${item.name}×${item.count}`).join('、') ?? ''
+  // 按码点计数，与服务端截断口径一致（`server/session.ts` 的 `clip()` 用 `Array.from`）
+  const draftLength = Array.from(draft).length
+  // 「自动」与「所有人」是两个不同的意图：前者让服务端按正文推断，后者不推断（决策 #48）
+  const targetOptions: TargetOption[] = [
+    { key: 'auto', label: '自动', checked: auto === true, select: () => onAuto?.() },
+    { key: 'all', label: '所有人', checked: explicitAll === true, select: () => onAll?.() },
+    ...(state?.here ?? []).map((name, index) => ({
+      key: `${name}-${index}`,
+      label: name,
+      checked: target === name,
+      select: () => onTargetChange?.(name),
+    })),
+  ]
   return (
     <div className="shrink-0 border-t border-rule bg-paper">
       <div className={`${READING_COLUMN} py-3`}>
@@ -78,20 +163,12 @@ export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFligh
           </div>
         )}
         {state !== undefined && (
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-meta text-ink-soft">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 meta-line">
             <span>
               {state.place} · 你身上：{holds === '' ? '空手' : holds}
             </span>
             {/* 目标 chips：只改状态，不发送；目标只影响发送时（所以等待中也不锁） */}
-            {/* 「自动」与「所有人」是两个不同的意图：前者让服务端按正文推断，后者不推断（C11） */}
-            <div role="radiogroup" aria-label="对谁说" className="flex flex-wrap items-center gap-1">
-              <TargetChip label="自动" checked={auto === true} onSelect={() => onAuto?.()} />
-              <TargetChip label="所有人" checked={explicitAll === true} onSelect={() => onAll?.()} />
-              {/* 显示名不保证唯一（重名时服务端会让聚焦失败）：key 加下标，不让 React 报重复 key */}
-              {state.here.map((name, index) => (
-                <TargetChip key={`${name}-${index}`} label={name} checked={target === name} onSelect={() => onTargetChange?.(name)} />
-              ))}
-            </div>
+            <TargetGroup options={targetOptions} />
           </div>
         )}
         <Sender
@@ -107,22 +184,27 @@ export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFligh
           autoSize={{ minRows: 2, maxRows: 6 }}
           aria-label="你说或做什么"
         />
-        <div className="mt-2 flex items-center justify-between text-meta text-ink-soft">
-          <span>
-            {inFlight ? (
-              <>
-                {settled === true ? '这一拍已经定了，正在落笔…' : '世界在回应…'} {mmss(elapsedMs)}
-                <span aria-hidden="true" className="blink">
-                  ▍
-                </span>
-              </>
-            ) : (
-              'Enter 发送 · Shift+Enter 换行'
-            )}
+        <div className="mt-2 flex items-center justify-between gap-3 meta-line">
+          <span className="flex items-center gap-3">
+            <span>
+              {inFlight ? (
+                <>
+                  {settled === true ? '这一拍已经定了，正在落笔…' : '世界在回应…'} {mmss(elapsedMs)}
+                  <span aria-hidden="true" className="blink">
+                    ▍
+                  </span>
+                </>
+              ) : (
+                'Enter 发送 · Shift+Enter 换行'
+              )}
+            </span>
+            {/* 契约是 1–500 字（docs/api/20-api-beat.md）：超出由服务端截断，这里先告一声 */}
+            {draftLength > PLAYER_TEXT_MAX && <span>已 {draftLength} 字，发送后会被截到 {PLAYER_TEXT_MAX} 字</span>}
           </span>
           {/* 等待中不提供：同一时刻只允许一条在途输入 */}
           {!inFlight && (
-            <Button size="small" type="text" onClick={onWait}>
+            // 它是一条会发出去的输入：体积按次要按钮给，把真正发送的那句话放进 title / aria-label
+            <Button size="small" title={WAIT_TEXT} aria-label={WAIT_TEXT} onClick={onWait}>
               等一会儿
             </Button>
           )}

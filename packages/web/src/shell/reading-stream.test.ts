@@ -100,8 +100,8 @@ describe('ReadingStream：首屏', () => {
   })
 })
 
-/** 首屏示例：只在这一拍还没开始时出现；是样子，不是可点的选项（决策 #46）。
- * 与 `EmptyState.tsx` 同字面量：示例不得绑定某个世界的名字或物品。 */
+/** 首屏示例：只在这一拍还没开始时出现；是样子，不是可点的选项。
+ * 与 `EmptyState.tsx` 同字面量：示例不绑某个世界（`AGENTS.md`）。 */
 const EXAMPLES = ['我先看看这地方。', '我跟身边的人搭句话。', '我往门口走。']
 
 function expectsExamples(text: string): void {

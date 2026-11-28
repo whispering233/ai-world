@@ -32,7 +32,7 @@ export function TopBar({ title, clockText, inFlight, mode, onOpenState, onNewGam
 
   return (
     <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-rule bg-paper px-4">
-      <p className="truncate text-meta text-ink-soft">
+      <p className="truncate meta-line">
         <span className="text-ink">{title}</span> · {clockText}
       </p>
       <div className="flex items-center gap-1">

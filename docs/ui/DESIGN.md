@@ -47,7 +47,7 @@ antd 6 的三处改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` �
 ```
 
 - **没有左栏**：世界 / 存档 / 设置收进右上角菜单。
-- **没有常驻右栏**：`此刻` 是抽屉；桌面端覆盖式 360px，不挤压正文、不改变阅读位置；移动端全屏 sheet。
+- **没有常驻右栏**：`此刻` 是抽屉；宽度按视口分档（§7），任何宽度都不覆盖正文文字区、不改变阅读位置；窄屏全屏 sheet。
 - **输入区上方有一行安静的状态**：`酒馆 · 你身上：威士忌×1`，来自同一份玩家投影；不做常驻仪表盘。
 - **选项区固定在输入区上方**：最多 3 条，点一下只填入输入框；自由输入永远是主入口。
 - **正文列 38–42em 居中**：屏幕再宽也不铺满，保持书的行长。
@@ -57,7 +57,7 @@ antd 6 的三处改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` �
 ### TopBar（48px）
 
 - 左：世界名 · `fmt(clock)`。
-- 右：`此刻`、菜单（新的一局 / 设置 / 关于）。
+- 右：`此刻`、菜单（新的一局 / 作者视图 / 关于）。
 - 只放全局信息；逐拍控制留在输入区。
 
 ### ReadingStream
@@ -72,12 +72,12 @@ antd 6 的三处改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` �
 ### Composer
 
 - 吸底，与正文同宽。
-- 上方一行状态：地点 + 持有（`text-meta text-ink-soft`），不显示 `heat`/`rel`/id。
-- 状态行右侧是目标 chips：`自动`（默认，正文里唯一人名才聚焦）+ `所有人`（显式广播，不推断）+ 在场者显示名；目标不在场时回到“自动”；chip 支持鼠标与 Enter/Space。
+- 上方一行状态：地点 + 持有（`meta-line`），不显示 `heat`/`rel`/id。
+- 状态行右侧是目标单选组：`自动`（默认，正文里唯一人名才聚焦）+ `所有人`（显式广播，不推断）+ 在场者显示名；目标不在场时回到“自动”。整组只占**一个** Tab 停靠点，←/→/Home/End 在选项间移动并同时选中（与原生 radio 一致），Space/Enter 选中当前项；控件内部不许再套第二层可聚焦元素。
 - 状态行上方最多 3 条选项（x 的 `Prompts`；`Suggestion` 2.x 是下拉，不是固定列表）；点选只填入 `draft`，不直接发送。
 - “等一会儿”始终对所有人，不继承已选中的单人目标。
 - `Enter` 发送，`Shift+Enter` 换行；placeholder 是“说点什么，或做什么…”。
-- 等待时禁止重复发送；显示已用时间与 `停止`；空闲时提供“等一会儿”按钮（发送预设等待文本，不改 API）。
+- 等待时禁止重复发送；显示已用时间与 `停止`；空闲时提供「等一会儿」——它是一条**会发出去的输入**（预设文本，不改 API），所以必须有按钮体积（次要按钮），并把将要发送的那句话放进 `title` 与 `aria-label`。
 - 发送失败保留原文；发送成功清空。
 
 ### StateDrawer「此刻」
@@ -87,7 +87,7 @@ antd 6 的三处改名：`Alert` 用 `title`、`Drawer` 用 `size`、`Divider` �
 - 你在哪
 - 谁在这里（显示名）
 - 你身上有什么（显示名 + 数量）
-- 你知道什么（只列玩家 `knows`；被推翻的事实标“已被推翻”，不删除）
+- 你知道什么（只列玩家 `knows`；被推翻的事实保留并加删除线，不删除）
 
 **不显示**：`heat`、`rel` 数值、`drives`、`beliefs`、`core`、`claims`、`verdicts`、`no_rate`。
 v1 只读；打开抽屉不改变阅读位置。
@@ -95,7 +95,7 @@ v1 只读；打开抽屉不改变阅读位置。
 ## 4. 等待与失败
 
 - **发送即回显**：玩家那一句立刻进正文（引文块），不等服务端。
-- 一拍约 50–60 秒（真机 20 拍实测均 60.8s）；结算期间显示“世界在回应… 00:12”与玩家那句话下面的三条骨架。裁判返回后换成“这一拍已经定了，正在落笔…”。**不显示“认知/裁判/渲染”等引擎阶段名**；只允许结果状态。
+- 一拍约 55–70 秒（同条件三次 20 拍实测 54.8 / 60.9 / 67.1 s；聚焦模式 34.4 s）；结算期间显示“世界在回应… 00:12”与玩家那句话下面的三条骨架。裁判返回后换成“这一拍已经定了，正在落笔…”。**不显示“认知/裁判/渲染”等引擎阶段名**；只允许结果状态。
 - **旁白不流式**：一次成型后整段进入正文。旁白在写 journal **之前**调用，流出来的 token 没有“已发生”身份；假 draft 比等待更糟。也不做每人物流与裁决层流。
 - 两种失败必须分开说：
   - 裁判失败（`error` 帧）：世界没有变。显示“这一拍没有发生”，不留任何正文。
@@ -111,6 +111,7 @@ v1 只读；打开抽屉不改变阅读位置。
 - 正文对比度：浅色 19.3:1、深色 21:1（均远超 4.5:1）。
 - 深色底是纯黑 `#000000`，长文会觉得硬——这是「跟随 antd 默认」的既定取舍；若要改，得同时抬起 `colorBgLayout` 与 `colorBgContainer`，否则正文与气泡落到同一亮度层反而更糊。
 - 颜色只在 `theme/AntdProvider.tsx`（不写自定义 seed），组件里只用 `paper` / `paper-2` / `ink` / `ink-soft` / `rule` / `accent` 这 6 个映射名。
+- 次要元信息（时刻、持有、理由、计数）统一用 `meta-line`；JSON / prompt 转储统一用 `dump`。这两个是唯一允许的成套语义排版类；布局仍用工具类拼，不再为 `flex gap-2` 这类布局起名。
 
 ## 6. 组件切分
 
@@ -118,7 +119,7 @@ chrome 全部用 antd 6 / `@ant-design/x` 2，见 §13；壳层的自有组件�
 
 `TopBar` · `ReadingStream` · `PlayerLine` · `BeatDivider` · `Composer` · `StateDrawer` · `EmptyState` · `ErrorNotice`
 
-状态行、目标 chips 与选项区都在 `Composer` 内，不新增文件；选项用 x 的 `Prompts`。
+状态行、目标单选组与选项区都在 `Composer` 内，不新增文件；选项用 x 的 `Prompts`。
 
 对话与旁白目前共用一段正文；把它们拆成「气泡 + 场景块」需要先定说话人契约，见 [backlog.md](../design/backlog.md) §6.1。
 
@@ -126,13 +127,19 @@ chrome 全部用 antd 6 / `@ant-design/x` 2，见 §13；壳层的自有组件�
 
 | 视口 | 正文列 | 抽屉 |
 | :--- | :--- | :--- |
-| ≥1280px | 40rem 居中 | 360px 覆盖式 |
-| 1024–1280px | 36rem 居中 | 360px 覆盖式 |
+| ≥1312px | 40rem 居中 | 360px 覆盖式 |
+| 1280–1311px | 40rem 居中 | 320px 覆盖式 |
+| 1200–1279px | 36rem 居中 | 320px 覆盖式 |
+| 1024–1199px | 36rem 居中 | 全屏 sheet |
 | <1024px | 全宽，左右 24px | 全屏 sheet |
+
+分档按「抽屉不覆盖正文文字区」反推，不是拍的：文字右缘 = `(视口 + 列宽) / 2 − 24`，抽屉起点必须 ≥ 它。40rem 列配 360px 抽屉需 ≥1312px；320px 在 40rem 下需 ≥1232px、在 36rem 下需 ≥1168px。1200 是取整后的门槛（1168 已够，多留 32px 余量）。
 
 ## 8. 无障碍
 
 - 流式文本用 `aria-live="polite"`。
+- 目标单选组：整组一个 Tab 停靠点，←/→ 移动，Space/Enter 选中。
+- 抽屉内焦点不落到背后的控件（antd 的 lock 会把焦点拉回；单可聚焦元素时会在关闭按钮与 `body` 之间交替，待解决）；关闭后焦点回到触发按钮。
 - 焦点可见；`Esc` 关闭抽屉；`Enter` 发送、`Shift+Enter` 换行。
 - `停止` 可键盘触达，有明确可读名称。
 - 所有正文与控件满足 4.5:1 对比度。
@@ -155,7 +162,7 @@ chrome 全部用 antd 6 / `@ant-design/x` 2，见 §13；壳层的自有组件�
 
 - 一个 SPA、一个进程。玩家壳（默认）与作者壳共用同一份阅读流与同一份状态。
 - 切换：TopBar `⋯` 菜单「作者视图」，或 `Ctrl/Cmd+Shift+D`；`mode` 与滚动位置记 localStorage。
-- 切换**不重置**任何东西：同一 `clock`、同一批 passages、同一滚动位置，只换外壳。
+- 切换**不重置数据**：同一 `clock`、同一批 passages、同一份 `draft` 状态（输入区 DOM 会重建，光标与焦点不保证）；滚动位置靠 localStorage 恢复（从未滚动过时落在最后一拍开头）。
 - 作者数据只在切到作者壳时请求；玩家壳不请求 `/api/author/*`。
 - 隔离靠三层，不靠开关：玩家投影纯函数（`view.test.ts`）、玩家壳源码扫描（`discipline.test.ts`）、作者数据懒取。
 
@@ -174,21 +181,21 @@ chrome 全部用 antd 6 / `@ant-design/x` 2，见 §13；壳层的自有组件�
 └──────────┴───────────────────────────┴──────────────────┘
 ```
 
-- 拍列表：只显示 `clockText` 与首句摘要；点击定位到该拍，不改阅读流内容。
+- 拍列表：只显示 `clockText` 与首句摘要；点击只换右侧详情，不改阅读流、也不滚动阅读位置。
 - 本拍详情：`claims` / `verdicts`（`ok`、`reason`、`deltas`、`duration`）/ `notes` / `telemetry`；再往下是 antd `Collapse` 的「账本原始」与「prompt」。
-- 顶部条：内容状态（`activeHash === diskHash` 与否）、累计 cost、降级 notes 计数。
+- 顶部条：内容状态（`activeHash === diskHash` 与否）、**本次进程**累计 cost（不是本局累计，必须注明）、降级 notes 计数。
 - 「内容」面板：`core` / `voice` / `drives` / `beliefs` / `canon` 表单 + `places` / `names` / `items` 显示名表单（改名后若正文仍有旧称呼，显示非阻断 warning；单字名会误报）+ 只读 JSON 块（世界结构）；显式「保存」→ 三选一弹窗。
 - **作者壳也能发拍**：与玩家壳共用同一个 `Composer` 节点，位置在中栏底部；发送后作者投影按 `beats.length` 重取。
 - 三栏固定宽度，不做拖拽分隔条。
 
 ## 13. tokens 与组件
 
-单一 tokens 文件 `packages/web/src/tokens.css`（Tailwind 4 `@theme`）。暗色靠 `<html data-theme="dark">` 覆盖同名变量，组件不写颜色字面量。
+单一 tokens 文件 `packages/web/src/tokens.css`（Tailwind 4 `@theme` + `@utility`）。暗色靠 `<html data-theme="dark">` 覆盖同名变量，组件不写颜色字面量。
 
 | 层 | 内容 |
 | :--- | :--- |
-| chrome | 全部用 antd 6 / `@ant-design/x` 2 组件：`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Empty` `Segmented` `Timeline` `Skeleton`，加 `@ant-design/x` 的 `Sender` `Conversations` `Prompts` |
-| `ui/` 下的自有件（1） | `ModeSwitch`（antd `Segmented` 的薄壳，壳切换的两处共用） |
+| chrome | 全部用 antd 6 / `@ant-design/x` 2 组件：`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Select` `Segmented` `Skeleton` `Tag` `Timeline` `Input` `InputNumber`，加 `@ant-design/x` 的 `Sender` `Conversations` `Prompts` |
+| `ui/` 下的自有件（1） | `ModeSwitch`（antd `Segmented` 的薄壳；只在作者壳顶部出现，玩家壳走 `⋯` 菜单） |
 | 玩家壳（8） | `TopBar` `ReadingStream` `PlayerLine` `BeatDivider` `Composer` `StateDrawer` `EmptyState` `ErrorNotice` |
 | 作者壳（7） | `AuthorApp` `BeatList` `BeatDetail` `LedgerView` `HealthPanel` `ContentEditor` `SaveDialog` |
 
@@ -196,5 +203,6 @@ chrome 全部用 antd 6 / `@ant-design/x` 2，见 §13；壳层的自有组件�
 - 就地的小排版包装只待在用到它的文件里（例如 `ContentEditor.tsx` 的 `LabeledField`），不进 `ui/`。
 - 图标走 `@ant-design/icons`，不再用文本字符充当图标。
 - 抽屉与模态的滚动锁定由 antd 自己管，`tokens.css` 不写 `body:has(...)` 这类全局选择器。
-- `discipline.test.ts` 断言：玩家壳源码不出现 `claim`/`verdict`/`heat`/`rel`/`token`/`cost`/`no_rate`；玩家壳不 import 作者壳模块；玩家壳不出现颜色字面量（色值只允许在 `theme/AntdProvider.tsx`，映射名见 §5）。
+- 动画类（`.blink` / `.fade-in`）必须待在 `@layer components`：层外样式的优先级高于所有 layer，会让 `motion-reduce:` 这类覆盖静默失效。
+- `discipline.test.ts` 断言玩家壳源码（`shell/`、`ui/`、`api.ts`、`main.tsx`）不出现 `claim`/`claims`/`verdict`/`verdicts`/`delta`/`deltas`/`no_rate`/`noRate`/`telemetry`/`observations`/`heat`/`drives`/`beliefs`；不 import 作者壳模块；不写颜色字面量（色板只在 antd 主题里，映射名见 §5）。**断言范围就是上列这些**，别在文档里写正则没管的词。
 - UI 改完必须跑一次**浏览器实测**：抽屉常开、`/` 返回 octet-stream、按钮被遮这三类缺陷，`pnpm test` 与 typecheck 全绿时都会漏过去。

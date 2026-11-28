@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useReducer, useRef, useState } from 'react'
 import type { BeatView, SessionView } from '@ai-world/shared'
 import { fetchSession, postBeat, resetSession } from './api.ts'
 import type { BeatFrame } from './api.ts'
-import { Composer } from './shell/Composer.tsx'
+import { Composer, WAIT_TEXT } from './shell/Composer.tsx'
 import { ErrorNotice } from './shell/ErrorNotice.tsx'
 import type { ErrorKind } from './shell/ErrorNotice.tsx'
 import { ReadingStream } from './shell/ReadingStream.tsx'
@@ -14,11 +14,8 @@ import { READING_COLUMN } from './shell/column.ts'
 import type { ShellMode } from './ui/ModeSwitch.tsx'
 
 const MODE_KEY = 'ai-world.mode'
-/** 「等一会儿」发的是这一句普通输入；服务端照常结算，不改 API（决策 #49） */
-const WAIT_TEXT = '我等着，看看他们怎么说。'
 
-// 作者壳只在切过去时才下载：它带着 Table / Descriptions 这类玩家壳用不到的组件，
-// 静态 import 会让每个读者都付这份体积（实测 1.12 MB 的单 chunk）。
+// 作者壳只在切过去时才下载：静态 import 会让每个读者都付这份体积（当时测到 1.12 MB 的单 chunk）。
 const AuthorApp = lazy(() => import('./author/AuthorApp.tsx').then((mod) => ({ default: mod.AuthorApp })))
 
 interface AppState {
@@ -35,7 +32,7 @@ interface AppState {
   pendingText: string | null
   /** “对谁说”的目标（在场者显示名）；null = 没有点名的人 */
   target: string | null
-  /** 显式点了「所有人」：发送时带 `all:true`，服务端不推断（C11） */
+  /** 显式点了「所有人」：发送时带 `all:true`，服务端不推断（决策 #48） */
   explicitAll: boolean
   /** 在途那一拍实际带上的目标：等待中也要能看出“对安说的” */
   pendingTo: string | null
@@ -128,6 +125,8 @@ function reducer(state: AppState, action: Action): AppState {
         session,
         beats: session.beats,
         inFlight: session.inFlight,
+        // 取到了会话就说明这次读是成功的：上一次失败留下的错误条不能继续挂着
+        error: null,
         loadFailed: false,
         pendingTo: null,
         ...(action.newGame === true ? { draft: '', pendingText: null } : {}),
@@ -329,7 +328,7 @@ export function App() {
     state.session === null ? undefined : { clockText: state.session.clockText, state: state.session.state }
 
   return (
-    <div className="flex h-dvh flex-col bg-paper text-ink">
+    <div className="flex h-dvh flex-col">
       <TopBar
         title={state.session?.title ?? '…'}
         clockText={state.session?.clockText ?? ''}
@@ -342,7 +341,7 @@ export function App() {
       />
 
       {state.mode === 'author' ? (
-        <Suspense fallback={<p className="p-6 text-meta text-ink-soft">正在载入作者视图…</p>}>
+        <Suspense fallback={<p className="p-6 meta-line">正在载入作者视图…</p>}>
           <AuthorApp
             beats={state.beats}
             pendingText={state.pendingText}
@@ -400,7 +399,7 @@ export function App() {
         {/* 旧服务端没有 `worlds`：不渲染选包，行为与以前一样（重开当前世界） */}
         {worlds.length > 0 && (
           <div className="mt-4">
-            <p className="text-meta text-ink-soft">内容包</p>
+            <p className="meta-line">内容包</p>
             <Select
               className="mt-1 w-full"
               options={worlds.map((world) => ({ value: world.id, label: world.title }))}
@@ -419,7 +418,7 @@ export function App() {
       >
         <div className="text-body">
           <p>一句一句写下去，世界一拍一拍回应。</p>
-          <p className="mt-3 text-meta text-ink-soft">调试与账本信息只在作者视图里。</p>
+          <p className="mt-3 meta-line">调试与账本信息只在作者视图里。</p>
         </div>
       </Modal>
     </div>

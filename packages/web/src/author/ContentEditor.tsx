@@ -9,7 +9,7 @@ import { staleDisplayNames } from './stale-names.ts'
 function LabeledField({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={htmlFor} className="text-meta text-ink-soft">
+      <label htmlFor={htmlFor} className="meta-line">
         {label}
       </label>
       {children}
@@ -64,7 +64,7 @@ export interface ContentEditorProps {
 /** 内容表单：只编辑作者字段，世界结构只读；保存是显式按钮，不做失焦保存。 */
 export function ContentEditor({ onSaved }: ContentEditorProps) {
   const [pack, setPack] = useState<EditablePack | null>(null)
-  // 编辑前快照只活这一份表单：重开表单就没有旧名可比，这是卡内接受的限制
+  // 编辑前快照只活这一份表单：重开表单就没有旧名可比，所以改显示名后的旧称呼提醒只限本次表单会话
   const [initial, setInitial] = useState<EditablePack | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
@@ -96,7 +96,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
     return (
       <div className="p-4">
         {errors.length === 0 ? (
-          <p className="text-meta text-ink-soft">正在读内容包…</p>
+          <p className="meta-line">正在读内容包…</p>
         ) : (
           <Alert type="error" showIcon title={errors.join('；')} />
         )}
@@ -185,7 +185,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
         </section>
 
         <section className="mb-8 flex flex-col gap-3">
-          <h3 className="text-meta text-ink-soft">地点、实体与物品显示名</h3>
+          <h3 className="meta-line">地点、实体与物品显示名</h3>
           {staleFields.length > 0 && (
             <Alert
               type="warning"
@@ -203,7 +203,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
             />
           )}
           <div className="flex flex-col gap-2">
-            <h4 className="text-meta text-ink-soft">places</h4>
+            <h4 className="meta-line">places</h4>
             {Object.entries(pack.world?.places ?? {}).map(([id, name]) => (
               <LabeledField key={id} label={id}>
                 <Input
@@ -215,8 +215,8 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
             ))}
           </div>
           <div className="flex flex-col gap-2">
-            <h4 className="text-meta text-ink-soft">names</h4>
-            <p className="text-meta text-ink-soft">改显示名只影响玩家投影与上下文标签；core、voice、beliefs、canon 里的旧称呼不会自动改。</p>
+            <h4 className="meta-line">names</h4>
+            <p className="meta-line">改显示名只影响玩家投影与上下文标签；core、voice、beliefs、canon 里的旧称呼不会自动改。</p>
             {Object.entries(pack.names ?? {}).map(([id, name]) => (
               <LabeledField key={id} label={id}>
                 <Input
@@ -228,7 +228,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
             ))}
           </div>
           <div className="flex flex-col gap-2">
-            <h4 className="text-meta text-ink-soft">items</h4>
+            <h4 className="meta-line">items</h4>
             {Object.entries(pack.items ?? {}).map(([id, name]) => (
               <LabeledField key={id} label={id}>
                 <Input
@@ -242,10 +242,10 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
         </section>
 
         <section className="mb-8">
-          <h3 className="mb-2 text-meta text-ink-soft">人物</h3>
+          <h3 className="mb-2 meta-line">人物</h3>
           {pack.characters.map((character, characterIndex) => (
             <fieldset key={character.id} className="mb-6 flex flex-col gap-3 border border-rule p-3">
-              <legend className="px-1 text-meta text-ink-soft">{character.id}</legend>
+              <legend className="px-1 meta-line">{character.id}</legend>
               <LabeledField label="core" htmlFor={`${character.id}-core`}>
                 <Input.TextArea
                   id={`${character.id}-core`}
@@ -264,7 +264,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
               </LabeledField>
 
               <div className="flex flex-col gap-2">
-                <h4 className="text-meta text-ink-soft">drives</h4>
+                <h4 className="meta-line">drives</h4>
                 {character.drives.map((drive, driveIndex) => (
                   <div key={drive.id} className="flex items-start gap-2">
                     <div className="flex-1">
@@ -294,9 +294,9 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
               </div>
 
               <div className="flex flex-col gap-2">
-                <h4 className="text-meta text-ink-soft">beliefs</h4>
+                <h4 className="meta-line">beliefs</h4>
                 {Object.entries(character.beliefs).length === 0 ? (
-                  <p className="text-meta text-ink-soft">还没有信念。</p>
+                  <p className="meta-line">还没有信念。</p>
                 ) : (
                   Object.entries(character.beliefs).map(([key, value]) => (
                     <LabeledField key={key} label={key}>
@@ -318,7 +318,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
         </section>
 
         <section className="mb-8 flex flex-col gap-2">
-          <h3 className="text-meta text-ink-soft">canon</h3>
+          <h3 className="meta-line">canon</h3>
           <ul aria-label="canon" className="flex flex-col gap-2">
             {pack.canon.map((line, index) => (
               <li key={index} className="flex items-start gap-2">
@@ -354,7 +354,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
               key: 'world',
               label: '世界结构（只读）',
               children: (
-                <pre className="overflow-x-auto whitespace-pre-wrap break-all text-meta text-ink-soft">
+                <pre className="dump text-ink-soft">
                   {JSON.stringify(
                     {
                       title: pack.title,
@@ -375,7 +375,7 @@ export function ContentEditor({ onSaved }: ContentEditorProps) {
       </div>
 
       <footer className="flex items-center justify-between gap-2 border-t border-rule p-3">
-        <p className="text-meta text-ink-soft">保存只写 content/，本局不变；新内容要开新局才生效。</p>
+        <p className="meta-line">保存只写 content/，本局不变；新内容要开新局才生效。</p>
         <Button type="primary" loading={saving} onClick={() => void save()}>
           保存
         </Button>

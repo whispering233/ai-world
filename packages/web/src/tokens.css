@@ -1,16 +1,13 @@
 /*
- * 排层语句必须待在 `@import "tailwindcss"` **之前**：层序由文档里第一条排层语句钉死，
- * 反过来（先 tailwind）的话 antd 层会被追加到最后 = 优先级最高，工具类照样被压掉。
- * `antdx` 必须写进层序：`@ant-design/x` 把自己的样式放进 `@layer antdx`，官方那份层序里没有它，
- * 漏写时 Sender 上的 `w-96` 静默被压（实测 1337px vs 384px），其余控件看不出来。
+ * 排层语句必须待在 `@import "tailwindcss"` **之前**，且层序必须含 `antdx`：
+ * x 组件上的工具类会被静默压掉，而页面看着正常、类型检查也绿（理由见 `docs/ui/DESIGN.md` §0）。
  */
 @layer theme, base, antd, antdx, components, utilities;
 
 @import "tailwindcss";
 
 /*
- * 唯一改色入口：组件里不写颜色/字号字面量。
- * 色板不在这里定，只在 `theme/AntdProvider.tsx`（浅 `defaultAlgorithm` / 深 `darkAlgorithm`，antd 默认色板）；
+ * 组件里不写颜色/字号字面量：色板只有一个事实源（`theme/AntdProvider.tsx`，见 `docs/ui/DESIGN.md` §0），
  * 这里只把 `--ant-*`（antd 6 的 cssVar，作用域是 `<html class="ai-world-theme">`）映射成既有 class 名。
  * `paper` / `paper-2` 是历史命名，值已经是 antd 的 layout / container 底（改名的收益低于风险）。
  */
@@ -33,11 +30,41 @@
   --leading-prose: 1.85;
 }
 
-@layer base {
-  :root {
-    color-scheme: light;
-  }
+/*
+ * 两个成套语义排版类：次要元信息（时刻、持有、理由、计数）用 `meta-line`，JSON / prompt 转储用 `dump`。
+ * 直接写声明、不用 `@apply` 拼工具类：被引用的 token 一旦被裁，`@apply` 会静默丢样式。
+ */
+@utility meta-line {
+  font-size: var(--text-meta);
+  color: var(--color-ink-soft);
+}
 
+@utility dump {
+  font-size: var(--text-meta);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/*
+ * 目标单选组里的一颗 chip。语义与焦点在外层 `span[role=radio]` 上，`aria-checked` 也只挂在那里，
+ * 所以选中态用 `&[aria-checked="true"]` 命中；里面的 antd `Tag` 只留字号与内边距，底色由这里给。
+ */
+@utility chip {
+  border: 1px solid var(--color-rule);
+  color: var(--color-ink);
+  cursor: pointer;
+
+  &[aria-checked="true"] {
+    /* 用 `primary-active` 而不是 `--color-accent`：浅色 accent 配白字只有 4.10:1，低于 §8 的
+       4.5:1；`primary-active` 两套算法都在 6:1 上下（本文件不许写颜色字面量，所以只记比值）。 */
+    background-color: var(--ant-color-primary-active);
+    border-color: var(--ant-color-primary-active);
+    color: var(--ant-color-text-light-solid);
+  }
+}
+
+@layer base {
   :root[data-theme="dark"] {
     color-scheme: dark;
   }
@@ -57,29 +84,34 @@
   }
 }
 
-/* 等待中的光标闪烁与进场渐显；reduced-motion 时由 main.tsx 摘掉 */
-@keyframes ink-blink {
-  50% {
-    opacity: 0.2;
+/*
+ * 等待中的光标闪烁与进场渐显；reduced-motion 时由 main.tsx 摘掉。
+ * 必须待在 `@layer components`：层外样式的优先级高于所有 layer，`motion-reduce:` 一类覆盖会被静默压掉。
+ */
+@layer components {
+  @keyframes ink-blink {
+    50% {
+      opacity: 0.2;
+    }
   }
-}
 
-.blink {
-  animation: ink-blink 1.1s steps(1, end) infinite;
-}
-
-@keyframes ink-fade {
-  from {
-    opacity: 0;
+  .blink {
+    animation: ink-blink 1.1s steps(1, end) infinite;
   }
-}
 
-.fade-in {
-  animation: ink-fade 0.2s ease-out;
-}
+  @keyframes ink-fade {
+    from {
+      opacity: 0;
+    }
+  }
 
-:root[data-motion="reduced"] .blink,
-:root[data-motion="reduced"] .fade-in,
-:root[data-motion="reduced"] .ant-skeleton * {
-  animation: none;
+  .fade-in {
+    animation: ink-fade 0.2s ease-out;
+  }
+
+  :root[data-motion="reduced"] .blink,
+  :root[data-motion="reduced"] .fade-in,
+  :root[data-motion="reduced"] .ant-skeleton * {
+    animation: none;
+  }
 }

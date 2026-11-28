@@ -40,7 +40,7 @@ function prose(text: string) {
  */
 export function ReadingStream({ beats, pendingText, pendingTo, opening, scene }: ReadingStreamProps) {
   const hasOpening = opening !== undefined && opening.trim() !== ''
-  /** 首屏：还没有拍、也没有在途输入。示例只在这一刻出现（决策 #46） */
+  /** 首屏：还没有拍、也没有在途输入。示例只在这一刻出现，且不绑某个世界（`AGENTS.md`） */
   const idle = beats.length === 0 && pendingText === null
   const scroller = useRef<HTMLDivElement>(null)
   const follow = useRef(true)

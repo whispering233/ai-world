@@ -20,7 +20,7 @@ export function LedgerView({ world }: LedgerViewProps) {
   }
   return (
     <div className="max-h-96 overflow-auto rounded-sm bg-paper-2 p-3">
-      <pre className="whitespace-pre-wrap break-all text-meta text-ink-soft">{JSON.stringify(raw, null, 2)}</pre>
+      <pre className="dump text-ink-soft">{JSON.stringify(raw, null, 2)}</pre>
     </div>
   )
 }
