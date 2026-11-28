@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useReducer, useRef, useState } from 'react'
 import type { BeatView, SessionView } from '@ai-world/shared'
 import { fetchSession, postBeat, resetSession } from './api.ts'
 import type { BeatFrame } from './api.ts'
-import { Composer } from './shell/Composer.tsx'
+import { Composer, WAIT_TEXT } from './shell/Composer.tsx'
 import { ErrorNotice } from './shell/ErrorNotice.tsx'
 import type { ErrorKind } from './shell/ErrorNotice.tsx'
 import { ReadingStream } from './shell/ReadingStream.tsx'
@@ -14,8 +14,6 @@ import { READING_COLUMN } from './shell/column.ts'
 import type { ShellMode } from './ui/ModeSwitch.tsx'
 
 const MODE_KEY = 'ai-world.mode'
-/** 「等一会儿」发的是这一句普通输入；服务端照常结算，不改 API（决策 #49） */
-const WAIT_TEXT = '我等着，看看他们怎么说。'
 
 // 作者壳只在切过去时才下载：它带着 Table / Descriptions 这类玩家壳用不到的组件，
 // 静态 import 会让每个读者都付这份体积（实测 1.12 MB 的单 chunk）。

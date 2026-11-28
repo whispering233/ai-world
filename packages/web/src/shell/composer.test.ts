@@ -6,7 +6,7 @@
  * jsdom 只需两个 stub（`matchMedia` / `ResizeObserver`）；下面 `beforeAll` 里就是全部。
  * 这里不断言样式，只断言「按了什么键、`onSend` 有没有被叫」。
  */
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { createElement } from 'react'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type { PlayerStateView } from '@ai-world/shared'
@@ -262,23 +262,30 @@ describe('Composer 的选项区', () => {
   })
 }, 15_000)
 
-/** 目标 chips：只改状态，不发送（ui/DESIGN §3） */
+/** 目标 chips：只改状态，不发送；整组一个 Tab 停靠点，方向键移动并选中（ui/DESIGN §3 / §8） */
 describe('Composer 的目标 chips', () => {
+  function radios(container: HTMLElement): HTMLElement[] {
+    return within(container).getAllByRole('radio')
+  }
+
   function chipOf(container: HTMLElement, label: string): HTMLElement | undefined {
-    return Array.from(container.querySelectorAll<HTMLElement>('.ant-tag-checkable')).find(
-      (tag) => tag.textContent === label,
-    )
+    return radios(container).find((chip) => chip.textContent === label)
   }
 
   function checked(chip: HTMLElement | undefined): boolean {
-    return chip?.className.includes('ant-tag-checkable-checked') === true
+    return chip?.getAttribute('aria-checked') === 'true'
+  }
+
+  /** 整组的 Tab 停靠点：roving tabindex 下应当只有一项 */
+  function tabStops(container: HTMLElement): HTMLElement[] {
+    return radios(container).filter((chip) => chip.getAttribute('tabindex') === '0')
   }
 
   it('状态行右侧是「自动」+「所有人」+ 在场者显示名', async () => {
     const { container, unmount } = await mount({ draft: '', state: { ...playerState, here: ['安', '道森医生'] } })
     for (const label of ['自动', '所有人', '安', '道森医生']) expect(chipOf(container, label)).toBeDefined()
     // 每个人只是一个 chip，不多出“你”自己
-    expect(container.querySelectorAll('.ant-tag-checkable')).toHaveLength(4)
+    expect(radios(container)).toHaveLength(4)
     unmount()
   })
 
@@ -286,7 +293,7 @@ describe('Composer 的目标 chips', () => {
     const { container, unmount } = await mount({ draft: '', state: { ...playerState, here: [] } })
     expect(chipOf(container, '自动')).toBeDefined()
     expect(chipOf(container, '所有人')).toBeDefined()
-    expect(container.querySelectorAll('.ant-tag-checkable')).toHaveLength(2)
+    expect(radios(container)).toHaveLength(2)
     unmount()
   })
 
@@ -330,7 +337,10 @@ describe('Composer 的目标 chips', () => {
 
   it('键盘 Enter/Space 也能选在场者，不只是鼠标', async () => {
     const { onTargetChange, onSend, unmount } = await mount({ draft: '', state: playerState })
-    fireEvent.keyDown(screen.getByRole('radio', { name: '安' }), { key: 'Enter' })
+    const an = screen.getByRole('radio', { name: '安' })
+    // 真实键盘事件只从焦点项发出：先聚焦（jsdom 的 click 不会顺带聚焦）
+    an.focus()
+    fireEvent.keyDown(an, { key: 'Enter' })
     expect(onTargetChange).toHaveBeenCalledWith('安')
     expect(onSend).not.toHaveBeenCalled()
     unmount()
@@ -338,9 +348,13 @@ describe('Composer 的目标 chips', () => {
 
   it('键盘 Enter 也能选「所有人」与「自动」', async () => {
     const { onAuto, onAll, unmount } = await mount({ draft: '', state: playerState })
-    fireEvent.keyDown(screen.getByRole('radio', { name: '所有人' }), { key: 'Enter' })
+    const all = screen.getByRole('radio', { name: '所有人' })
+    all.focus()
+    fireEvent.keyDown(all, { key: 'Enter' })
     expect(onAll).toHaveBeenCalledTimes(1)
-    fireEvent.keyDown(screen.getByRole('radio', { name: '自动' }), { key: ' ' })
+    const autoChip = screen.getByRole('radio', { name: '自动' })
+    autoChip.focus()
+    fireEvent.keyDown(autoChip, { key: ' ' })
     expect(onAuto).toHaveBeenCalledTimes(1)
     unmount()
   })
@@ -362,7 +376,7 @@ describe('Composer 的目标 chips', () => {
 
   it('还没读到会话时不渲染 chips', async () => {
     const { container, unmount } = await mount({ draft: '' })
-    expect(container.querySelectorAll('.ant-tag-checkable')).toHaveLength(0)
+    expect(within(container).queryAllByRole('radio')).toHaveLength(0)
     unmount()
   })
 
@@ -371,6 +385,41 @@ describe('Composer 的目标 chips', () => {
     const chip = chipOf(container, '安')
     expect(chip).toBeDefined()
     fireEvent.click(chip!)
+    expect(onTargetChange).toHaveBeenCalledWith('安')
+    expect(onSend).not.toHaveBeenCalled()
+    unmount()
+  })
+
+  // 整组一个停靠点：这是 checkable tag 那版真正坏掉的东西（6 个 chip 占 12 个停靠点）
+  it('整组只有一个 tabIndex=0，且落在选中项上', async () => {
+    const { container, unmount } = await mount({ draft: '', state: { ...playerState, here: ['安', '道森医生'] } })
+    expect(radios(container).map((chip) => chip.getAttribute('tabindex'))).toEqual(['0', '-1', '-1', '-1'])
+    expect(tabStops(container).map((chip) => chip.textContent)).toEqual(['自动'])
+    unmount()
+
+    // 一项都没选中（点名的目标已经不在场）：停靠点落回第一项，整组仍然只有一个
+    const none = await mount({ draft: '', state: playerState, auto: false })
+    expect(tabStops(none.container).map((chip) => chip.textContent)).toEqual(['自动'])
+    none.unmount()
+  })
+
+  it('按 → 把焦点移到下一项，并像原生 radio 一样同时选中', async () => {
+    const { onTargetChange, onSend, unmount } = await mount({ draft: '', state: playerState })
+    const group = screen.getByRole('radiogroup', { name: '对谁说' })
+    const all = within(group).getByRole('radio', { name: '所有人' })
+    all.focus()
+    fireEvent.keyDown(all, { key: 'ArrowRight' })
+    expect(document.activeElement).toBe(within(group).getByRole('radio', { name: '安' }))
+    expect(onTargetChange).toHaveBeenCalledWith('安')
+    expect(onSend).not.toHaveBeenCalled()
+    unmount()
+  })
+
+  it('Space 选中当前焦点项', async () => {
+    const { onTargetChange, onSend, unmount } = await mount({ draft: '', state: playerState })
+    const an = screen.getByRole('radio', { name: '安' })
+    an.focus()
+    fireEvent.keyDown(an, { key: ' ' })
     expect(onTargetChange).toHaveBeenCalledWith('安')
     expect(onSend).not.toHaveBeenCalled()
     unmount()

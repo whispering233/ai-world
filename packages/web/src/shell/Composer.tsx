@@ -1,7 +1,12 @@
 import { Prompts, Sender } from '@ant-design/x'
 import { Button, Tag } from 'antd'
+import { useRef } from 'react'
+import type { KeyboardEvent } from 'react'
 import type { PlayerStateView } from '@ai-world/shared'
 import { READING_COLUMN } from './column.ts'
+
+/** 「等一会儿」发的是这一句普通输入；服务端照常结算，不改 API（决策 #49） */
+export const WAIT_TEXT = '我等着，看看他们怎么说。'
 
 export interface ComposerProps {
   draft: string
@@ -30,23 +35,86 @@ export interface ComposerProps {
   hints?: string[]
 }
 
-function TargetChip({ label, checked, onSelect }: { label: string; checked: boolean; onSelect: () => void }) {
-  return (
-    <span
-      role="radio"
-      aria-checked={checked}
-      tabIndex={0}
-      className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-      onKeyDown={(event) => {
-        if (event.key !== 'Enter' && event.key !== ' ') return
+/** 目标单选组的一项：`自动` / `所有人` / 一位在场者的显示名 */
+interface TargetOption {
+  /** React key：显示名不保证唯一（重名时服务端会让聚焦失败），所以不拿 label 当 key */
+  key: string
+  label: string
+  checked: boolean
+  select: () => void
+}
+
+/**
+ * 目标单选组（ui/DESIGN §3 / §8）：整组只占一个 Tab 停靠点，←/→ 移动并同时选中。
+ * 不用 `Tag` 的 checkable（勾选）变体：它硬编码 `role="checkbox"` 与 `tabIndex=0`，覆写不掉，
+ * 整组于是变成每颗 chip 一个停靠点、方向键全无效。这里外层 `span` 管语义与焦点，`Tag` 只管外观。
+ */
+function TargetGroup({ options }: { options: TargetOption[] }) {
+  const nodes = useRef<Array<HTMLSpanElement | null>>([])
+  const checkedIndex = options.findIndex((option) => option.checked)
+  /** roving tabindex：停靠点跟着选中项；一项都没选中（点名的目标已不在场）时落在第一项 */
+  const rovingIndex = checkedIndex === -1 ? 0 : checkedIndex
+
+  function selectAt(index: number) {
+    options[index]?.select()
+    // 指针和焦点要一起走：原生 radio 移动焦点即选中，这里补上被移动后的焦点
+    nodes.current[index]?.focus()
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const last = options.length - 1
+    if (last < 0) return
+    const focusedIndex = nodes.current.findIndex((node) => node === document.activeElement)
+    const from = focusedIndex === -1 ? rovingIndex : focusedIndex
+    switch (event.key) {
+      case 'ArrowLeft':
+      case 'ArrowUp':
         event.preventDefault()
-        onSelect()
-      }}
-    >
-      <Tag.CheckableTag checked={checked} onChange={() => onSelect()}>
-        {label}
-      </Tag.CheckableTag>
-    </span>
+        selectAt(from === 0 ? last : from - 1)
+        return
+      case 'ArrowRight':
+      case 'ArrowDown':
+        event.preventDefault()
+        selectAt(from === last ? 0 : from + 1)
+        return
+      case 'Home':
+        event.preventDefault()
+        selectAt(0)
+        return
+      case 'End':
+        event.preventDefault()
+        selectAt(last)
+        return
+      case ' ':
+      case 'Enter':
+        event.preventDefault()
+        selectAt(from)
+        return
+      default:
+        return
+    }
+  }
+
+  return (
+    // 整组只有一个 onKeyDown：事件从焦点项冒泡到这里，按键一次只走一条路
+    <div role="radiogroup" aria-label="对谁说" className="flex flex-wrap items-center gap-1" onKeyDown={handleKeyDown}>
+      {options.map((option, index) => (
+        <span
+          key={option.key}
+          ref={(node) => {
+            nodes.current[index] = node
+          }}
+          role="radio"
+          aria-checked={option.checked}
+          tabIndex={index === rovingIndex ? 0 : -1}
+          onClick={option.select}
+          className="chip rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          {/* Tag 只留字号与内边距：底色/边框归 `chip` 管，而 `aria-checked` 在外层 span 上 */}
+          <Tag className="border-0 bg-transparent text-inherit">{option.label}</Tag>
+        </span>
+      ))}
+    </div>
   )
 }
 
@@ -63,6 +131,17 @@ function mmss(ms: number): string {
  */
 export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFlight, settled, elapsedMs, state, target, auto, explicitAll, onTargetChange, onAuto, onAll, hints }: ComposerProps) {
   const holds = state?.holds.map((item) => `${item.name}×${item.count}`).join('、') ?? ''
+  // 「自动」与「所有人」是两个不同的意图：前者让服务端按正文推断，后者不推断（C11）
+  const targetOptions: TargetOption[] = [
+    { key: 'auto', label: '自动', checked: auto === true, select: () => onAuto?.() },
+    { key: 'all', label: '所有人', checked: explicitAll === true, select: () => onAll?.() },
+    ...(state?.here ?? []).map((name, index) => ({
+      key: `${name}-${index}`,
+      label: name,
+      checked: target === name,
+      select: () => onTargetChange?.(name),
+    })),
+  ]
   return (
     <div className="shrink-0 border-t border-rule bg-paper">
       <div className={`${READING_COLUMN} py-3`}>
@@ -83,15 +162,7 @@ export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFligh
               {state.place} · 你身上：{holds === '' ? '空手' : holds}
             </span>
             {/* 目标 chips：只改状态，不发送；目标只影响发送时（所以等待中也不锁） */}
-            {/* 「自动」与「所有人」是两个不同的意图：前者让服务端按正文推断，后者不推断（C11） */}
-            <div role="radiogroup" aria-label="对谁说" className="flex flex-wrap items-center gap-1">
-              <TargetChip label="自动" checked={auto === true} onSelect={() => onAuto?.()} />
-              <TargetChip label="所有人" checked={explicitAll === true} onSelect={() => onAll?.()} />
-              {/* 显示名不保证唯一（重名时服务端会让聚焦失败）：key 加下标，不让 React 报重复 key */}
-              {state.here.map((name, index) => (
-                <TargetChip key={`${name}-${index}`} label={name} checked={target === name} onSelect={() => onTargetChange?.(name)} />
-              ))}
-            </div>
+            <TargetGroup options={targetOptions} />
           </div>
         )}
         <Sender
@@ -122,7 +193,8 @@ export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFligh
           </span>
           {/* 等待中不提供：同一时刻只允许一条在途输入 */}
           {!inFlight && (
-            <Button size="small" type="text" onClick={onWait}>
+            // 它是一条会发出去的输入：体积按次要按钮给，把真正发送的那句话放进 title / aria-label
+            <Button size="small" title={WAIT_TEXT} aria-label={WAIT_TEXT} onClick={onWait}>
               等一会儿
             </Button>
           )}

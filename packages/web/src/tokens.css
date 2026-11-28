@@ -49,6 +49,22 @@
   word-break: break-all;
 }
 
+/*
+ * 目标单选组里的一颗 chip。语义与焦点在外层 `span[role=radio]` 上，`aria-checked` 也只挂在那里，
+ * 所以选中态用 `&[aria-checked="true"]` 命中；里面的 antd `Tag` 只留字号与内边距，底色由这里给。
+ */
+@utility chip {
+  border: 1px solid var(--color-rule);
+  color: var(--color-ink);
+  cursor: pointer;
+
+  &[aria-checked="true"] {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--ant-color-text-light-solid);
+  }
+}
+
 @layer base {
   :root[data-theme="dark"] {
     color-scheme: dark;
