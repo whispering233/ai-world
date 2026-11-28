@@ -75,13 +75,10 @@ describe('foldReason：四条触发', () => {
 })
 
 describe('fold：交出压缩材料', () => {
-  it('每人只取末尾 keepLast 条，并带上签名', () => {
-    let s = appendBeat(scene(), { clock: 101, tokens: 0, texts: { ann: '一' }, signed: true })
-    s = appendBeat(s, { clock: 102, tokens: 0, texts: { ann: '二' }, signed: false })
-    s = appendBeat(s, { clock: 103, tokens: 0, texts: { ann: '三' }, signed: false })
-    const material = fold(s, 'beats', 2)
-    expect(material.perEnt.ann).toEqual(['二', '三'])
-    expect(material.perEnt.bob).toEqual([])
+  it('带上折场原因、场景 id 与签名', () => {
+    const s = appendBeat(scene(), { clock: 101, tokens: 0, texts: { ann: '一' }, signed: true })
+    const material = fold(s, 'beats')
+    expect(material.sceneId).toBe(s.id)
     expect(material.signed).toBe(true)
     expect(material.reason).toBe('beats')
   })

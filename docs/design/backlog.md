@@ -97,7 +97,7 @@ C7 后内容：外套/抹布/钉子/铁盒盖。20 拍：墙钟 66.2s/拍、`no_
 | 玩家看不到自己被拒绝的理由 | 拒绝理由只进 NPC experience 与作者视图；玩家只能从正文推断 | 半天；先定是否给一句“为什么没成”，且不能泄漏 NPC 私有状态 |
 | summary 同时进场景上下文与 experience | 决策 #42 的已知代价：下一拍可能同时从两处看到同一句 | 折场明显提前或 token 吃紧时，把经验写入改成“只由折场产生” |
 | 旁白段落上限的结构化保证 | 三次 20 拍 ≤3 为 17/12/16（中位数 16）；段落检查只记 notes | 不切结构；只有连续回退时再动 |
-| 折场时的成长入口 | `folded.perEnt` 现在无人消费（`FoldMaterial` 算出来了、没人用），`40 §7` 的“折场写 self”还没接线 | 长局手感变差或上下文吃紧时 |
+| 折场时的成长入口 | `40 §7` 的“折场写 self”还没接线；接线时从 `scene.context` 取每人末尾若干条（原先 `FoldMaterial.perEnt` 算了没人用，已删） | 长局手感变差或上下文吃紧时 |
 | 首屏体积 | 作者壳已拆出去（1.12 → 1.03 MB / gzip 354 → 326 kB），但主 chunk 仍整包带着 antd + `@ant-design/x` | 弱网下能感知白屏时；下一步只能按组件拆 vendor，代价大 |
 | 每拍全量重读 journal/passage | 长局 O(n²)：`session.beat` 每拍整份 `JSON.parse`，`routes/beat.ts` 为一个 `clockText` 建整份 view，`GET /api/session` 全量下发历史 | 当前几十拍无感，上百拍再动 |
 | 缓存 A/B | 有 before/after 需求时 | 同条件换前缀顺序各跑 6 拍 |
