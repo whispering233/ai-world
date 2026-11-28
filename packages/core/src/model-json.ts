@@ -29,6 +29,20 @@ export function parseModelJson(text: string): ModelJsonObject {
   return value as ModelJsonObject
 }
 
+/**
+ * 同 `parseModelJson`，但解析不出来返回 `undefined` 而不抛。
+ *
+ * 降级语义留在调用点：认知把整段当 outward、提示返回 `[]`、裁判走
+ * “无事发生 + notes”，三者不是同一个兜底，不能在这里统一。
+ */
+export function tryParseModelJson(text: string): ModelJsonObject | undefined {
+  try {
+    return parseModelJson(text)
+  } catch {
+    return undefined
+  }
+}
+
 /** 从头扫到括号配平为止；字符串里的括号不算。找不到左括号返回 undefined，截断时返回剩余部分交给 repair。 */
 function extractObject(text: string): string | undefined {
   const start = text.indexOf('{')

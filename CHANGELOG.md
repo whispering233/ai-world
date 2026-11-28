@@ -28,6 +28,20 @@
 - 「等一会儿」改成次要按钮，并将要发送的那句话放进 `title` 与 `aria-label`。
 - 系统深浅色改成实时跟随（原来只在启动判一次）；首帧不闪。
 - 作者视图顶栏「累计 cost」改成「本次进程 cost」。
+- 时间模型收窄为**一拍一个跨度**：`clock + 本拍 max(已提交 claim 的 duration)`。决策 #12 原文的「+ `busyUntil`」从未接线（`busyUntil` 全仓无读取方，唯一写入点是 `seedCharacters()` 的 `busyUntil: 0`），现按 `40 §1` 的既有口径改写，并在行内留下修订记号。
+- `AuthorCharacterView` 去掉 `busyUntil`（对外作者 API 的响应形状变更，同步改 `docs/api/30-api-author.md`）。
+- `30-cognition.md` §4 的稀缺闸只保留「每 10 拍最多 1 条」：`heat` 极值触发从未实现，现从规则表撤下并登记进 `backlog.md` §1；原「超了就收紧 heat 阈值」的触发器结构上不可能触发，改为观察项。
+- 模型配置只剩一个出口：`resolveModelConfig()` 自己读 `AI_WORLD_CONFIG` 与 pi 的默认模型，7 个启动入口不再各拼一遍 `~/.pi/agent` 与配置路径。`config/models.json` 改为空模板（仓库不再钉任何模型串），`readPiDefaultModel` 的 provider 侧补上 `PI_PROVIDER`（原来只读 `settings.json`，缺文件时连已拿到的 `PI_MODEL` 一起丢掉）。
+- 两条链都取不到模型时**启动报错退出**，不再回退内置的 `FALLBACK_MODEL`（`docs/design/config.md` §1.1 的“代码里不出现具体模型串”从文档变成事实）。
+- `DEFAULT_RETRY` 与 `DEFAULT_SESSION_PREFIX` 各归一处；`ModelConfig.retry` / `sessionIdPrefix` 解析后总有值，6 处 `...(cfg.retry ? … : {})` 与 2 处 `?? 'play'` 收掉。
+- `journal.jsonl` / `passage.jsonl` / `data/<world>` 收敛到 `core/store.ts`（`JOURNAL_FILE` / `PASSAGE_FILE` / `dataDir()`）：改名时 `reset()` 与 `--fresh` 不会再静默删不到旧局。
+- 世界 id 白名单与缺省世界收敛到 `packages/content`（`isWorldId()` / `DEFAULT_WORLD`）。
+- 新增 `routes/http.ts`：`codeOf` / `errorsOf` / `readJsonObject` / `fail` / `success` 各只一份。**不抽共用状态码表**——各路由的 `STATUS` 是策略，表外 code 仍 rethrow 交给 Hono 默认 500。
+- 新增 `tryParseModelJson()`：认知、提示、裁判只共用 try/catch，三处兜底语义（整段当 outward / 返回 `[]` / 无事发生 + notes）原样保留。
+- 新增 `zeroUsageByRole()`（`core/usage.ts`）：四角色空计数器原本在 `server/llm.ts` 与 `scripts/play.ts` 各手抄一遍。
+- `sceneText` 收敛到 `core/content.ts`：服务端与 `scripts/play.ts` 喂同一个 `BeatInput.sceneText`，此前两份已漂移（服务端含玩家、试玩器不含），而 `play.ts` 是产出 `docs/research/` 全部基线的工具。统一到服务端现状，生产行为零变化。
+- `scripts/experiment-multi-round.ts` 删掉与 `core/beat.ts` 逐字相同的 `describeLedger` 复制体，改为 import。
+- `docs/design/60-server.md` §6 登记“谁在场”的四处口径（玩家抽屉 / 动作提示器 / 聚焦候选集 / 场景描述）及为何不同；顺带修正若干与代码矛盾的注释（指已清空的任务卡、`旧调用点`、`预留给单拍详情`、`不报时缺省`、悬空 JSDoc）。
 - 试玩器按 `AI_WORLD` 取内容包（缺省 `starter-town`），现场描述与名字泄漏正则都由内容包生成，不再硬编码酒馆/灯/雨的 id；服务端 `AI_WORLD` 只决定进程首启默认，之后由玩家在「新的一局」里选。
 - 首屏示例改成世界无关的三句（原来的“银元 / 安 / 账本”属于 starter-town，换包后会指向不存在的东西）。
 - 收口文档：README / AGENTS / backlog / docs-map 同步到 baseline-23、focus-20、自动聚焦与显式“所有人”的现状；临时任务清单清空。
@@ -58,6 +72,10 @@
 
 ### Removed
 - `tokens.css` 里与 UA 默认同值的 `:root { color-scheme: light }`；根节点的 `bg-paper text-ink`（`body` 已设同值）。
+- storylet 探针与 A/B harness：`scripts/experiment-storylet.ts`、`scripts/probe-storylet.ts`、`scripts/probe-storylet-fill.ts`、`scripts/storylet-pool.ts` 与 `tests/storylet-pool.test.ts`（共 841 行）。冻结结论与设计知识保留在 `docs/research/storylet-probe.md`，重测需重建 harness；注入点 `BeatInput.claimSource` 保留。
+- 未接线的调度骨架：`Activity` / `nextWake` / `dueActors` / `Character.busyUntil`，以及 `clock.test.ts` 里 7 条对应用例（含一条 `if (acts.length > 0)` 恒真、测的是用例自身的假覆盖）。
+- 没人读的出口：`AuthorViewInput.passages`、`Session.contentPath()`、`FoldMaterial.perEnt`、`beat.ts` 里与 `clock.ts` 重复的 `export { fmt }`。
+- `packages/core/src/smoke.test.ts`（全文 `expect(1 + 1).toBe(2)`，不覆盖任何生产代码）。
 - `packages/web/src/ui/` 下 10 个手写基础件：`Banner` `Button` `Collapsible` `DataTable` `Dialog` `EditableList` `Field` `KeyValueList` `NumberField` `TextField`（`ModeSwitch` 留作 `Segmented` 的薄壳）。
 - `tokens.css` 的 `--color-danger`：换成 antd 按钮之后没有使用点。
 

@@ -9,7 +9,6 @@ function ch(experience: Experience[] = []): Character {
     drives: [{ id: 'd1', text: '不想再欠人情', heat: 0.9 }],
     beliefs: { bob: '他撒过谎' },
     experience,
-    busyUntil: 0,
   }
 }
 

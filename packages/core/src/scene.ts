@@ -101,18 +101,12 @@ export function foldReason(scene: Scene, now: NowInput): FoldReason | undefined 
 export interface FoldMaterial {
   sceneId: string
   reason: FoldReason
-  /** 每个参与者本场的末尾若干条上下文，交给调用方压成 1–2 条 experience */
-  perEnt: Record<EntId, string[]>
   /** 本场是否有世界签名（有才允许写 self 条目） */
   signed: boolean
 }
 
-export function fold(scene: Scene, reason: FoldReason, keepLast = 2): FoldMaterial {
-  const perEnt: Record<EntId, string[]> = {}
-  for (const ent of scene.participants) {
-    perEnt[ent] = (scene.context[ent] ?? []).slice(-keepLast)
-  }
-  return { sceneId: scene.id, reason, perEnt, signed: scene.signed }
+export function fold(scene: Scene, reason: FoldReason): FoldMaterial {
+  return { sceneId: scene.id, reason, signed: scene.signed }
 }
 
 /** 拼成一段可进 prompt 的现场文本；只读，不改场景。 */

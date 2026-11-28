@@ -10,13 +10,12 @@
 import { randomUUID } from 'node:crypto'
 import { readFileSync, readdirSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { basename, extname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { serve } from '@hono/node-server'
 import { Hono, type Context } from 'hono'
-import { FALLBACK_MODEL, createLlm, loadModelConfig, readPiDefaultModel, readonlyPiCredentials } from '@ai-world/core'
-import { CONTENT_DIR, contentPathFor, loadContentPack } from '@ai-world/content'
+import { createLlm, dataDir, resolveModelConfig, readonlyPiCredentials } from '@ai-world/core'
+import { CONTENT_DIR, contentPathFor, DEFAULT_WORLD, isWorldId, loadContentPack } from '@ai-world/content'
 import { createSession, type WorldOption } from './session.ts'
 import { authorRoutes } from './routes/author.ts'
 import { beatRoutes } from './routes/beat.ts'
@@ -25,10 +24,6 @@ import { resetRoutes } from './routes/reset.ts'
 
 const HOST = '127.0.0.1'
 const PORT = 8787
-/** 缺省世界：只在启动时读一次，进程不记玩家选过什么 */
-const DEFAULT_WORLD = 'starter-town'
-/** 世界 id 就是内容包文件名：与 `contentPathFor` 的校验同一口径 */
-const WORLD_ID = /^[a-z0-9-]+$/
 const DIST = resolve(fileURLToPath(new URL('../../web/dist/', import.meta.url)))
 
 const TYPES: Record<string, string> = {
@@ -42,14 +37,13 @@ const TYPES: Record<string, string> = {
   '.webmanifest': 'application/manifest+json',
 }
 
-// 默认模型跟着 pi 自己的设置走（settings.json / PI_MODEL），配置文件只做覆盖
-const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL
-const cfg = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json', piDefault)
+// 默认模型跟着 pi 自己的设置走（settings.json / PI_MODEL + PI_PROVIDER），配置文件只做覆盖
+const cfg = resolveModelConfig()
 const llm = createLlm({
   models: cfg.models,
   credentials: readonlyPiCredentials(),
-  sessionId: `${cfg.sessionIdPrefix ?? 'play'}-${randomUUID()}`,
-  ...(cfg.retry ? { retry: cfg.retry } : {}),
+  sessionId: `${cfg.sessionIdPrefix}-${randomUUID()}`,
+  retry: cfg.retry,
 })
 
 // 可开的世界 = `content/` 下的 *.json：标题读不到就退回 id，不让一个坏包拖垮启动
@@ -90,10 +84,10 @@ function listWorlds(): WorldOption[] {
   const worlds: WorldOption[] = []
   for (const name of names.sort()) {
     const id = basename(name, '.json')
-    // 与 `contentPathFor` 同一口径：不合规的文件名不是世界，直接跳过
-    if (!WORLD_ID.test(id)) continue
+    // 不合规的文件名不是世界，直接跳过（白名单与 `contentPathFor` 同一口径）
+    if (!isWorldId(id)) continue
     const contentPath = contentPathFor(id)
-    worlds.push({ id, title: titleOf(contentPath) ?? id, dir: join('data', id), contentPath })
+    worlds.push({ id, title: titleOf(contentPath) ?? id, dir: dataDir(id), contentPath })
   }
   return worlds
 }

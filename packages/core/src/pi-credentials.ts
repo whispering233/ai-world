@@ -1,13 +1,13 @@
 // 复用 pi CLI 自己的凭据文件（~/.pi/agent/auth.json），只读：本程序不改写 pi 的登录状态。
 import { readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { CredentialStore } from '@earendil-works/pi-ai'
+import { piAgentDir } from './config.ts'
 
 type RawCredential = { type: 'api_key'; key?: string }
 
 export function piAuthFile(): string {
-  return join(homedir(), '.pi', 'agent', 'auth.json')
+  return join(piAgentDir(), 'auth.json')
 }
 
 export function readonlyPiCredentials(file: string = piAuthFile()): CredentialStore {

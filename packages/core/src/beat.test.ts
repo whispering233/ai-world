@@ -41,12 +41,11 @@ function characters(): Map<EntId, Character> {
     drives: [{ id: 'd1', text: '想把这杯酒卖出去', heat: 0.8 }],
     beliefs: {},
     experience: [],
-    busyUntil: 0,
   })
   return new Map([
     ['ann', mk('ann', '老板娘')],
     ['doc', mk('doc', '医生')],
-    ['player', { id: 'player', drives: [], beliefs: {}, experience: [], busyUntil: 0 }],
+    ['player', { id: 'player', drives: [], beliefs: {}, experience: [] }],
   ])
 }
 
@@ -1111,7 +1110,7 @@ describe('runBeat：动作提示', () => {
     expect(store.readPassage()[0]?.hints).toBeUndefined()
   })
 
-  it('不传 suggester：没有提示，也不留 note（旧调用点不受影响）', async () => {
+  it('不传 suggester：没有提示，也不留 note（CLI 试玩器不传）', async () => {
     const store = tmpStore()
     const input = base(store, [settled])
     input.playerClaim = '我把银元放在柜台上。'

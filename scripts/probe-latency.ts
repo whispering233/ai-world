@@ -1,17 +1,12 @@
 // 对照测速：同一段裁判输入，只改「有没有工具」，分别量总耗时与首字耗时。
 // 用法：node --experimental-strip-types scripts/probe-latency.ts
-import { homedir } from 'node:os'
-import { join } from 'node:path'
 import { builtinModels } from '@earendil-works/pi-ai/providers/all'
-import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
+import { resolveModelConfig } from '@ai-world/core'
 import { createLlm, type ToolSpec } from '@ai-world/core'
 import { readonlyPiCredentials } from '@ai-world/core'
 import { REFEREE_SYSTEM, SUBMIT_VERDICT_TOOL, refereePrompt, type RefereeInput } from '@ai-world/core'
 
-const cfg = loadModelConfig(
-  process.env.AI_WORLD_CONFIG ?? 'config/models.json',
-  readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL,
-)
+const cfg = resolveModelConfig()
 const ref = cfg.models.referee
 const sessionId = `probe-${Date.now()}`
 
@@ -32,7 +27,7 @@ const input: RefereeInput = {
 const user = refereePrompt(input)
 
 async function total(label: string, tools: ToolSpec[] | undefined): Promise<void> {
-  const llm = createLlm({ models: cfg.models, sessionId, credentials: readonlyPiCredentials() })
+  const llm = createLlm({ models: cfg.models, sessionId, credentials: readonlyPiCredentials(), retry: cfg.retry })
   const t0 = performance.now()
   try {
     const res = await llm.chat({

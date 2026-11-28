@@ -21,7 +21,7 @@
 事实层  facts (+ knows)    只增不改，唯一写者为 referee
 账本层  ledger             5 类字段 / 7 个 op，唯一写者为 referee
 人物层  core(只读) / drives / beliefs / experience(含 self)
-调度层  clock(分钟) / busyUntil(最小堆) / journal(append-only)
+调度层  clock(分钟) / journal(append-only)
 ```
 
 服务边界（**按接口寻址，不直接 import 实现**）：`clock` / `ledger` / `referee` / `narrate`。
@@ -42,8 +42,8 @@
 | 9 | claim 三来源：玩家 / NPC / 世界事件（第三路经 `BeatInput.claimSource` 注入，storylet 冻结中） | 20 |
 | 10 | 人物单次调用；四层状态，`core` 只读 | 30 |
 | 11 | 成长来自 `self` 条目：只追加、要世界签名、很稀缺 | 30 |
-| 12 | 时间 = `clock`(分钟) + `busyUntil`；没有等距 tick | 40 |
-| 13 | 一拍 = 一次结算 = 一条日志 = 一个回放单位（**不是时间边界**） | 40 |
+| 12 | 时间只由已提交的主张推进：`clock` + 本拍 `max(duration)`；没有等距 tick，也没有 per-entity 的完成时刻 | 40 |
+| 13 | 一拍 = 一次结算 = 一条日志 = 一个回放单位（时长由本拍主张决定，不是固定刻度） | 40 |
 | 14 | `duration` 由 referee 给，缺省 1，clamp `[0,1440]` | 40 |
 | 15 | 时间只有一个出口 `fmt(clock)`，文本禁止写绝对时间 | 40 |
 | 16 | 一拍"被叫到的人" = 有张力(heat≥0.5) 或 被本拍直接作用 + 玩家；**聚焦模式例外**：只叫玩家 + 目标（#48） | 40 |

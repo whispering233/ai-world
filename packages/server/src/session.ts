@@ -24,14 +24,18 @@ import {
   createNarrator,
   createSuggester,
   healthView,
+  JOURNAL_FILE,
   openScene,
   openStore,
+  PASSAGE_FILE,
   playerView,
   replay,
   replayCharacters,
   runBeat,
+  sceneText,
   seedCharacters,
   validatePack,
+  zeroUsageByRole,
   type BeatTelemetry,
   type Character,
   type ContentPack,
@@ -44,7 +48,7 @@ import {
 } from '@ai-world/core'
 import { contentHash } from '@ai-world/content'
 import { inferFocus } from './focus.ts'
-import { emptyUsage, withBeatScope, type BeatSink } from './llm.ts'
+import { withBeatScope, type BeatSink } from './llm.ts'
 
 export interface WorldOption {
   id: string
@@ -88,7 +92,6 @@ export interface Session {
   content(): ContentStatusView
   /** 磁盘上的内容包原文 */
   contentText(): string
-  contentPath(): string
   /** 唯一写入：校验通过后写 `content/`，不改 `activeHash`、不改运行时世界 */
   saveContent(text: string): SavedContent
   /** 单飞：已有拍在结算时立刻抛 `code: 'E_BEAT_IN_FLIGHT'`，不排队 */
@@ -114,9 +117,7 @@ export interface Session {
 const PROMPT_BEATS = 3
 const PLAYER_TEXT_MAX = 500
 const ROLES: ModelRoleName[] = ['cognition', 'referee', 'narration', 'suggest']
-/** journal.jsonl / passage.jsonl 是 schema 里的存储契约（docs/db/schema.md §3 §4） */
-const JOURNAL = 'journal.jsonl'
-const PASSAGE = 'passage.jsonl'
+/** 两条日志的文件名由 `@ai-world/core` 的 store 导出（docs/db/schema.md §3 §4）。 */
 /** 一拍总时限：只等客户端断开不够，provider 挂死会永远占着锁（60 §4） */
 const BEAT_TIMEOUT_MS = 180_000
 
@@ -137,12 +138,7 @@ export function createSession(opts: SessionOptions): Session {
   let activeHash = contentHash(pack)
   let participants = roster(pack)
   // 本次进程累计，不是本局累计：进程重启归零，作者壳须注明
-  const usage: Record<ModelRoleName, UsageView> = {
-    cognition: emptyUsage(),
-    referee: emptyUsage(),
-    narration: emptyUsage(),
-    suggest: emptyUsage(),
-  }
+  const usage: Record<ModelRoleName, UsageView> = zeroUsageByRole()
   // 各角色最近一次实际使用的模型串：本拍没调到的角色沿用它，telemetry 才不缺角色
   const models: Record<ModelRoleName, string> = { cognition: '', referee: '', narration: '', suggest: '' }
   const notes = new Map<number, string[]>()
@@ -193,7 +189,10 @@ export function createSession(opts: SessionOptions): Session {
   /** 可开的世界：按 id 升序，`active` 恰好一条。 */
   function worldViews(): WorldOptionView[] {
     return [...opts.worlds]
-      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      .sort((a, b) => {
+        if (a.id < b.id) return -1
+        return a.id > b.id ? 1 : 0
+      })
       .map((w) => ({ id: w.id, title: w.title, active: w.id === active.id }))
   }
 
@@ -291,7 +290,6 @@ export function createSession(opts: SessionOptions): Session {
       characters: state.characters,
       names: pack.names,
       journal: state.journal,
-      passages: state.passages,
       content: content(),
       usage,
       health: healthView({ journal: state.journal, degraded }),
@@ -333,7 +331,7 @@ export function createSession(opts: SessionOptions): Session {
     const sink: BeatSink = {
       telemetry: {
         models: { ...models },
-        usage: { cognition: emptyUsage(), referee: emptyUsage(), narration: emptyUsage(), suggest: emptyUsage() },
+        usage: zeroUsageByRole(),
       },
       calls: [],
     }
@@ -428,8 +426,8 @@ export function createSession(opts: SessionOptions): Session {
     participants = roster(pack)
     // 只清这两份日志：本局的全部世界状态就是它们，内容与人物来自内容包
     store.close()
-    rmSync(join(active.dir, JOURNAL), { force: true })
-    rmSync(join(active.dir, PASSAGE), { force: true })
+    rmSync(join(active.dir, JOURNAL_FILE), { force: true })
+    rmSync(join(active.dir, PASSAGE_FILE), { force: true })
     store = openStore(active.dir)
     state = boot()
     notes.clear()
@@ -471,7 +469,6 @@ export function createSession(opts: SessionOptions): Session {
     authorBeat,
     content,
     contentText,
-    contentPath: () => active.contentPath,
     saveContent,
     beat,
     reset,
@@ -484,25 +481,15 @@ function roster(pack: ContentPack): EntId[] {
   return [pack.player, ...pack.characters.map((c) => c.id)]
 }
 
-/** 玩家当前地点的人物（不含玩家自己）：聚焦的候选集。 */
+/**
+ * 玩家当前地点的人物（不含玩家自己）：聚焦的候选集。
+ *
+ * 白名单用内容包的人物，而不是本拍参与者：聚焦必须在裁判之前定下来。
+ * 与其余几处在场者口径的差异见 docs/design/60-server.md §6。
+ */
 function presentPeople(pack: ContentPack, world: World): EntId[] {
   const place = world.ledger.at[pack.player] ?? ''
   return roster(pack).filter((ent) => ent !== pack.player && (world.ledger.at[ent] ?? '') === place)
-}
-
-/**
- * 场景的静态描述：作者写的现场 + 本拍的地点和在场者，与 play.ts 的 describeScene 同源。
- * 在场只列玩家与人物：账本里还有门、灯、柜台这类非人实体（docs/design/10-world-model.md §10），
- * 它们是现场的物件，不是在场者。
- */
-function sceneText(pack: ContentPack, world: World): string {
-  const here = world.ledger.at[pack.player] ?? ''
-  const present = roster(pack)
-    .filter((ent) => world.ledger.at[ent] === here)
-    .map((ent) => pack.names[ent] ?? ent)
-  return [pack.scene?.trim() ?? '', `${world.places[here] ?? here}：${present.join('、')}在场。`]
-    .filter((line) => line !== '')
-    .join('\n')
 }
 
 /** 请求体上限 500 字：超长截断（并在 notes 记一条），不返回错误。 */

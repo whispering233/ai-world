@@ -11,17 +11,25 @@ import { validatePack, type ContentPack } from '@ai-world/core'
 /** 世界 id 就是文件名：只允许小写字母、数字与连字符，防止拼进别的路径。 */
 const WORLD_ID = /^[a-z0-9-]+$/
 
+/** 一个字符串能不能当世界 id（= 内容包文件名）。服务端枚举 `content/` 时也用它。 */
+export function isWorldId(world: string): boolean {
+  return WORLD_ID.test(world)
+}
+
+/** 缺省世界：只在进程启动时读一次，不记玩家选过什么。 */
+export const DEFAULT_WORLD = 'starter-town'
+
 /** `content/` 目录的绝对路径：服务端启动时在这里扫出可开的世界。 */
 export const CONTENT_DIR = fileURLToPath(new URL('../../../content/', import.meta.url))
 
 /** `content/<world>.json` 的绝对路径；id 不合规直接抛，不做任何路径拼接。 */
 export function contentPathFor(world: string): string {
-  if (!WORLD_ID.test(world)) throw new Error(`世界 id 不合规：${world}`)
+  if (!isWorldId(world)) throw new Error(`世界 id 不合规：${world}`)
   return fileURLToPath(new URL(`../../../content/${world}.json`, import.meta.url))
 }
 
 /** 仓库根的默认世界内容。 */
-export const STARTER_TOWN_PATH = contentPathFor('starter-town')
+export const STARTER_TOWN_PATH = contentPathFor(DEFAULT_WORLD)
 
 /** 键排序后的 JSON：同一份内容不论键序如何，哈希都相同。 */
 function canonical(value: unknown): string {

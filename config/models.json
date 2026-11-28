@@ -1,10 +1,4 @@
 {
-  "models": {
-    "cognition": "opencode-go/deepseek-v4.1-flash",
-    "referee": "opencode-go/deepseek-v4.1-flash",
-    "narration": "opencode-go/deepseek-v4.1-flash",
-    "suggest": "opencode-go/deepseek-v4.1-flash"
-  },
-  "sessionIdPrefix": "play",
-  "retry": { "enabled": true, "maxRetries": 2, "baseDelayMs": 800 }
+  "models": {},
+  "sessionIdPrefix": "play"
 }

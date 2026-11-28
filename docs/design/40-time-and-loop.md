@@ -5,7 +5,6 @@
 | 概念 | 定义 |
 | :--- | :--- |
 | `clock` | 从创世起的**分钟数**，单调递增 |
-| `busyUntil` | 每个实体"手上这件事完成"的时刻 |
 | `beat` | **一拍**：一次结算 = 一条 `journal` = 一个回放单位 |
 | `scene` | **一个场景**：一次装配 → 若干拍追加 → 一次折场（见 §2） |
 | `fmt(clock)` | 唯一的时间展示出口，如 `第 3 天 · 傍晚` |
@@ -49,7 +48,7 @@ loop:
   if 无当前场景: 装配场景（检索 + canon + 账本切片）
   actors  = 被叫到的人(场景)
   claims  = 收集(actors + 玩家)
-  if claims 为空: clock = min(busyUntil); continue
+  if claims 为空: 本拍未发生（不落 journal、clock 不动），返回
   r       = referee(claims, 场景切片, 账本, canon)   // 一拍一次
   clockAfter = clock + max(已提交 claim 的 duration)
   账本原子提交(r); 追加渲染(r); 写日志(clockAfter, scene, claims, r)
@@ -110,7 +109,7 @@ loop:
 - v1：**玩家在场时，时间只由主张推进**；不按真实墙钟流逝，慢读者不被惩罚。
 - “等一会儿”是玩家提交的一条普通等待 claim，不是后台推进：裁判照常给时长，世界照常结算（决策 #49）。
 - 玩家离线：世界不推进（v1）。
-- `advanceTo(t)` 已存在于主循环形态中，离线粗粒度推进是**纯增量**，不改变架构（见 backlog）。
+- 离线粗粒度推进（把 clock 直接跳到某个时刻）是**纯增量**，不改变架构；主循环目前只有主张推进，没有任何时间推进（见 backlog）。
 
 ## 9. 明确不做
 

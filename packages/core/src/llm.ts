@@ -46,10 +46,10 @@ export interface ChatResult {
   inputTokens: number
   outputTokens: number
   model: string
-  /** provider 报回的缓存命中量；不报时缺省 */
+  /** provider 报回的缓存命中/写入量；pi-ai 的 usage 里缺这两项时值是 undefined，调用方按 0 处理 */
   cacheRead?: number
   cacheWrite?: number
-  /** 本次调用费用（供应商计价单位）；不报时缺省 */
+  /** 本次调用费用（供应商计价单位）；pi-ai 不报时是 undefined，调用方按 0 处理 */
   cost?: number
   /** 本次调用触发的重试次数 */
   retries?: number
@@ -62,7 +62,7 @@ export interface UsageSample {
   output: number
   cacheRead: number
   cacheWrite: number
-  /** 本次调用费用（供应商计价单位）；不报时缺省 */
+  /** 本次调用费用（供应商计价单位）；pi-ai 不报时是 undefined，调用方按 0 处理 */
   cost?: number
   /** 本次调用总耗时（含重试与退避） */
   ms: number
@@ -123,9 +123,17 @@ export interface LlmConfig {
   credentials?: CredentialStore
   /** 会话标识：opencode 用它做路由头，多家供应商用它做缓存亲和。一次世界运行用一个 */
   sessionId?: string
-  /** 临时错误的重试预算；缺省 2 次、800ms 起退避（pi CLI 同款策略） */
+  /** 临时错误的重试预算；不传就用 DEFAULT_RETRY */
   retry?: RetryPolicy
 }
+
+/**
+ * 重试策略的唯一缺省值：配置文件不写、调用点不传，都落到这里。
+ *
+ * 注意不能写成“pi CLI 同款策略”：安装的 pi CLI 构建里找不到消费 `settings.retry` 的代码，
+ * 无法据此推断 CLI 与本项目的重试行为一致（docs/design/config.md §3）。
+ */
+export const DEFAULT_RETRY: RetryPolicy = { enabled: true, maxRetries: 2, baseDelayMs: 800 }
 
 export function createLlm(config: LlmConfig): Llm {
   const loadModels = modelLoader(config.credentials)
@@ -153,7 +161,7 @@ export function createLlm(config: LlmConfig): Llm {
             signal: req.signal,
             ...(config.sessionId ? { sessionId: config.sessionId } : {}),
           }),
-        config.retry ?? { enabled: true, maxRetries: 2, baseDelayMs: 800 },
+        config.retry ?? DEFAULT_RETRY,
         req.signal,
         {
           onRetryScheduled: () => {

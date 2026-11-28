@@ -58,13 +58,19 @@ export interface Store {
   close(): void
 }
 
-const JOURNAL = 'journal.jsonl'
-const PASSAGE = 'passage.jsonl'
+/** 两条日志的文件名：schema 里的存储契约（docs/db/schema.md §3 §4），只在这一处定义。 */
+export const JOURNAL_FILE = 'journal.jsonl'
+export const PASSAGE_FILE = 'passage.jsonl'
+
+/** 一个世界的存档目录。切世界 = 换目录（决策 #52）。 */
+export function dataDir(worldId: string): string {
+  return join('data', worldId)
+}
 
 export function openStore(dir: string): Store {
   mkdirSync(dir, { recursive: true })
-  const journalPath = join(dir, JOURNAL)
-  const passagePath = join(dir, PASSAGE)
+  const journalPath = join(dir, JOURNAL_FILE)
+  const passagePath = join(dir, PASSAGE_FILE)
   let journalSeq = prepare(journalPath)
   let passageSeq = prepare(passagePath)
   let closed = false

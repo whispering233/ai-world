@@ -105,7 +105,6 @@ const CHARACTERS = new Map<string, Character>([
       drives: [{ id: 'keep-saloon', text: '撑过下一年', heat: 0.8 }],
       beliefs: { doc: '他手里那点药比枪值钱' },
       experience: [{ t: 603, kind: 'seen', text: '生面孔进门。', w: 2 }],
-      busyUntil: 640,
     },
   ],
   [
@@ -117,7 +116,6 @@ const CHARACTERS = new Map<string, Character>([
       drives: [],
       beliefs: {},
       experience: [],
-      busyUntil: 0,
     },
   ],
 ])
@@ -165,7 +163,6 @@ const AUTHOR_INPUT: AuthorViewInput = {
   characters: CHARACTERS,
   names: NAMES,
   journal: JOURNAL,
-  passages: PASSAGES,
   content: CONTENT,
   usage: { cognition: USAGE, referee: USAGE, narration: USAGE, suggest: USAGE },
   health: HEALTH,

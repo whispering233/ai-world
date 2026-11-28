@@ -9,7 +9,6 @@
  */
 import { randomUUID } from 'node:crypto'
 import { rmSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import { stdin, stdout } from 'node:process'
@@ -17,20 +16,23 @@ import { runBeat, type BeatDeps } from '@ai-world/core'
 import { createCognition } from '@ai-world/core'
 import type { Character } from '@ai-world/core'
 import { fmt } from '@ai-world/core'
-import { FALLBACK_MODEL, loadModelConfig, readPiDefaultModel } from '@ai-world/core'
+import { resolveModelConfig } from '@ai-world/core'
 import { readonlyPiCredentials } from '@ai-world/core'
 import { createLlm } from '@ai-world/core'
 import { createNarrator } from '@ai-world/core'
 import { createLlmReferee } from '@ai-world/core'
 import { healthView } from '@ai-world/core'
 import { openScene, type Scene } from '@ai-world/core'
+import { zeroUsageByRole } from '@ai-world/core'
+import { sceneText } from '@ai-world/core'
 import { openStore, replay, replayCharacters } from '@ai-world/core'
+import { dataDir, JOURNAL_FILE, PASSAGE_FILE } from '@ai-world/core'
 import { seedCharacters } from '@ai-world/core'
-import { contentPathFor, loadContentPack } from '@ai-world/content'
+import { contentPathFor, DEFAULT_WORLD, loadContentPack } from '@ai-world/content'
 import type { Op, World } from '@ai-world/core'
 
 // 试玩器没有界面：包在进程启动时就得定，所以只认环境变量（与服务端同一口径）。
-const WORLD = process.env.AI_WORLD ?? 'starter-town'
+const WORLD = process.env.AI_WORLD ?? DEFAULT_WORLD
 const { pack } = loadContentPack(contentPathFor(WORLD))
 
 const args = new Set(process.argv.slice(2))
@@ -38,7 +40,7 @@ const beatsArg = process.argv.indexOf('--beats')
 const BEATS = beatsArg > 0 ? Number(process.argv[beatsArg + 1] ?? 20) : 20
 const AUTO = args.has('--auto')
 const FRESH = args.has('--fresh')
-const DIR = `data/${WORLD}`
+const DIR = dataDir(WORLD)
 
 interface AutoScript {
   guards: Record<number, string>
@@ -116,20 +118,14 @@ const DURATIONS = [
 ] as const
 
 async function main(): Promise<void> {
-  const usage = {
-    cognition: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
-    referee: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
-    narration: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
-    suggest: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
-  }
-  // 默认模型跟着 pi 自己的设置走（settings.json / PI_MODEL），配置文件只做覆盖
-  const piDefault = readPiDefaultModel(join(homedir(), '.pi', 'agent')) ?? FALLBACK_MODEL
-  const cfg = loadModelConfig(process.env.AI_WORLD_CONFIG ?? 'config/models.json', piDefault)
+  const usage = zeroUsageByRole()
+  // 默认模型跟着 pi 自己的设置走（settings.json / PI_MODEL + PI_PROVIDER），配置文件只做覆盖
+  const cfg = resolveModelConfig()
   const llm = createLlm({
     models: cfg.models,
     credentials: readonlyPiCredentials(),
-    sessionId: `${cfg.sessionIdPrefix ?? 'play'}-${randomUUID()}`,
-    ...(cfg.retry ? { retry: cfg.retry } : {}),
+    sessionId: `${cfg.sessionIdPrefix}-${randomUUID()}`,
+    retry: cfg.retry,
     onUsage: (s) => {
       const u = usage[s.role]
       u.input += s.input
@@ -143,8 +139,8 @@ async function main(): Promise<void> {
   })
   // --fresh 显式重开一局：只清 world 的两条日志，不碰其它目录。
   if (FRESH) {
-    rmSync(join(DIR, 'journal.jsonl'), { force: true })
-    rmSync(join(DIR, 'passage.jsonl'), { force: true })
+    rmSync(join(DIR, JOURNAL_FILE), { force: true })
+    rmSync(join(DIR, PASSAGE_FILE), { force: true })
   }
   const deps: BeatDeps = {
     referee: createLlmReferee(llm),
@@ -201,7 +197,7 @@ async function main(): Promise<void> {
       characters,
       player,
       beatIndex: priorBeats + i,
-      sceneText: describeScene(world),
+      sceneText: sceneText(pack, world),
       canon: pack.canon,
       names: pack.names,
       items: pack.items,
@@ -288,18 +284,6 @@ async function main(): Promise<void> {
   stdout.write('  1) 你还想不想跟这个人说第 21 句话？\n')
   stdout.write('  2) 它做过至少 1 次你没预料、但事后觉得合理的事吗？\n')
   stdout.write('  3) 3 件事里至少 1 件是因为上次的后果才发生的吗？\n')
-}
-
-function describeScene(world: World): string {
-  const here = world.ledger.at[pack.player] ?? ''
-  const present = pack.characters
-    .map((c) => c.id)
-    .filter((ent) => world.ledger.at[ent] === here)
-    .map((ent) => pack.names[ent] ?? ent)
-  // 与 packages/server/src/session.ts 的 sceneText 同序、同形：先现场，再地点与在场
-  return [pack.scene?.trim() ?? '', `${pack.world.places[here] ?? here}：${present.join('、')}在场。`]
-    .filter((text) => text !== '')
-    .join('\n')
 }
 
 function describeHoldChanges(

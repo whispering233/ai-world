@@ -8,10 +8,9 @@ import type { Character } from './character.ts'
 import type { EntId, ItemId, World } from './world.ts'
 
 /**
- * 作者层人物：只含人写的字段。`experience` 与 `busyUntil` 是运行时状态，
- * 由 seedCharacters() 补空，不写进内容包。
+ * 作者层人物：只含人写的字段。`experience` 是运行时状态，由 seedCharacters() 补空。
  */
-export type CharacterSeed = Omit<Character, 'experience' | 'busyUntil'>
+export type CharacterSeed = Omit<Character, 'experience'>
 
 export interface ContentPack {
   /** 世界标题：玩家壳顶栏用它 */
@@ -37,7 +36,7 @@ export interface ContentPack {
 
 /** 内容包 → 开局人物：运行时字段补空。 */
 export function seedCharacters(pack: ContentPack): Character[] {
-  return pack.characters.map((seed) => ({ ...seed, experience: [], busyUntil: 0 }))
+  return pack.characters.map((seed) => ({ ...seed, experience: [] }))
 }
 
 const CORE_MIN = 200
@@ -86,9 +85,7 @@ export function validatePack(pack: ContentPack): string[] {
   }
   // 物品名对整张 items 生效：作者壳能改任一显示名，只查被 holds 引用的那些会放过没上身的物品。
   // 缺键与空名合并成一次检查，避免同一个物品被多个持有者各报一遍。
-  if (!isRecord(pack.items)) {
-    errors.push('items 必须是对象')
-  } else {
+  if (isRecord(pack.items)) {
     const named = new Set(Object.keys(pack.items))
     for (const bag of Object.values(pack.world.ledger.holds)) {
       for (const item of Object.keys(bag)) named.add(item)
@@ -97,6 +94,8 @@ export function validatePack(pack: ContentPack): string[] {
       const name = pack.items[item]
       if (typeof name !== 'string' || name.trim() === '') errors.push(`物品 ${item} 缺少显示名`)
     }
+  } else {
+    errors.push('items 必须是对象')
   }
 
   for (const ch of pack.characters) {
@@ -175,4 +174,25 @@ export function validatePack(pack: ContentPack): string[] {
   })
 
   return errors
+}
+
+/**
+ * 场景的静态描述：作者写的现场 + 当前地点的在场者。
+ *
+ * 服务端与 `scripts/play.ts` 喂的是**同一个消费点**（`BeatInput.sceneText`），所以只有这一份实现；
+ * 试玩器因此与服务端同源，它的体检表数字才能代表服务端行为。
+ *
+ * **含玩家自己**：这回答的是“屋子里有谁”，不是“你能跟谁说话”——后者是
+ * `beat.ts` 的 `suggestInput.here`，那里必须排除玩家。
+ * 只列人：账本里还有门、灯、柜台这类非人实体（docs/design/10-world-model.md §10），
+ * 它们是现场的物件，不是在场者。
+ */
+export function sceneText(pack: ContentPack, world: World): string {
+  const here = world.ledger.at[pack.player] ?? ''
+  const present = [pack.player, ...pack.characters.map((character) => character.id)]
+    .filter((ent) => world.ledger.at[ent] === here)
+    .map((ent) => pack.names[ent] ?? ent)
+  return [pack.scene?.trim() ?? '', `${world.places[here] ?? here}：${present.join('、')}在场。`]
+    .filter((line) => line !== '')
+    .join('\n')
 }

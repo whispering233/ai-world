@@ -5,11 +5,12 @@
  */
 import { Hono } from 'hono'
 import type { Session } from '../session.ts'
+import { success } from './http.ts'
 
 export function readRoutes(session: Session): Hono {
   const app = new Hono()
 
-  app.get('/session', (c) => c.json({ code: '0', msg: 'success', data: session.view() }))
+  app.get('/session', (c) => success(c, session.view()))
 
   return app
 }

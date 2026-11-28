@@ -28,6 +28,10 @@ openScene（新场景，participants = 内容包全部人物 + 玩家）
 
 场景上下文**不落盘**，续跑从新场景开始；人物记忆由 `journal.experience` 复原。`play.ts` 按同样顺序 boot（`loadContentPack` → `replay` / `replayCharacters` → `openScene`），但 boot 与 CLI 循环各自持有，不共用 `session.ts`。
 
+现场描述文字（`sceneText`）**同源**：由 `packages/core/src/content.ts` 提供，服务端与试玩器都调它。`play.ts` 是产出 `docs/research/` 全部基线的工具，这一维一旦分叉，它的体检表数字就不能代表服务端行为。
+
+`data/<world>/`、`journal.jsonl`、`passage.jsonl` 三个名字由 `packages/core/src/store.ts` 导出（`dataDir()` / `JOURNAL_FILE` / `PASSAGE_FILE`），服务端与 `play.ts` 只引用不重写：`reset()` 与 `--fresh` 都靠它们删旧局，改名只改一处。
+
 **启动必须打印实际模型串**：调错模型要当场可见，不能等到第一拍失败。
 
 ## 3. 一拍的生命周期
@@ -73,7 +77,7 @@ POST /api/beat
 | :--- | :--- |
 | 位置 | `content/<world>.json`，**git 跟踪**（放 `data/` 会被忽略，内容属于源码） |
 | 格式 | JSON。作者壳用表单编辑，用户从不直接面对 JSON 转义 |
-| 结构 | 只存作者字段：`title` / `world` / `characters`（`core`/`voice`/`drives`/`beliefs`）/ `canon` / `player` / `names` / `items` / `aliases` / `opening?` / `scene?`。`opening` 是首屏散文（只给玩家），`scene` 是一两句现场描述（进人物/裁判/旁白）；运行时字段（`experience`、`busyUntil`）由 `seedCharacters()` 补空 |
+| 结构 | 只存作者字段：`title` / `world` / `characters`（`core`/`voice`/`drives`/`beliefs`）/ `canon` / `player` / `names` / `items` / `aliases` / `opening?` / `scene?`。`opening` 是首屏散文（只给玩家），`scene` 是一两句现场描述（进人物/裁判/旁白）；运行时字段 `experience` 由 `seedCharacters()` 补空 |
 | 校验 | `validatePack()`，与运行时同一份；服务端在加载与保存两处都调用。覆盖到 `ledger` 的子对象（`holds` 数量、`phys` 值类型、`rel` 指向、`knows` 形态）与 `clock` 是否有限 |
 | 生效 | **只在新局生效**。保存 = 写盘；本局继续用启动时加载的那一份 |
 | 闭合世界 | 运行时不创建 item/entity/place（决策 #50）；`ContentPack` 是唯一来源，`Op` 只有 move/transfer/consume/phys/rel/fact/know |
@@ -105,6 +109,19 @@ prompt 只在内存环形缓冲保留最近 3 拍，不落盘（体积 + 隐私�
 | 玩家 | `packages/core/src/view.ts` 的 `playerView()` | 只含显示名与可验证状态；不得出现任何 id 与引擎词 |
 | 作者 | 同文件的 `authorView()` | 原始值全量 |
 
+**“谁在场”有四处口径，各自服务不同的问题，不要合并**：
+
+| 用途 | 位置 | 白名单 | 含玩家 | 回答的问题 |
+| :--- | :--- | :--- | :--- | :--- |
+| 玩家抽屉 | `view.ts` 的 `playerState` | 内容包里的人物 | 否 | 玩家身边还有谁 |
+| 动作提示器 | `beat.ts` 的 `suggestInput` | 本拍场景参与者 | 否 | 你现在能跟谁说话 |
+| 聚焦候选集 | `server/session.ts` 的 `presentPeople` | 内容包里的人物 | 否 | 没点名时目标能是谁 |
+| 场景描述 | `content.ts` 的 `sceneText` | 内容包里的人物 | **是** | 这屋子里有谁 |
+
+四者也承担不同的容错：`ledger.at[player]` 缺失时，`playerState` 与 `presentPeople` 退成空地点，`suggestInput` 退成本拍场景地点；`sceneText` 直接拼地点 id。
+这些都是投影层的容错，不是语义差异。
+唯一**不可**分叉的是 `sceneText`：服务端与 `scripts/play.ts` 喂同一个消费点（`BeatInput.sceneText`），所以它只有一份实现。
+
 隔离靠三层，不靠开关：
 
 1. **投影纯函数**：玩家投影的键集合由 `view.test.ts` 断言。
@@ -122,7 +139,7 @@ prompt 只在内存环形缓冲保留最近 3 拍，不落盘（体积 + 隐私�
 ## 7. 包结构与依赖方向
 
 ```text
-packages/shared   ← 零依赖：DTO 类型 + 端口/事件名常量（浏览器安全）
+packages/shared   ← 零依赖：DTO 类型 + SSE 事件名常量（浏览器安全）
 packages/core     ← shared：账本/调度/场景/裁判契约/LLM/认知/渲染/投影/体检
 packages/content  ← core：内容加载、校验、seedCharacters、内容哈希
 packages/server   ← core + content + shared：Hono、会话、路由

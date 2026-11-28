@@ -25,7 +25,7 @@
 | 骨架文本 | 固定模板（**不是**模型生成的），填肉不在本探针范围 |
 | 模型 | `opencode-go/deepseek-v4.1-flash`，独立 `sessionId` |
 | 记录 | `ok` / `deltas` / `duration` / `reason` / 耗时，落 `data/probe-storylet/probe.jsonl`（`data/` 不入库） |
-| 复现 | `node --experimental-strip-types scripts/probe-storylet.ts`；重算汇总用 `--replay`（不重复调用） |
+| 复现 | 脚本已随本轮删代码撤除（本轮）；本节结论保留，重测需重建 harness——骨架/冷却/两级前因的形态见 §2 表与 §12 |
 
 三个骨架都只读账本、效果目标都落在已有键上：
 
@@ -74,7 +74,7 @@
 
 ## 7. 填肉：骨架 → 1 到 2 句（3 条）
 
-`scripts/probe-storylet-fill.ts`，3 次真实调用（`narration` 角色，9.6s，855 / 465 tokens）。硬检查用的是仓库现成的 `findAbsoluteTime` 与 id 正则。
+`scripts/probe-storylet-fill.ts`（**已随探针删除**），3 次真实调用（`narration` 角色，9.6s，855 / 465 tokens）。硬检查用的是仓库现成的 `findAbsoluteTime` 与 id 正则。
 
 | 骨架 | 成文 | 绝对时间 | id 泄漏 | 评 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -202,7 +202,7 @@
 
 ## 16. 3 次重复：抽卡没有减少空转拍，并暴露两个实现级 bug
 
-避让已回退（`avoidKeys` 删除），协议改成同条件重复 3 次，`experiment-storylet.ts` 支持 `--run N` 与 `--report`（读 journal 汇总，不重复调用）。两臂各 3 次、每次 10 拍、同一串玩家输入。
+避让已回退（`avoidKeys` 删除），协议改成同条件重复 3 次，`experiment-storylet.ts`（**已随探针删除**）支持 `--run N` 与 `--report`（读 journal 汇总，不重复调用）。两臂各 3 次、每次 10 拍、同一串玩家输入。
 
 | 指标（各 run 值 · 中位） | base | storylet |
 | :--- | :--- | :--- |

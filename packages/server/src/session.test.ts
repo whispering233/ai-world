@@ -451,13 +451,13 @@ describe('内容保存', () => {
     expect(after.activeHash).toBe(before.activeHash)
     expect(after.diskHash).toBe(saved.diskHash)
     expect(after.changed).toBe(true)
-    expect(readFileSync(session.contentPath(), 'utf8')).toBe(text)
+    expect(readFileSync(session.content().path, 'utf8')).toBe(text)
   })
 
   it('保存非法内容：抛 E_INVALID_CONTENT + errors，磁盘字节逐个不变', () => {
     const dir = tmpDir()
     const session = makeSession(dir, stubLlm())
-    const path = session.contentPath()
+    const path = session.content().path
     const before = readFileSync(path)
     const broken = JSON.stringify({ ...pack(), characters: [{ ...pack().characters[0], core: '老板娘' }] })
     let thrown: unknown

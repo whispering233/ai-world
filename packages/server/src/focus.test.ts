@@ -1,5 +1,5 @@
 /**
- * 名字自动聚焦的纯函数（docs/design/tasks.md C10）。
+ * 名字自动聚焦的纯函数（决策 #48，见 docs/research/auto-focus.md）。
  *
  * 这里只钉“算不算命中”：唯一命中才返回，其余交给“所有人”。
  * 路由/会话侧的接法见 `routes/beat.test.ts` 与 `session.test.ts`。

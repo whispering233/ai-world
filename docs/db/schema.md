@@ -24,6 +24,8 @@
 
 ## 3. `journal`（事件日志，append-only）
 
+落盘为 `data/<world>/journal.jsonl`，一行一条 JSON；文件名由 `packages/core/src/store.ts` 的 `JOURNAL_FILE` 定义。
+
 | 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
 | :--- | :--- | :--- | :--- | :--- |
 | seq | 是 | number | | 一拍（或一次折场）一条；新记录取**已有最大 seq + 1**（坏行占位不回退序号） |
@@ -50,6 +52,8 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 
 ## 4. `passage`（呈现文本）
 
+落盘为 `data/<world>/passage.jsonl`，一行一条 JSON；文件名由 `packages/core/src/store.ts` 的 `PASSAGE_FILE` 定义。
+
 | 字段 | 是否必选 | 数据类型 | 取值范围 | 备注 |
 | :--- | :--- | :--- | :--- | :--- |
 | seq | 是 | number | | 与 journal 对齐 |
@@ -69,7 +73,6 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 | drives | 是 | Drive[] | heat 0~1 | `{ id, text, heat }` |
 | beliefs | 是 | Record<EntId, string> | | 可错，可被谎言改写 |
 | experience | 是 | Exp[] | | append-only |
-| busyUntil | 是 | number | ≥ clock | 当前动作完成时刻 |
 
 ## 6. `experience`（人物经验）
 
@@ -91,7 +94,7 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 | ambient | 否 | Record<string, string\|number\|boolean> | | 世界常态声明（只读根常量，与 `places` 同性质，不属于事实流）；改它等于改世界设定 |
 
 显示名不在 `world` 里：它们是作者层 `ContentPack` 的静态映射，不参与 replay，也不进账本。
-`ambient` 只给环境类前因读：键缺失 = 不满足，不默认通过；它不由裁判写，也不进 journal。
+`ambient` 只给环境类前因读：键缺失 = 不满足，不默认通过；它不由裁判写，也不进 journal。当前**无代码消费者**（storylet 冻结，骨架与池实现随探针删除）；保留声明是为了内容包与作者壳的字段稳定。
 
 ## 8. `ContentPack`（作者层，不是运行时状态）
 
@@ -100,7 +103,7 @@ telemetry 是**运行观测**，不是世界状态：`replay` 不读它，缺它
 | title | 是 | string | 非空 | 世界标题；玩家壳顶栏用它 |
 | opening | 否 | string | ≤600 字 | 首屏散文，只给玩家；缺失时前端回退场景卡 |
 | scene | 否 | string | ≤160 字 | 一两句现场描述，进人物/裁判/旁白上下文 |
-| characters | 是 | CharacterSeed[] | 每人 core 200–400 字、voice 非空、drive heat 0..1 | 只存作者字段 `id`/`core`/`voice`/`drives`/`beliefs`；运行时字段 `experience`、`busyUntil` 由 `seedCharacters()` 补空，不写进文件 |
+| characters | 是 | CharacterSeed[] | 每人 core 200–400 字、voice 非空、drive heat 0..1 | 只存作者字段 `id`/`core`/`voice`/`drives`/`beliefs`；运行时字段 `experience` 由 `seedCharacters()` 补空，不写进文件 |
 | names | 是 | Record<EntId, string> | | 人物/实体显示名：id → 人读的名字；覆盖 `ledger.at` 的全部实体 |
 | items | 是 | Record<ItemId, string> | | 物品显示名：id → 人读的名字；覆盖 `ledger.holds` 里出现的物品 |
 | aliases | 否 | Record<EntId, string[]> | | 额外检索词：只用于事实切片匹配“这句话提到谁”，不改显示名 |

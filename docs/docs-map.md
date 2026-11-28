@@ -8,7 +8,7 @@
 | [10-world-model.md](design/10-world-model.md) | 三表、账本 5 字段 / 7 op、五条不变式、记忆不对称 |
 | [20-referee.md](design/20-referee.md) | 裁判契约、批量结算、三种 verdict、体检指标 |
 | [30-cognition.md](design/30-cognition.md) | 人物四层、单次调用、成长三道闸、检索与预算 |
-| [40-time-and-loop.md](design/40-time-and-loop.md) | clock / busyUntil / 一拍、时长归属、时间唯一出口 |
+| [40-time-and-loop.md](design/40-time-and-loop.md) | clock 与一拍、时长归属、时间唯一出口 |
 | [50-llm.md](design/50-llm.md) | pi-ai 接入、四个模型角色、Context 入档、测试策略 |
 | [60-server.md](design/60-server.md) | 服务端进程、一拍生命周期、中止语义、内容生命周期、两种壳、包结构与组件方案 |
 | [backlog.md](design/backlog.md) | 延后项与触发条件、监控指标、已知失败模式、下一步候选、UI 待办（说话人分层、思考过程反馈） |
@@ -42,6 +42,7 @@
 | [baseline-20.md](research/baseline-20.md) | 20 拍基线（C7 前，旧检测器）：空结果 77%、facts/beat 0.55；hard/double 1/1 为检测器误报 |
 | [baseline-21.md](research/baseline-21.md) | 新检测器 20 拍：空结果 60.6%、facts/beat 1.25、hard/double 0 |
 | [baseline-22.md](research/baseline-22.md) | 第三次同条件 20 拍：空结果 71%、段落 16/20、hard/double 0 |
+| [conflict-detector.md](research/conflict-detector.md) | 实验冲突检测的根因（拍前持有核对误报双花）、修复与验证 |
 | [m1-fixtures-smoke.md](research/m1-fixtures-smoke.md) | 陈设承载物品 12 拍：transfer 5 全涉及柜台/桌子，硬冲突 0 |
 | [s1-suggest-smoke.md](research/s1-suggest-smoke.md) | 动作提示 12 拍：hints 36 条、无 id/引擎词 |
 | [b1-focus-smoke.md](research/b1-focus-smoke.md) | 显式硬聚焦：本拍只有玩家+目标的 claim |

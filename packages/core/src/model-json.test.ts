@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseModelJson } from './model-json.ts'
+import { parseModelJson, tryParseModelJson } from './model-json.ts'
 
 describe('parseModelJson：真模型的实际输出形态', () => {
   it('纯 JSON', () => {
@@ -27,5 +27,20 @@ describe('parseModelJson：真模型的实际输出形态', () => {
 
   it('完全没有对象时抛出（由调用方回退）', () => {
     expect(() => parseModelJson('什么都没有')).toThrow()
+  })
+})
+
+describe('tryParseModelJson：降级留在调用点', () => {
+  it('能解析时与 parseModelJson 同结果', () => {
+    expect(tryParseModelJson('```json\n{"a":1}\n```')).toEqual({ a: 1 })
+  })
+
+  it('解析不出来时返回 undefined，不抛', () => {
+    expect(tryParseModelJson('什么都没有')).toBeUndefined()
+    expect(tryParseModelJson('')).toBeUndefined()
+  })
+
+  it('数组不是对象：同样返回 undefined', () => {
+    expect(tryParseModelJson('[1,2]')).toBeUndefined()
   })
 })
