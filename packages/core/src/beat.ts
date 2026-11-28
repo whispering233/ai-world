@@ -4,7 +4,7 @@
  * 收集 claim → 裁判 → 提交账本 → 分发观测 → 渲染 → 场景追加 → 折场检查 → 落 journal。
  * 这一层是唯一知道"顺序"的地方，下面每一块都保持纯函数或单一职责。
  */
-import { calledActors, fmt } from './clock.ts'
+import { calledActors } from './clock.ts'
 import { applyDriveHit, canWriteSelf, remember, selfInWindow, type Character, type Experience } from './character.ts'
 import type { Cognition } from './cognition.ts'
 import { fallbackPassage, type Narrator } from './narrate.ts'
@@ -570,5 +570,3 @@ function describe(v: Verdict | undefined): string {
   if (v.deltas.length === 0) return '说了，但没有改变什么'
   return `成立（${v.deltas.map((d) => d.op).join('/')}），耗时 ${v.duration} 分钟`
 }
-
-export { fmt }

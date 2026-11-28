@@ -163,7 +163,6 @@ const AUTHOR_INPUT: AuthorViewInput = {
   characters: CHARACTERS,
   names: NAMES,
   journal: JOURNAL,
-  passages: PASSAGES,
   content: CONTENT,
   usage: { cognition: USAGE, referee: USAGE, narration: USAGE, suggest: USAGE },
   health: HEALTH,

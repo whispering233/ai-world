@@ -151,8 +151,6 @@ export interface AuthorViewInput {
   characters: ReadonlyMap<EntId, Character>
   names: Record<EntId, string>
   journal: readonly JournalEntry[]
-  /** 当前没有被 `authorView` 读取：单拍详情走 `Session.authorBeat`。 */
-  passages: readonly PassageEntry[]
   content: ContentStatusView
   usage: Record<ModelRoleName, UsageView>
   health: HealthView

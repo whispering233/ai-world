@@ -92,7 +92,6 @@ export interface Session {
   content(): ContentStatusView
   /** 磁盘上的内容包原文 */
   contentText(): string
-  contentPath(): string
   /** 唯一写入：校验通过后写 `content/`，不改 `activeHash`、不改运行时世界 */
   saveContent(text: string): SavedContent
   /** 单飞：已有拍在结算时立刻抛 `code: 'E_BEAT_IN_FLIGHT'`，不排队 */
@@ -291,7 +290,6 @@ export function createSession(opts: SessionOptions): Session {
       characters: state.characters,
       names: pack.names,
       journal: state.journal,
-      passages: state.passages,
       content: content(),
       usage,
       health: healthView({ journal: state.journal, degraded }),
@@ -471,7 +469,6 @@ export function createSession(opts: SessionOptions): Session {
     authorBeat,
     content,
     contentText,
-    contentPath: () => active.contentPath,
     saveContent,
     beat,
     reset,
