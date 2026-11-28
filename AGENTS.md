@@ -8,7 +8,7 @@
 2. **不做能力清单**：不给人物 tools / skills / 动作词表 / 动作时长表。人物只输出自然语言。
 3. **不做阶段化认知**：不恢复 感知→评价→目标→选择 式的多阶段链路。
 4. **文本不是证据**：账本与文本冲突时以账本为准；已经发出的文本永不改写（不 retcon）。**`ok` + 空 `deltas` 也不是状态**：它只表示“发生了”，不得拿来否决另一条改变账本的主张；持续性必须落 `phys` 键。
-5. **时间只有一个出口**：`fmt(clock)`。叙事文本禁止写绝对时间。
+5. **时间只有一个出口**：`fmt(clock)`。叙事文本禁止写绝对时间。**一拍一个跨度**：`clock` 推进量 = 本拍已提交 claim 的 `max(duration)`；没有等距 tick，也没有 per-entity 的完成时刻——别把 `busyUntil` 那一套重新引进来。
 6. **fact 只增不改**：推翻旧事实 = 新增一条 + `supersededBy`。
 7. **fact 的结构字段是补充，不是第二个事实源**：`actor` 只能填动作发出者，`kind` 只用规定枚举；旧 fact 没有字段也必须能 replay。
 8. **一拍内的改动要么全成、要么全退**：同一裁决里的多条写操作是一个事务。
@@ -17,7 +17,7 @@
 ## 结构
 
 - `packages/core/` 纯函数：账本、调度、场景、检索、裁判契约、LLM 适配、投影、体检。全部可替换为确定性桩。
-- 四个服务按**接口**寻址（`clock` / `ledger` / `referee` / `narrate`），不直接 import 具体实现。
+- 四个注入点按**接口**寻址（`referee` / `cognition` / `narrator` / `suggester`）加一个 `store`；`runBeat` 只拿接口，不直接 import 具体实现。`suggester` 可选：不传就跳过提示，也不算降级。
 - `BeatInput.claimSource` 是唯一的世界事件注入点（只读账本、产出仍是 claim）；storylet 冻结中，当前**没有生产实现**，只有测试里的内联桩。
 - `packages/content/` 只做内容加载与校验；世界内容本体是根 `content/<world>.json`（git 跟踪），不放规则。
 - **世界是一局**：`content/<world>.json` 的文件名就是世界 id（`^[a-z0-9-]+$`）；换包只能通过开新局（`POST /api/reset {world}`），每个世界独立 `data/<world>/`。同一时刻内存里只有一个世界，不存在“切了包但保留旧账本”。
@@ -39,7 +39,7 @@
 
 ## 模型与凭据
 
-- 模型串只在 `config/models.json`；缺省值从 pi CLI 自身设置推导，**代码里不写死模型**。
+- 模型串**不写进代码**：要么 `config/models.json` 显式覆盖，要么跟随 pi 的默认（provider 取 `PI_PROVIDER` > `settings.json` 的 `defaultProvider`，model 取 `PI_MODEL` > `defaultModel`）。两条链都取不到就启动报错退出，不回退内置常量；仓库自带的 `config/models.json` 是空模板。
 - 凭据只读 `~/.pi/agent/auth.json`，不另存 key、不改写 pi 的登录状态。
 - `sessionId` 是 provider 的路由/缓存亲和头，不是消息线程；一次世界运行只用一个，不按角色拆。
 - 启动时打印实际使用的模型串；调错模型必须当场可见。

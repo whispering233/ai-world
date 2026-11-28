@@ -5,8 +5,4 @@
 
 ## 当前批次
 
-没有卡片。
-
-P2 的死代码与未接线设计已处置完毕（时间模型收敛到 M1、storylet 探针撤除、
-`heat` 极值闸与 `perEnt` 撤下、四处没人读的出口删除）。后续候选见
-[backlog.md](backlog.md) §1 与 §5。
+没有卡片。候选见 [backlog.md](backlog.md) §1 与 §5。

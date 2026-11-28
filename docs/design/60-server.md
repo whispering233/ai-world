@@ -139,7 +139,7 @@ prompt 只在内存环形缓冲保留最近 3 拍，不落盘（体积 + 隐私�
 ## 7. 包结构与依赖方向
 
 ```text
-packages/shared   ← 零依赖：DTO 类型 + 端口/事件名常量（浏览器安全）
+packages/shared   ← 零依赖：DTO 类型 + SSE 事件名常量（浏览器安全）
 packages/core     ← shared：账本/调度/场景/裁判契约/LLM/认知/渲染/投影/体检
 packages/content  ← core：内容加载、校验、seedCharacters、内容哈希
 packages/server   ← core + content + shared：Hono、会话、路由
