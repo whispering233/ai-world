@@ -7,7 +7,7 @@ export interface SaveDialogProps {
   onNewGame: () => void
 }
 
-/** 保存后的三选一（docs/api/30-api-author.md §3）。 */
+/** 保存后的三选一（docs/api/30-api-author.md §4）。 */
 export function SaveDialog({ open, onClose, onNewGame }: SaveDialogProps) {
   return (
     <Modal open={open} onCancel={onClose} title="内容已保存" footer={null} width={448}>

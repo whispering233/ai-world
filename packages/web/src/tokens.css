@@ -1,16 +1,13 @@
 /*
- * 排层语句必须待在 `@import "tailwindcss"` **之前**：层序由文档里第一条排层语句钉死，
- * 反过来（先 tailwind）的话 antd 层会被追加到最后 = 优先级最高，工具类照样被压掉。
- * `antdx` 必须写进层序：`@ant-design/x` 把自己的样式放进 `@layer antdx`，官方那份层序里没有它，
- * 漏写时 Sender 上的 `w-96` 静默被压（实测 1337px vs 384px），其余控件看不出来。
+ * 排层语句必须待在 `@import "tailwindcss"` **之前**，且层序必须含 `antdx`：
+ * x 组件上的工具类会被静默压掉，而页面看着正常、类型检查也绿（理由见 `docs/ui/DESIGN.md` §0）。
  */
 @layer theme, base, antd, antdx, components, utilities;
 
 @import "tailwindcss";
 
 /*
- * 唯一改色入口：组件里不写颜色/字号字面量。
- * 色板不在这里定，只在 `theme/AntdProvider.tsx`（浅 `defaultAlgorithm` / 深 `darkAlgorithm`，antd 默认色板）；
+ * 组件里不写颜色/字号字面量：色板只有一个事实源（`theme/AntdProvider.tsx`，见 `docs/ui/DESIGN.md` §0），
  * 这里只把 `--ant-*`（antd 6 的 cssVar，作用域是 `<html class="ai-world-theme">`）映射成既有 class 名。
  * `paper` / `paper-2` 是历史命名，值已经是 antd 的 layout / container 底（改名的收益低于风险）。
  */

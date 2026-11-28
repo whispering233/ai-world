@@ -312,7 +312,7 @@ describe('Composer 的目标 chips', () => {
     unmount()
   })
 
-  // 「所有人」不是「自动」的别名：它走另一个回调，服务端才不推测（C11）
+  // 「所有人」不是「自动」的别名：它走另一个回调，服务端才不推测（决策 #48）
   it('点「所有人」调用 onAll，不调用 onTargetChange(null)，也不发送', async () => {
     const { container, onAll, onTargetChange, onSend, unmount } = await mount({ draft: '我推门进去。', state: playerState })
     fireEvent.click(chipOf(container, '所有人')!)

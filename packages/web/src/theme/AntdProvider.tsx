@@ -1,14 +1,6 @@
 /**
- * antd 主题唯一入口：颜色只在这里定。
- * 浅色 `defaultAlgorithm` / 深色 `darkAlgorithm`，色板用 antd 默认色板，不写自定义 seed。
- *
- * 层叠：`<StyleProvider layer>` 把 antd 运行时样式整体包进 `@layer antd`；层序钉在 `tokens.css`
- * 顶部（`theme, base, antd, antdx, components, utilities`，`antdx` 是 `@ant-design/x` 自己的层）。
- * `@ant-design/cssinjs` 必须与 antd 的样式钩子读的**同一份实例**（2.2.0），否则 StyleProvider 设的
- * React context 没人读，`layer` 静默失效：只有图标样式进层，Button / Table 仍是无层 CSS，页面看着正常。
- *
- * `cssVar.key` 必须与 `index.html` 的 `<html class>` 字面量一致：antd 6 不把 `--ant-*` 注入 `:root`，
- * 只给带这个类的元素挂变量。不一致时 `tokens.css` 里那 6 个映射全是空值，表现为全站语义色静默变透明。
+ * antd 主题唯一入口：颜色只在这里定（浅 `defaultAlgorithm` / 深 `darkAlgorithm`，不写自定义 seed）。
+ * 层叠、cssinjs 实例、`cssVar.key` 与 `<html class>` 同步三条约束的理由见 `docs/ui/DESIGN.md` §0。
  */
 import { StyleProvider } from '@ant-design/cssinjs'
 import { ConfigProvider, theme } from 'antd'

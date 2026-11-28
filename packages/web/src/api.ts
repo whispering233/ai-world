@@ -168,7 +168,7 @@ export async function saveContent(text: string): Promise<{ saved: true; activeHa
 export interface PostBeatOptions {
   signal?: AbortSignal
   onFrame: (frame: BeatFrame) => void
-  /** 显式广播“所有人”；与 to 互斥；缺省时服务端按正文唯一人名推断（C10/C11） */
+  /** 显式广播“所有人”；与 to 互斥；缺省时服务端按正文唯一人名推断（决策 #48） */
   all?: boolean
   /** “对谁说”的在场者显示名；缺省 = 自动推断 */
   to?: string

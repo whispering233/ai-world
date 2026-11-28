@@ -15,8 +15,7 @@ import type { ShellMode } from './ui/ModeSwitch.tsx'
 
 const MODE_KEY = 'ai-world.mode'
 
-// 作者壳只在切过去时才下载：它带着 Table / Descriptions 这类玩家壳用不到的组件，
-// 静态 import 会让每个读者都付这份体积（实测 1.12 MB 的单 chunk）。
+// 作者壳只在切过去时才下载：静态 import 会让每个读者都付这份体积（当时测到 1.12 MB 的单 chunk）。
 const AuthorApp = lazy(() => import('./author/AuthorApp.tsx').then((mod) => ({ default: mod.AuthorApp })))
 
 interface AppState {
@@ -33,7 +32,7 @@ interface AppState {
   pendingText: string | null
   /** “对谁说”的目标（在场者显示名）；null = 没有点名的人 */
   target: string | null
-  /** 显式点了「所有人」：发送时带 `all:true`，服务端不推断（C11） */
+  /** 显式点了「所有人」：发送时带 `all:true`，服务端不推断（决策 #48） */
   explicitAll: boolean
   /** 在途那一拍实际带上的目标：等待中也要能看出“对安说的” */
   pendingTo: string | null

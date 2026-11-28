@@ -26,7 +26,7 @@ export interface ComposerProps {
   state?: PlayerStateView
   /** “对谁说”的当前目标（显示名）；`null` = 没有点名的人 */
   target?: string | null
-  /** 自动：按正文唯一人名推断目标（C11 的默认态） */
+  /** 自动：按正文唯一人名推断目标（决策 #48 的默认态） */
   auto?: boolean
   /** 玩家显式点的「所有人」：广播，不推断 */
   explicitAll?: boolean
@@ -127,8 +127,9 @@ function mmss(ms: number): string {
 }
 
 /**
- * 输入区的键盘契约由 `Sender` 自己实现：`submitType="enter"` 时 Enter 发送、Shift+Enter 换行，
- * 且组字期间（compositionstart→compositionend）不发送；`shell/composer.test.ts` 把这三件钉住。
+ * 输入区的键盘契约由 `Sender` 自己实现：`submitType` 用的是默认值 `"enter"`（代码没有显式设），
+ * Enter 发送、Shift+Enter 换行，且组字期间（compositionstart→compositionend）不发送；
+ * `shell/composer.test.ts` 把这三件钉住。
  * 等待期只给 `loading`（发送按钮换成停止），不用 `disabled`——那会把输入框一起锁灰，
  * 而设计只要求「不许重复发送」；重复发送在 `onSubmit` 入口再拦一道。
  */
@@ -136,7 +137,7 @@ export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFligh
   const holds = state?.holds.map((item) => `${item.name}×${item.count}`).join('、') ?? ''
   // 按码点计数，与服务端截断口径一致（`server/session.ts` 的 `clip()` 用 `Array.from`）
   const draftLength = Array.from(draft).length
-  // 「自动」与「所有人」是两个不同的意图：前者让服务端按正文推断，后者不推断（C11）
+  // 「自动」与「所有人」是两个不同的意图：前者让服务端按正文推断，后者不推断（决策 #48）
   const targetOptions: TargetOption[] = [
     { key: 'auto', label: '自动', checked: auto === true, select: () => onAuto?.() },
     { key: 'all', label: '所有人', checked: explicitAll === true, select: () => onAll?.() },

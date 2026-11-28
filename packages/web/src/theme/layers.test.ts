@@ -1,8 +1,6 @@
 /**
- * 层叠与 cssVar 作用域的两条回归保护。两种坏法都实测过，而且都**看不出来**：
- * 层序漏写 `antdx` 时 Sender 的宽度被静默压到 `utilities` 之后（1337px vs 384px），
- * `cssVar.key` 与 `<html class>` 不一致时 `--ant-*` 全是空值（全站语义色静默变透明），
- * 类型检查、单测、页面首屏都不报错。只有源码断言拦得住，所以断言写在这里而不是浏览器里。
+ * 层叠与 cssVar 作用域的两条回归保护：两种坏法都**看不出来**（类型检查、单测、首屏都不报错），
+ * 只有源码断言拦得住，所以断言写在这里而不是浏览器里。理由见 `docs/ui/DESIGN.md` §0。
  */
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'

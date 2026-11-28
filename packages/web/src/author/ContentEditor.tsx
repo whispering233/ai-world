@@ -64,7 +64,7 @@ export interface ContentEditorProps {
 /** 内容表单：只编辑作者字段，世界结构只读；保存是显式按钮，不做失焦保存。 */
 export function ContentEditor({ onSaved }: ContentEditorProps) {
   const [pack, setPack] = useState<EditablePack | null>(null)
-  // 编辑前快照只活这一份表单：重开表单就没有旧名可比，这是卡内接受的限制
+  // 编辑前快照只活这一份表单：重开表单就没有旧名可比，所以改显示名后的旧称呼提醒只限本次表单会话
   const [initial, setInitial] = useState<EditablePack | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
