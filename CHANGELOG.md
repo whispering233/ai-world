@@ -7,7 +7,7 @@
 - 目标单选组（`自动` / `所有人` / 在场者）改成真正的 radio 语义：整组只占一个 Tab 停靠点，←/→/Home/End 移动并同时选中，Space/Enter 选中；选中态用 `primary-active`（浅色 6.16:1、深色 7.23:1）。
 - 输入超过 500 字时提示“发送后会被截到 500 字”，按码点计数，与服务端截断口径一致。
 - `tokens.css` 新增两个语义排版类 `meta-line`（次要元信息）与 `dump`（JSON / prompt 转储）；`.blink` / `.fade-in` 进 `@layer components`。
-- `packages/web`：chrome 换成 `antd` 6 + `@ant-design/x` 2（`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Empty` `Segmented` + `Sender`），图标走 `@ant-design/icons`；`@ant-design/cssinjs` 钉在 `2.2.0`（与 antd 内部读同一实例，否则 `<StyleProvider layer>` 静默失效）。
+- `packages/web`：chrome 换成 `antd` 6 + `@ant-design/x` 2（`Alert` `Button` `Modal` `Drawer` `Collapse` `Table` `Descriptions` `Dropdown` `Divider` `Select` `Segmented` `Skeleton` `Tag` `Timeline` + `Sender`），图标走 `@ant-design/icons`；`@ant-design/cssinjs` 钉在 `2.2.0`（与 antd 内部读同一实例，否则 `<StyleProvider layer>` 静默失效）。
 - `packages/web/src/theme/AntdProvider.tsx`：色板唯一事实源（浅 `defaultAlgorithm` / 深 `darkAlgorithm`、antd 默认色板、`cssVar.key` = `<html class="ai-world-theme">`），`<StyleProvider layer>` 把 antd 运行时样式放进 `@layer antd`。
 - `packages/web/src/theme/layers.test.ts`：层序必须含 `antdx` 且在 `@import "tailwindcss"` 之前；红线是 `Sender` 的工具类漏了会被静默压掉。
 - `packages/web/src/shell/composer.test.ts`：`Sender` 的 Enter 发送 / Shift+Enter 换行 / 流式期间不可重复发送。
