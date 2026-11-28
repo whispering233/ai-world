@@ -21,6 +21,9 @@
 - 试玩器 `--auto` 按世界分表（`starter-town` / `westworld`），未知世界直接报错。
 
 ### Changed
+- 时间模型收窄为**一拍一个跨度**：`clock + 本拍 max(已提交 claim 的 duration)`。决策 #12 原文的「+ `busyUntil`」从未接线（`busyUntil` 全仓无读取方，唯一写入点是 `seedCharacters()` 的 `busyUntil: 0`），现按 `40 §1` 的既有口径改写，并在行内留下修订记号。
+- `AuthorCharacterView` 去掉 `busyUntil`（对外作者 API 的响应形状变更，同步改 `docs/api/30-api-author.md`）。
+- `30-cognition.md` §4 的稀缺闸只保留「每 10 拍最多 1 条」：`heat` 极值触发从未实现，现从规则表撤下并登记进 `backlog.md` §1；原「超了就收紧 heat 阈值」的触发器结构上不可能触发，改为观察项。
 - 模型配置只剩一个出口：`resolveModelConfig()` 自己读 `AI_WORLD_CONFIG` 与 pi 的默认模型，7 个启动入口不再各拼一遍 `~/.pi/agent` 与配置路径。`config/models.json` 改为空模板（仓库不再钉任何模型串），`readPiDefaultModel` 的 provider 侧补上 `PI_PROVIDER`（原来只读 `settings.json`，缺文件时连已拿到的 `PI_MODEL` 一起丢掉）。
 - 两条链都取不到模型时**启动报错退出**，不再回退内置的 `FALLBACK_MODEL`（`docs/design/config.md` §1.1 的“代码里不出现具体模型串”从文档变成事实）。
 - `DEFAULT_RETRY` 与 `DEFAULT_SESSION_PREFIX` 各归一处；`ModelConfig.retry` / `sessionIdPrefix` 解析后总有值，6 处 `...(cfg.retry ? … : {})` 与 2 处 `?? 'play'` 收掉。
@@ -60,6 +63,10 @@
 - antd 6 的三处改名（`Alert.title` / `Drawer.size` / `Divider.orientation`）：写错时界面正常、只有 `console.error`。
 
 ### Removed
+- storylet 探针与 A/B harness：`scripts/experiment-storylet.ts`、`scripts/probe-storylet.ts`、`scripts/probe-storylet-fill.ts`、`scripts/storylet-pool.ts` 与 `tests/storylet-pool.test.ts`（共 841 行）。冻结结论与设计知识保留在 `docs/research/storylet-probe.md`，重测需重建 harness；注入点 `BeatInput.claimSource` 保留。
+- 未接线的调度骨架：`Activity` / `nextWake` / `dueActors` / `Character.busyUntil`，以及 `clock.test.ts` 里 7 条对应用例（含一条 `if (acts.length > 0)` 恒真、测的是用例自身的假覆盖）。
+- 没人读的出口：`AuthorViewInput.passages`、`Session.contentPath()`、`FoldMaterial.perEnt`、`beat.ts` 里与 `clock.ts` 重复的 `export { fmt }`。
+- `packages/core/src/smoke.test.ts`（全文 `expect(1 + 1).toBe(2)`，不覆盖任何生产代码）。
 - `packages/web/src/ui/` 下 10 个手写基础件：`Banner` `Button` `Collapsible` `DataTable` `Dialog` `EditableList` `Field` `KeyValueList` `NumberField` `TextField`（`ModeSwitch` 留作 `Segmented` 的薄壳）。
 - `tokens.css` 的 `--color-danger`：换成 antd 按钮之后没有使用点。
 
