@@ -6,8 +6,8 @@
  */
 import { Hono } from 'hono'
 import { streamSSE } from 'hono/streaming'
-import type { Context } from 'hono'
 import type { Session } from '../session.ts'
+import { codeOf, fail, readJsonObject } from './http.ts'
 
 /** @hono/node-server 把 node 的 res 挂在 c.env.outgoing；hono 自己的断连判定也看它。 */
 interface NodeResponse {
@@ -20,20 +20,23 @@ export function beatRoutes(session: Session): Hono {
   const app = new Hono()
 
   app.post('/beat', async (c) => {
-    const body = await readBody(c)
-    if (body === undefined) return c.json({ code: 'E_INVALID_BODY', msg: '请求体格式错误' }, 400)
-    if (typeof body.text !== 'string') return c.json({ code: 'E_INVALID_BODY', msg: '请求体格式错误' }, 400)
+    const body = await readJsonObject(c)
+    if (body === undefined) return fail(c, 'E_INVALID_BODY', 400, '请求体格式错误')
+    const rawText = body['text']
+    const rawTo = body['to']
+    const rawAll = body['all']
+    if (typeof rawText !== 'string') return fail(c, 'E_INVALID_BODY', 400, '请求体格式错误')
     // `to` 是显示名，不是 id；只做形状校验，能不能匹配上由 session 定（docs/api/20-api-beat.md §1）
-    if (body.to !== undefined && typeof body.to !== 'string') return c.json({ code: 'E_INVALID_BODY', msg: '请求体格式错误' }, 400)
-    if (body.all !== undefined && typeof body.all !== 'boolean') return c.json({ code: 'E_INVALID_BODY', msg: '请求体格式错误' }, 400)
-    const text = body.text
-    const to = typeof body.to === 'string' ? body.to.trim() : ''
-    const all = body.all === true
+    if (rawTo !== undefined && typeof rawTo !== 'string') return fail(c, 'E_INVALID_BODY', 400, '请求体格式错误')
+    if (rawAll !== undefined && typeof rawAll !== 'boolean') return fail(c, 'E_INVALID_BODY', 400, '请求体格式错误')
+    const text = rawText
+    const to = rawTo === undefined ? '' : rawTo.trim()
+    const all = rawAll === true
     // 「所有人」与「对谁说」互斥（C11）：同时给就是坏体，不替调用方二选一
-    if (all && to !== '') return c.json({ code: 'E_INVALID_BODY', msg: '请求体格式错误' }, 400)
-    if (text.trim() === '') return c.json({ code: 'E_EMPTY_INPUT', msg: '玩家输入为空' }, 400)
+    if (all && to !== '') return fail(c, 'E_INVALID_BODY', 400, '请求体格式错误')
+    if (rawText.trim() === '') return fail(c, 'E_EMPTY_INPUT', 400, '玩家输入为空')
     // 单飞是 HTTP 语义（409），所以必须在开流之前判：流一旦开了只能发 error 帧
-    if (session.inFlight()) return c.json({ code: 'E_BEAT_IN_FLIGHT', msg: '上一拍还在结算' }, 409)
+    if (session.inFlight()) return fail(c, 'E_BEAT_IN_FLIGHT', 409, '上一拍还在结算')
 
     const clockText = session.view().clockText
     const controller = new AbortController()
@@ -74,18 +77,4 @@ export function beatRoutes(session: Session): Hono {
   })
 
   return app
-}
-
-async function readBody(c: Context): Promise<{ text?: unknown; to?: unknown; all?: unknown } | undefined> {
-  try {
-    const body: unknown = await c.req.json()
-    return typeof body === 'object' && body !== null ? (body as { text?: unknown; to?: unknown; all?: unknown }) : undefined
-  } catch {
-    return undefined
-  }
-}
-
-function codeOf(error: unknown): string {
-  const code = (error as { code?: unknown }).code
-  return typeof code === 'string' ? code : 'E_INTERNAL'
 }

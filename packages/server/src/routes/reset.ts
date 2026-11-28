@@ -5,8 +5,8 @@
  * `{world}` 缺省 = 重开当前世界；给了就必须是已知世界，否则 400（当前世界与日志都不动）。
  */
 import { Hono } from 'hono'
-import type { Context } from 'hono'
 import type { Session } from '../session.ts'
+import { codeOf, errorsOf, fail, readJsonObject, success } from './http.ts'
 
 /** reset 的失败各有 HTTP 语义：坏请求 / 未知世界 / 坏内容 400，与 /beat 互斥 409。 */
 const STATUS: Record<string, 400 | 409> = {
@@ -20,13 +20,13 @@ export function resetRoutes(session: Session): Hono {
   const app = new Hono()
 
   app.post('/reset', async (c) => {
-    const body = await readBody(c)
+    const body = await readJsonObject(c)
     // 空 body、无 Content-Type、坏 JSON 都是“没说要哪一局”：等价于重开当前世界
-    const world = body?.world
+    const world = body?.['world']
     if (world !== undefined && typeof world !== 'string') {
-      return c.json({ code: 'E_INVALID_BODY', msg: '请求体格式错误' }, 400)
+      return fail(c, 'E_INVALID_BODY', 400, '请求体格式错误')
     }
-    if (session.inFlight()) return c.json({ code: 'E_BEAT_IN_FLIGHT', msg: '上一拍还在结算' }, 409)
+    // 单飞只由 session.reset() 判（它第一步就抛 E_BEAT_IN_FLIGHT），路由层不再重复一次
     try {
       session.reset(world)
     } catch (error) {
@@ -34,42 +34,13 @@ export function resetRoutes(session: Session): Hono {
       const status = STATUS[code]
       // 不在表里的错误照旧冒泡：那是真 bug，不该被翻译成 400
       if (status === undefined) throw error
-      return c.json(
-        {
-          code,
-          msg: (error as Error).message,
-          // 校验错误逐条带出来：客户端要显示“哪个包坏了”
-          ...(code === 'E_INVALID_CONTENT' ? { data: { errors: errorsOf(error) } } : {}),
-        },
-        status,
-      )
+      // 校验错误逐条带出来：客户端要显示“哪个包坏了”
+      const detail = code === 'E_INVALID_CONTENT' ? { errors: errorsOf(error) } : undefined
+      return fail(c, code, status, (error as Error).message, detail)
     }
     const view = session.view()
-    return c.json({
-      code: '0',
-      msg: 'success',
-      data: { title: view.title, clock: view.clock, clockText: view.clockText },
-    })
+    return success(c, { title: view.title, clock: view.clock, clockText: view.clockText })
   })
 
   return app
-}
-
-async function readBody(c: Context): Promise<{ world?: unknown } | undefined> {
-  try {
-    const body: unknown = await c.req.json()
-    return typeof body === 'object' && body !== null ? (body as { world?: unknown }) : undefined
-  } catch {
-    return undefined
-  }
-}
-
-function codeOf(error: unknown): string {
-  const code = (error as { code?: unknown }).code
-  return typeof code === 'string' ? code : 'E_INTERNAL'
-}
-
-function errorsOf(error: unknown): string[] {
-  const errors = (error as { errors?: unknown }).errors
-  return Array.isArray(errors) ? errors.map(String) : []
 }
