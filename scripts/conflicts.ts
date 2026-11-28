@@ -88,6 +88,7 @@ function collect(op: Op, moves: Map<EntId, Set<string>>, phys: Map<string, Set<s
 }
 
 function field(op: Op, name: string): string {
+  // SAFETY: Op 只是编译期契约，真实数据来自模型 JSON；取不到字符串就记 '?'（只用于详情文案）。
   const value = (op as unknown as Record<string, unknown>)[name]
   return typeof value === 'string' ? value : '?'
 }
