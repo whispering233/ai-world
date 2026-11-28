@@ -39,7 +39,7 @@ import {
 } from '@ai-world/core'
 import { appendBeat, contextOf, fold, foldReason, openScene, type FoldMaterial, type Scene } from '@ai-world/core'
 import { openStore, type Store } from '@ai-world/core'
-import { describeFacts, type LedgerView } from '@ai-world/core'
+import { describeLedger } from '@ai-world/core'
 import { seedCharacters } from '@ai-world/core'
 import { loadContentPack, STARTER_TOWN_PATH } from '@ai-world/content'
 import type { EntId, World } from '@ai-world/core'
@@ -207,21 +207,6 @@ function describeScene(world: World): string {
   const line = `酒馆里：${present.map((ent) => pack.names[ent] ?? ent).join('、')}。${lit}。外面的雨没停。`
   // 与 packages/server/src/session.ts 的 sceneText 同序：先现场，再地点与在场
   return [pack.scene?.trim() ?? '', line].filter((text) => text !== '').join('\n')
-}
-
-/** 与 packages/core/src/beat.ts 的 describeLedger 保持同形状（选项对象）；实验脚本不把它抽成公共层。 */
-function describeLedger(world: World, present: readonly EntId[], view: LedgerView = {}): string {
-  const label = (id: string): string => (view.withIds ? `${view.names?.[id] ?? id}(${id})` : (view.names?.[id] ?? id))
-  const itemLabel = (id: string): string => (view.withIds ? `${view.items?.[id] ?? id}(${id})` : (view.items?.[id] ?? id))
-  const places = Object.entries(world.places).map(([id, name]) => `${name}(${id})`).join('、')
-  const rows = present.map((ent) => {
-    const place = world.ledger.at[ent] ?? '未知'
-    const bag = Object.entries(world.ledger.holds[ent] ?? {}).map(([item, n]) => `${itemLabel(item)}×${n}`).join('、') || '空手'
-    const phys = Object.entries(world.ledger.phys[ent] ?? {}).map(([k, v]) => `${k}=${String(v)}`).join('、')
-    return `- ${label(ent)}：在 ${world.places[place] ?? place}；持有 ${bag}${phys === '' ? '' : `；${phys}`}`
-  })
-  const events = describeFacts(world, present, world.ledger.clock, view.names, view.aliases)
-  return `已知地点：${places}\n账本现状：\n${rows.join('\n')}${events === '' ? '' : `\n最近发生过的事：\n${events}`}`
 }
 
 function maxDuration(verdicts: readonly Verdict[]): number {
