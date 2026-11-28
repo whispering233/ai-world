@@ -165,11 +165,14 @@ CI 用 Node 22 与 pnpm 缓存（`pnpm/action-setup` 的版本取自根 `package
 ```sh
 # 1. 把 Unreleased 段改成 ## [vX.Y.Z] - 日期，并在顶部补新的 ## [Unreleased]
 # 2. 抬版本（手工改根 package.json 的 version；子包 version 不参与发布）
-# 3. 提交、打 tag、推送
-git commit -am "release: v0.0.2"
-git tag v0.0.2
-git push origin main --tags
+# 3. 提交、打 tag（annotated，与 v0.0.2 一致）、推送
+git commit -am "release: v0.0.3"
+git tag -a v0.0.3 -m "v0.0.3"
+git push origin main        # 先推 main，等 CI 绿
+git push origin v0.0.3      # 再推 tag，触发 Release
 ```
+
+推送前跑一次 `gh auth status`：多账号机器上必须确认生效的是本人（必要时 `gh auth switch`），`gh` 与 `git push` 走同一套 https 凭据；`--tags` 会把本地所有 tag 一并推上去，单独推一个更安全。
 
 **不做 npm publish**：本项目是 `private: true` 的应用，不是库。**不做桌面打包**：没有 Electron 壳。tag 只从已通过 CI 的 `main` 打。
 

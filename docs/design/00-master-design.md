@@ -24,7 +24,7 @@
 调度层  clock(分钟) / journal(append-only)
 ```
 
-服务边界（**按接口寻址，不直接 import 实现**）：`clock` / `ledger` / `referee` / `narrate`。
+服务边界（**按接口寻址，不直接 import 实现**）：`referee` / `cognition` / `narrator` 加一个 `store`（`suggester` 可选，不传就跳过提示）。
 每个服务都必须能替换为确定性桩（fixture / 规则桩），否则系统无法测试与回放。
 
 ## 5. 已定决策

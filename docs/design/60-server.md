@@ -163,7 +163,7 @@ packages/web      ← shared：React SPA（拿不到 core，边界由 pnpm 严�
 | `ui/` 自有件 | 只剩 `ModeSwitch`（`Segmented` 薄壳，只在作者壳顶部出现）；就地的小排版包装留在调用文件里，不进 `ui/` |
 | 玩家壳 | `TopBar` `ReadingStream` `PlayerLine` `BeatDivider` `Composer` `StateDrawer` `EmptyState` `ErrorNotice` |
 | 作者壳 | `AuthorApp` `BeatList` `BeatDetail` `LedgerView` `HealthPanel` `ContentEditor` `SaveDialog`；两壳渲染同一个 `Composer` 元素（作者数据懒取，不外溢到玩家壳） |
-| 懒加载 | `AuthorApp` 走 `lazy` + `Suspense`（2026-11-28 构建：主 chunk 1074 kB / gzip 340 kB，作者壳 77.5 kB / gzip 25.2 kB）；隔离守卫 `discipline.test.ts` 同时认静态与动态 `import()` |
+| 懒加载 | `AuthorApp` 走 `lazy` + `Suspense`（v0.0.3 构建：主 chunk 1068 kB / gzip 338 kB，作者壳 84.4 kB / gzip 27.3 kB）；隔离守卫 `discipline.test.ts` 同时认静态与动态 `import()` |
 | 状态 | 一个 `useReducer`；`mode` 与滚动位置进 localStorage |
 
 层叠与 cssVar 的两个陷阱（都会静默失效、测试全绿）：`@ant-design/cssinjs` 必须与 antd 内部读同一实例；`zeroRuntime` 路线不可用（x 不发 CSS）。详见 [ui/DESIGN.md](../ui/DESIGN.md) §0。

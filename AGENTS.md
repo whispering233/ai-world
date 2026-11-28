@@ -46,7 +46,7 @@
 
 ## UI 与组件
 
-- **chrome 只有一套**：`antd` 6 + `@ant-design/x` 2。不写第二套自绘基础件；确实缺的薄包装放调用点文件内，不进 `src/ui/`。
+- **chrome 只有一套**：`antd` 6 + `@ant-design/x` 2。不写第二套自绘基础件；`src/ui/` 只放**跨壳**共享的薄壳（当前只有 `ModeSwitch`），单调用点的薄包装就地写在调用文件里。
 - `tokens.css` 的排层语句必须在 `@import "tailwindcss"` 之前，层序必须含 `antdx`（`@ant-design/x` 自己的层）。漏写时 `Sender` 的工具类被静默压掉，页面看着正常、类型检查也绿。
 - `<html class="ai-world-theme">` 与 `AntdProvider` 的 `cssVar.key` 必须同字面量：antd 6 不把 `--ant-*` 注入 `:root`，不同步会让全站语义色静默变透明。
 - `@ant-design/cssinjs` 必须与 antd 内部读的同一实例（当前 2.2.0），否则 `<StyleProvider layer>` 静默失效（只有图标进层）。
@@ -67,7 +67,9 @@
 
 - 版本号三处一致才能发：tag `vX.Y.Z`、根 `package.json` 的 `version`、`CHANGELOG.md` 的 `## [vX.Y.Z] - 日期`。Release 工作流先校验，不一致直接红。
 - 只改根 `package.json`；子包 `version` 不参与发布。
-- tag 只从已通过 CI 的 `main` 打；发完补回新的 `## [Unreleased]`。
+- tag 只从已通过 CI 的 `main` 打：先 `git push origin main`，等 CI 绿了再推 tag（`git tag -a vX.Y.Z -m vX.Y.Z`，annotated，轻量 tag 没有 tagger 也没有日期）。
+- 推送前跑一次 `gh auth status`：多账号机器上必须确认生效的是本人（必要时 `gh auth switch`），`gh` 与 `git push` 走同一套 https 凭据。
+- 发完补回新的 `## [Unreleased]`。
 
 ## 开发顺序
 
