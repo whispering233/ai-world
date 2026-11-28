@@ -12,6 +12,8 @@ const root = document.documentElement
 if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) root.dataset.motion = 'reduced'
 
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)')
+// 首帧前先落一次，避免深色系统下先画一帧浅色再被 effect 改回去
+root.dataset.theme = darkQuery.matches ? 'dark' : 'light'
 
 /** 订阅系统深浅色：切换时浏览器对 `MediaQueryList` 发 `change`，快照跟着重新读 */
 function subscribeDark(onChange: () => void): () => void {

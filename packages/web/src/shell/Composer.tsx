@@ -134,6 +134,8 @@ function mmss(ms: number): string {
  */
 export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFlight, settled, elapsedMs, state, target, auto, explicitAll, onTargetChange, onAuto, onAll, hints }: ComposerProps) {
   const holds = state?.holds.map((item) => `${item.name}×${item.count}`).join('、') ?? ''
+  // 按码点计数，与服务端截断口径一致（`server/session.ts` 的 `clip()` 用 `Array.from`）
+  const draftLength = Array.from(draft).length
   // 「自动」与「所有人」是两个不同的意图：前者让服务端按正文推断，后者不推断（C11）
   const targetOptions: TargetOption[] = [
     { key: 'auto', label: '自动', checked: auto === true, select: () => onAuto?.() },
@@ -196,7 +198,7 @@ export function Composer({ draft, onDraftChange, onSend, onStop, onWait, inFligh
               )}
             </span>
             {/* 契约是 1–500 字（docs/api/20-api-beat.md）：超出由服务端截断，这里先告一声 */}
-            {draft.length > PLAYER_TEXT_MAX && <span>已 {draft.length} 字，发送后会被截到 {PLAYER_TEXT_MAX} 字</span>}
+            {draftLength > PLAYER_TEXT_MAX && <span>已 {draftLength} 字，发送后会被截到 {PLAYER_TEXT_MAX} 字</span>}
           </span>
           {/* 等待中不提供：同一时刻只允许一条在途输入 */}
           {!inFlight && (
