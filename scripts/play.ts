@@ -23,6 +23,7 @@ import { createNarrator } from '@ai-world/core'
 import { createLlmReferee } from '@ai-world/core'
 import { healthView } from '@ai-world/core'
 import { openScene, type Scene } from '@ai-world/core'
+import { zeroUsageByRole } from '@ai-world/core'
 import { openStore, replay, replayCharacters } from '@ai-world/core'
 import { dataDir, JOURNAL_FILE, PASSAGE_FILE } from '@ai-world/core'
 import { seedCharacters } from '@ai-world/core'
@@ -116,12 +117,7 @@ const DURATIONS = [
 ] as const
 
 async function main(): Promise<void> {
-  const usage = {
-    cognition: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
-    referee: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
-    narration: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
-    suggest: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ms: 0, retries: 0, calls: 0 },
-  }
+  const usage = zeroUsageByRole()
   // 默认模型跟着 pi 自己的设置走（settings.json / PI_MODEL + PI_PROVIDER），配置文件只做覆盖
   const cfg = resolveModelConfig()
   const llm = createLlm({

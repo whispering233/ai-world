@@ -4,17 +4,13 @@
  * 为什么在这里做而不是在 core：core 的 `Llm` 接口不变，服务端只是包一层；
  * 中止也要在这里兜住——不是所有 provider 都老实看 `signal`，race 让中止立刻生效。
  */
-import type { ModelRoleName, PromptCallView, UsageView } from '@ai-world/shared'
+import type { ModelRoleName, PromptCallView } from '@ai-world/shared'
 import type { BeatTelemetry, ChatRequest, ChatResult, Llm } from '@ai-world/core'
 
 /** 一场拍的回收站：`telemetry` 会被 runBeat 读走，`calls` 进 prompt 环形缓冲。 */
 export interface BeatSink {
   telemetry: BeatTelemetry
   calls: PromptCallView[]
-}
-
-export function emptyUsage(): UsageView {
-  return { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, ms: 0, retries: 0, calls: 0 }
 }
 
 export function withBeatScope(llm: Llm, signal: AbortSignal, sink: BeatSink): Llm {

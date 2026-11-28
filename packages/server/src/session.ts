@@ -34,6 +34,7 @@ import {
   runBeat,
   seedCharacters,
   validatePack,
+  zeroUsageByRole,
   type BeatTelemetry,
   type Character,
   type ContentPack,
@@ -46,7 +47,7 @@ import {
 } from '@ai-world/core'
 import { contentHash } from '@ai-world/content'
 import { inferFocus } from './focus.ts'
-import { emptyUsage, withBeatScope, type BeatSink } from './llm.ts'
+import { withBeatScope, type BeatSink } from './llm.ts'
 
 export interface WorldOption {
   id: string
@@ -137,12 +138,7 @@ export function createSession(opts: SessionOptions): Session {
   let activeHash = contentHash(pack)
   let participants = roster(pack)
   // 本次进程累计，不是本局累计：进程重启归零，作者壳须注明
-  const usage: Record<ModelRoleName, UsageView> = {
-    cognition: emptyUsage(),
-    referee: emptyUsage(),
-    narration: emptyUsage(),
-    suggest: emptyUsage(),
-  }
+  const usage: Record<ModelRoleName, UsageView> = zeroUsageByRole()
   // 各角色最近一次实际使用的模型串：本拍没调到的角色沿用它，telemetry 才不缺角色
   const models: Record<ModelRoleName, string> = { cognition: '', referee: '', narration: '', suggest: '' }
   const notes = new Map<number, string[]>()
@@ -336,7 +332,7 @@ export function createSession(opts: SessionOptions): Session {
     const sink: BeatSink = {
       telemetry: {
         models: { ...models },
-        usage: { cognition: emptyUsage(), referee: emptyUsage(), narration: emptyUsage(), suggest: emptyUsage() },
+        usage: zeroUsageByRole(),
       },
       calls: [],
     }
